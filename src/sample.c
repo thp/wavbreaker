@@ -197,7 +197,7 @@ int play_sample(gulong startpos, gulong *play_marker)
 
 	/* setup thread */
 
-    printf("creating the thread\n");
+    //printf("creating the thread\n");
     fflush(stdout);
 	thread = g_thread_create(play_thread, play_marker, FALSE, NULL);
 	if (thread == NULL) {
@@ -208,7 +208,7 @@ int play_sample(gulong startpos, gulong *play_marker)
 
 	g_mutex_unlock(mutex);
     g_thread_yield();
-    printf("finished creating the thread\n");
+    //printf("finished creating the thread\n");
 	return 0;
 }               
 

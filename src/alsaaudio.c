@@ -134,8 +134,6 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
     printf("setting format of audio device (%d)\n", format);
     #endif
     err = snd_pcm_hw_params_set_format(playback_handle, hw_params, format);
-    snd_pcm_hw_params_get_format(hw_params, &format);
-    printf("format of audio device is (%d)\n", format);
     if (err < 0) {
         fprintf(stderr, "cannot set sample format (%s)\n", snd_strerror(err));
         return -1;
