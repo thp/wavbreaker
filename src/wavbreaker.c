@@ -122,6 +122,9 @@ void
 track_break_setup_filename(gpointer data, gpointer user_data);
 
 void
+track_break_rename();
+
+void
 track_break_add_to_model(gpointer data, gpointer user_data);
 
 void
@@ -514,19 +517,7 @@ track_break_delete_entry()
     g_list_foreach(list, track_break_selection, NULL);
     g_list_free(list);
 
-    /* setup the filename */
-    strcpy(str_tmp, sample_filename);
-    str_ptr = basename(str_tmp);
-    strcpy(str_tmp, str_ptr);
-    str_ptr = strrchr(str_tmp, '.');
-    if (str_ptr != NULL) {
-        *str_ptr = '\0';
-    }
-    g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
-    gtk_list_store_clear(store);
-    g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
-
-    redraw();
+    track_break_rename();
 }
 
 void
@@ -674,6 +665,13 @@ track_break_add_entry()
     track_break_list = g_list_insert_sorted(track_break_list, track_break,
                                             track_break_sort);
 
+    track_break_rename();
+}
+
+void track_break_rename() {
+    gchar str_tmp[1024];
+    gchar *str_ptr;
+
     /* setup the filename */
     strcpy(str_tmp, sample_filename);
     str_ptr = basename(str_tmp);
@@ -687,6 +685,7 @@ track_break_add_entry()
     g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
 
     redraw();
+
 /* DEBUG CODE START */
 /*
     g_list_foreach(track_break_list, track_break_print_element, NULL);

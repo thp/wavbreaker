@@ -291,6 +291,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
 
+    track_break_rename();
     appconfig_hide(GTK_WIDGET(user_data));
     appconfig_write_file();
 }

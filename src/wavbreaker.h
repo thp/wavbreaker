@@ -52,5 +52,6 @@ struct WriteInfo_ {
 };
 
 void wavbreaker_autosplit(long x);
+void track_break_rename();
 
 #endif /* WAVBREAKER_H */
