@@ -1,5 +1,5 @@
-/* wavbreaker - A tool to split a wave file up into multiple wave.
- * Copyright (C) 2002 Timothy Robinson
+/* wavbreaker - A tool to split a wave file up into multiple waves.
+ * Copyright (C) 2002-2003 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -464,12 +464,10 @@ track_break_delete_entry()
 	strcpy(str_tmp, sample_filename);
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
-	/*
 	str_ptr = strrchr(str_tmp, '.');
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
-	*/
 	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
@@ -579,12 +577,10 @@ track_break_add_entry()
 	strcpy(str_tmp, sample_filename);
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
-	/*
 	str_ptr = strrchr(str_tmp, '.');
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
-	*/
 	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
