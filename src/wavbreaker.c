@@ -1149,6 +1149,8 @@ menu_play(GtkWidget *widget, gpointer user_data)
 			break;
 		case 2:
 //			printf("already playing\n");
+			menu_stop(NULL, NULL);
+			play_sample(cursor_marker);
 			break;
 		case 3:
 //			printf("must open sample file to play\n");
