@@ -32,8 +32,12 @@
 static GtkWidget *window;
 
 /* Output directory for wave files. */
+static int use_outputdir = 0;
+static GtkWidget *use_outputdir_toggle = NULL;
 static char *outputdir = NULL;
 static GtkWidget *outputdir_entry = NULL;
+static GtkWidget *browse_button = NULL;
+static GtkWidget *outputdir_label = NULL;
 
 /* Device file for audio output. */
 static char *outputdev = NULL;
@@ -44,6 +48,16 @@ static char *configfilename = NULL;
 
 /* function prototypes */
 static int appconfig_write_file();
+
+int get_use_outputdir()
+{
+	return use_outputdir;
+}
+
+void set_use_outputdir(const char *val)
+{
+	use_outputdir = atoi(val);
+}
 
 char *get_outputdir()
 {
@@ -82,6 +96,23 @@ void set_configfilename(const char *val)
 		g_free(configfilename);
 	}
 	configfilename = g_strdup(val);
+}
+
+static void use_outputdir_toggled(GtkWidget *widget, gpointer user_data)
+{
+	if (get_use_outputdir()) {
+		// disable the output dir widget
+		gtk_widget_set_sensitive(outputdir_entry, FALSE);
+		gtk_widget_set_sensitive(browse_button, FALSE);
+		gtk_widget_set_sensitive(outputdir_label, FALSE);
+		set_use_outputdir("0");
+	} else {
+		// enable the output dir widget
+		gtk_widget_set_sensitive(outputdir_entry, TRUE);
+		gtk_widget_set_sensitive(browse_button, TRUE);
+		gtk_widget_set_sensitive(outputdir_label, TRUE);
+		set_use_outputdir("1");
+	}
 }
 
 static void appconfig_hide(GtkWidget *main_window)
@@ -148,11 +179,9 @@ void appconfig_show(GtkWidget *main_window)
 	GtkWidget *vbox;
 	GtkWidget *table;
 	GtkWidget *hbbox;
-	GtkWidget *outputdir_label;
 	GtkWidget *outputdev_label;
 	GtkWidget *hseparator;
 	GtkWidget *ok_button, *cancel_button;
-	GtkWidget *browse_button;
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_widget_realize(window);
@@ -171,30 +200,44 @@ void appconfig_show(GtkWidget *main_window)
 	gtk_container_add(GTK_CONTAINER(vbox), table);
 	gtk_widget_show(table);
 
+	use_outputdir_toggle = gtk_check_button_new_with_label("Use Selectable Output Directory");
+	gtk_table_attach(GTK_TABLE(table), use_outputdir_toggle, 0, 3, 0, 1, GTK_FILL, 0, 5, 0);
+	g_signal_connect(GTK_OBJECT(use_outputdir_toggle), "toggled",
+		G_CALLBACK(use_outputdir_toggled), NULL);
+	gtk_widget_show(use_outputdir_toggle);
+
 	outputdir_label = gtk_label_new("Wave File Output Directory:");
 	gtk_misc_set_alignment(GTK_MISC(outputdir_label), 0, 0.5);
-	gtk_table_attach(GTK_TABLE(table), outputdir_label, 0, 1, 0, 1, GTK_FILL, 0, 5, 0);
+	gtk_table_attach(GTK_TABLE(table), outputdir_label, 0, 1, 1, 2, GTK_FILL, 0, 5, 0);
 	gtk_widget_show(outputdir_label);
 
 	outputdir_entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(outputdir_entry), outputdir);
 	gtk_entry_set_width_chars(GTK_ENTRY(outputdir_entry), 32);
-	gtk_table_attach(GTK_TABLE(table), outputdir_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+	gtk_table_attach(GTK_TABLE(table), outputdir_entry, 1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
 	gtk_widget_show(outputdir_entry);
 
 	browse_button = gtk_button_new_with_label("Browse");
-	gtk_table_attach(GTK_TABLE(table), browse_button, 2, 3, 0, 1, GTK_FILL, 0, 5, 0);
+	gtk_table_attach(GTK_TABLE(table), browse_button, 2, 3, 1, 2, GTK_FILL, 0, 5, 0);
 	g_signal_connect(G_OBJECT(browse_button), "clicked", (GtkSignalFunc)browse_button_clicked, window);
 	gtk_widget_show(browse_button);
 
+	hseparator = gtk_hseparator_new();
+	gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
+	gtk_widget_show(hseparator);
+
+	table = gtk_table_new(3, 1, FALSE);
+	gtk_container_add(GTK_CONTAINER(vbox), table);
+	gtk_widget_show(table);
+
 	outputdev_label = gtk_label_new("Audio Device:");
 	gtk_misc_set_alignment(GTK_MISC(outputdev_label), 0, 0.5);
-	gtk_table_attach(GTK_TABLE(table), outputdev_label, 0, 1, 1, 2, GTK_FILL, 0, 5, 0);
+	gtk_table_attach(GTK_TABLE(table), outputdev_label, 0, 1, 0, 1, GTK_FILL, 0, 5, 0);
 	gtk_widget_show(outputdev_label);
 
 	outputdev_entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(outputdev_entry), outputdev);
-	gtk_table_attach(GTK_TABLE(table), outputdev_entry, 1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+	gtk_table_attach(GTK_TABLE(table), outputdev_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
 	gtk_widget_show(outputdev_entry);
 
 	hseparator = gtk_hseparator_new();
@@ -216,6 +259,27 @@ void appconfig_show(GtkWidget *main_window)
 	gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
 	g_signal_connect(G_OBJECT(ok_button), "clicked", (GtkSignalFunc)ok_button_clicked, window);
 	gtk_widget_show(ok_button);
+
+	// set directly so the toggled event is not emitted
+	if (get_use_outputdir()) {
+		//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), TRUE);
+		GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = TRUE;
+	} else {
+		//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), FALSE);
+		GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = FALSE;
+	}
+
+	if (get_use_outputdir()) {
+		// enable the output dir widget
+		gtk_widget_set_sensitive(outputdir_entry, TRUE);
+		gtk_widget_set_sensitive(browse_button, TRUE);
+		gtk_widget_set_sensitive(outputdir_label, TRUE);
+	} else {
+		// disable the output dir widget
+		gtk_widget_set_sensitive(outputdir_entry, FALSE);
+		gtk_widget_set_sensitive(browse_button, FALSE);
+		gtk_widget_set_sensitive(outputdir_label, FALSE);
+	}
 
 	gtk_widget_show(window);
 }
@@ -254,7 +318,11 @@ static int appconfig_read_file() {
     while (cur != NULL) {
 		xmlChar *key;
 
-        if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdev"))) {
+        if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_outputdir"))) {
+			key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+			set_use_outputdir(key);
+			xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdev"))) {
 			key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 			set_outputdev(key);
 			xmlFree(key);
@@ -275,6 +343,7 @@ static int appconfig_write_file() {
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlNodePtr cur;
+	char tmp_str[32];
 
 	doc = xmlNewDoc((const xmlChar *)"1.0");
 
@@ -293,6 +362,18 @@ static int appconfig_write_file() {
 		return 2;
 	}
 
+	sprintf(tmp_str, "%d", get_use_outputdir());
+	cur = xmlNewChild(root, NULL, (const xmlChar *)"use_outputdir", (const xmlChar *) tmp_str);
+
+	if (cur == NULL) {
+		fprintf(stderr, "error creating wavbreaker config file\n");
+		fprintf(stderr, "error creating use_outputdir node\n");
+		xmlFreeNodeList(root);
+		xmlFreeDoc(doc);
+		return 3;
+	}
+
+	cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdev", (const xmlChar *) get_outputdev());
 	cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir", (const xmlChar *) get_outputdir());
 
 	if (cur == NULL) {
@@ -349,8 +430,9 @@ void appconfig_init()
 	configfilename = g_strdup(str);
 
 	if (access(get_configfilename(), W_OK | F_OK) || appconfig_read_file()) {
-		outputdir = g_strdup(getenv("PWD"));
-		outputdev = g_strdup("/dev/dsp");
+		set_use_outputdir("0");
+		set_outputdir(getenv("PWD"));
+		set_outputdev("/dev/dsp");
 		appconfig_write_file();
 	}
 #else
