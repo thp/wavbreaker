@@ -24,7 +24,6 @@
 #include <sys/stat.h>
 #include <gtk/gtk.h>
 #include <string.h>
-#include <libgen.h>
 
 #include "wavbreaker.h"
 #include "sample.h"
@@ -185,6 +184,15 @@ update_status();
 
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
+
+char *basename(const char *str)
+{
+#ifdef _WIN32
+    return rindex(str, '\\') + 1;
+#else
+    return rindex(str, '/') + 1;
+#endif
+}
 
 static GtkItemFactoryEntry menu_items[] = {
   {"/_File", NULL, 0, 0, "<Branch>"},
@@ -853,7 +861,7 @@ openfile()
 {
 	static GtkWidget *filesel = NULL;
 
-	if (!filesel) {
+	if (filesel == NULL) {
 		filesel = gtk_file_selection_new("open file");
 		gtk_signal_connect(GTK_OBJECT(
 			GTK_FILE_SELECTION(filesel)->ok_button),

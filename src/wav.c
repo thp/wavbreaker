@@ -40,7 +40,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 	*/
 	/* DEBUG CODE END */
 
-    if ((fp = fopen(sample_file, "r")) == NULL) {
+    if ((fp = fopen(sample_file, "rb")) == NULL) {
         printf("error opening %s\n", sample_file);
         return 1;
     }
@@ -279,7 +279,7 @@ wav_write_file(FILE *fp,
 	unsigned long cur_pos, num_bytes;
 	unsigned char buf[buf_size];
 
-	if ((new_fp = fopen(filename, "w")) == NULL) {
+	if ((new_fp = fopen(filename, "wb")) == NULL) {
 		printf("error opening %s for writing\n", filename);
 		return -1;
 	}
@@ -395,7 +395,7 @@ wav_merge_files(char *filename,
 		num_bytes += sample_info[i].numBytes;
 	}
 
-	if ((new_fp = fopen(filename, "w")) == NULL) {
+	if ((new_fp = fopen(filename, "wb")) == NULL) {
 		printf("error opening %s for writing\n", filename);
 		return -1;
 	}
@@ -406,7 +406,7 @@ wav_merge_files(char *filename,
 	}
 
 	for (i = 0; i < num_files; i++) {
-		if ((read_fp = fopen(filenames[i], "r")) == NULL) {
+		if ((read_fp = fopen(filenames[i], "rb")) == NULL) {
 			printf("error opening %s for writing\n", filenames[i]);
 			return -1;
 		}

@@ -91,7 +91,7 @@ cdda_write_file(FILE *fp,
 	unsigned long cur_pos;
 	unsigned char buf[buf_size];
 
-	if ((new_fp = fopen(filename, "w")) == NULL) {
+	if ((new_fp = fopen(filename, "wb")) == NULL) {
 		printf("error opening %s for writing\n", filename);
 		return -1;
 	}

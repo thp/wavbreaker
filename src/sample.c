@@ -26,7 +26,13 @@
 #include <gtk/gtk.h>
  
 #include "wavbreaker.h"
+
+#ifdef _WIN32
+#include "winaudio.h"
+#else
 #include "linuxaudio.h"
+#endif
+
 #include "sample.h"
 #include "wav.h"
 #include "cdda.h"
@@ -222,7 +228,7 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 		audio_type = CDDA;
 	}
 
-	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
+	if ((sample_fp = fopen(sample_file, "rb")) == NULL) {
 		printf("error opening %s\n", sample_file);
 		return;
 	}
@@ -446,7 +452,7 @@ void sample_write_files(const char *filename, GList *tbl, WriteInfo *write_info)
 	}
 	sample_file = strdup(filename);
 
-	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
+	if ((sample_fp = fopen(sample_file, "rb")) == NULL) {
 		printf("error opening %s\n", sample_file);
 		return;
 	}
