@@ -103,9 +103,9 @@ void sample_init()
 
 static gpointer play_thread(gpointer thread_data)
 {
-	int read_ret, write_ret, i;
-	guint *play_marker = (guint *)thread_data;
-	unsigned char devbuf[BUF_SIZE];
+    int read_ret, write_ret, i;
+    guint *play_marker = (guint *)thread_data;
+    unsigned char *devbuf;
 
     //printf("play_thread: calling open_audio_device\n");
     //if (audio_open_device(get_outputdev(), &sampleInfo) != 0) {
@@ -122,15 +122,26 @@ static gpointer play_thread(gpointer thread_data)
 
 	i = 0;
 
+    devbuf = malloc(sampleInfo.bufferSize);
+    if (devbuf == NULL) {
+        g_mutex_lock(mutex);
+        playing = 0;
+        //audio_close_device();
+        alsa_audio_close_device();
+        g_mutex_unlock(mutex);
+        printf("play_thread: out of memory\n");
+		return NULL;
+    }
+
 	if (audio_type == CDDA) {
-		read_ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
-			sample_start + (BUF_SIZE * i++));
+		read_ret = cdda_read_sample(sample_fp, devbuf, sampleInfo.bufferSize,
+			sample_start + (sampleInfo.bufferSize * i++));
 	} else if (audio_type == WAV) {
-		read_ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
-			sample_start + (BUF_SIZE * i++));
+		read_ret = wav_read_sample(sample_fp, devbuf, sampleInfo.bufferSize,
+			sample_start + (sampleInfo.bufferSize * i++));
 	}
 
-	while (read_ret > 0 && read_ret <= BUF_SIZE) {
+	while (read_ret > 0 && read_ret <= sampleInfo.bufferSize) {
         if (read_ret < 0) {
             printf("read_ret: %d\n", read_ret);
         }
@@ -156,14 +167,16 @@ static gpointer play_thread(gpointer thread_data)
 		}
 
 		if (audio_type == CDDA) {
-			read_ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
-				sample_start + (BUF_SIZE * i++));
+			read_ret = cdda_read_sample(sample_fp, devbuf,
+                sampleInfo.bufferSize,
+                sample_start + (sampleInfo.bufferSize * i++));
 		} else if (audio_type == WAV) {
-			read_ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
-				sample_start + (BUF_SIZE * i++));
+			read_ret = wav_read_sample(sample_fp, devbuf,
+                sampleInfo.bufferSize,
+                sample_start + (sampleInfo.bufferSize * i++));
 		}
 
-		*play_marker = ((BUF_SIZE * i) + sample_start) / BLOCK_SIZE;
+		*play_marker = ((sampleInfo.bufferSize * i) + sample_start) / BLOCK_SIZE;
 	}
 
 	g_mutex_lock(mutex);
@@ -460,12 +473,11 @@ write_thread(gpointer data)
 			write_info->cur_filename = strdup(filename);
 
 			if (audio_type == CDDA) {
-				ret = cdda_write_file(sample_fp, filename, BUF_SIZE,
-							start_pos, end_pos);
+				ret = cdda_write_file(sample_fp, filename,
+                    sampleInfo.bufferSize, start_pos, end_pos);
 			} else if (audio_type == WAV) {
 				ret = wav_write_file(sample_fp, filename, BLOCK_SIZE,
-							&sampleInfo, start_pos, end_pos,
-							&write_info->pct_done);
+                    &sampleInfo, start_pos, end_pos, &write_info->pct_done);
 			}
 			i++;
 		}

@@ -39,7 +39,7 @@ int audio_write(char *devbuf, int size)
 	return write(audio_fd, devbuf, size);
 }
 
-int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
+int audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
 {
 	int format, speed, channels;
 	int ret;
@@ -51,6 +51,7 @@ int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 	}
 	speed = sampleInfo->samplesPerSec;
 	channels = sampleInfo->channels;
+    sampleInfo->bufferSize = DEFAULT_BUF_SIZE;
 
     /*
     printf("opening audio device...");

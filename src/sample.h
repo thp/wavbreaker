@@ -21,9 +21,7 @@
 
 #include "wavbreaker.h"
 
-//#define BUF_SIZE 128
-#define BUF_SIZE 4096
-//#define BUF_SIZE 16384
+#define DEFAULT_BUF_SIZE 4096
 #define BLOCK_SIZE 2352
 
 #define CD_BLOCK_SIZE                   (2352)
@@ -32,12 +30,13 @@
 typedef struct SampleInfo_ SampleInfo;
 
 struct SampleInfo_ {
-		unsigned short	channels;
-		unsigned long	samplesPerSec;
-		unsigned long	avgBytesPerSec;
-		unsigned short	blockAlign;
-		unsigned short	bitsPerSample;
-		unsigned long	numBytes;
+    unsigned short  channels;
+    unsigned int    samplesPerSec;
+    unsigned int    avgBytesPerSec;
+    unsigned short  blockAlign;
+    unsigned short  bitsPerSample;
+    unsigned int    numBytes;
+    unsigned int    bufferSize;
 };
 
 char *wav_get_error_message();

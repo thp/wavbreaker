@@ -32,9 +32,10 @@ int main(int argc, char *argv[])
 	}
 
 	if (strcmp(argv[1], "-o") == 0) {
-		ret = wav_merge_files(argv[2], argc - 3, &argv[3], BUF_SIZE);
+		ret = wav_merge_files(argv[2], argc - 3, &argv[3], DEFAULT_BUF_SIZE);
 	} else {
-		ret = wav_merge_files("merged.wav", argc - 1, &argv[1], BUF_SIZE);
+		ret = wav_merge_files("merged.wav", argc - 1, &argv[1],
+            DEFAULT_BUF_SIZE);
 	}
 
 	if (ret != 0) {

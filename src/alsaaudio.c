@@ -62,7 +62,7 @@ int alsa_audio_write(char *devbuf, int size)
     return err;
 }
 
-int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
+int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
 {
     int err;
     int dir;
@@ -203,6 +203,7 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
     #ifdef DEBUG
     printf("period size for playback: %d\n", period_size);
     #endif
+    sampleInfo->bufferSize = period_size;
 
     /* commit parameters */
     err = snd_pcm_hw_params(playback_handle, hw_params);
