@@ -340,13 +340,11 @@ void appconfig_init()
 	strcat(str, APPCONFIG_FILENAME);
 	configfilename = g_strdup(str);
 
-	if (access(get_configfilename(), W_OK | F_OK)) {
+	if (access(get_configfilename(), W_OK | F_OK) || appconfig_read_file()) {
 		outputdir = g_strdup(getenv("PWD"));
 		outputdev = g_strdup("/dev/dsp");
 		appconfig_write_file();
 	}
-
-	appconfig_read_file();
 #else
 	outputdir = g_strdup("c:\\MyFiles");
 	outputdev = g_strdup("/dev/dsp");
