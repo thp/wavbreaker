@@ -349,7 +349,7 @@ write_thread(void *data)
 	char *filename;
 	char str_tmp[1024];
 
-	i = 0;
+	i = 1;
 	tbl_cur = tbl_head;
 	tbl_next = g_list_next(tbl_cur);
 
@@ -370,9 +370,8 @@ write_thread(void *data)
 			}
 
 			/* add output directory to filename */
-			strcpy(str_tmp, "/data/tmp/");
+			strcpy(str_tmp, "/data/tmp/wavbreaker");
 			filename = strdup(strcat(str_tmp, filename));
-			printf("%s\n", filename);
 
 			/* add file number to filename */
 			if (i < 10) {
