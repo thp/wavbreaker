@@ -1,7 +1,7 @@
 AC_INIT(src/wavbreaker.c)
 
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(wavbreaker, 0.1)
+AM_INIT_AUTOMAKE(wavbreaker, 0.2)
 
 dnl Checks for programs.
 AC_PROG_CC
