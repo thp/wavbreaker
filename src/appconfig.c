@@ -122,6 +122,7 @@ char *default_etree_filename_suffix()
         g_free(etree_filename_suffix);
     }
     etree_filename_suffix = g_strdup("-");
+printf("default filename suffix\n");
     return etree_filename_suffix;
 }
 
@@ -144,6 +145,7 @@ char *default_etree_cd_length()
         g_free(etree_cd_length);
     }
     etree_cd_length = g_strdup("80");
+printf("default cd length\n");
     return etree_cd_length;
 }
 
@@ -563,13 +565,8 @@ static int appconfig_write_file() {
         return 3;
     }
 
-    if (get_outputdir() == NULL) {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir",
-            (const xmlChar *) default_outputdir());
-    } else {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir",
-            (const xmlChar *) get_outputdir());
-    }
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir",
+        (const xmlChar *) get_outputdir());
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
@@ -579,13 +576,8 @@ static int appconfig_write_file() {
         return 3;
     }
 
-    if (get_outputdev() == NULL) {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdev",
-            (const xmlChar *) default_outputdev());
-    } else {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdev",
-            (const xmlChar *) get_outputdev());
-    }
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdev",
+        (const xmlChar *) get_outputdev());
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
@@ -607,13 +599,8 @@ static int appconfig_write_file() {
         return 3;
     }
 
-    if (get_etree_filename_suffix() == NULL) {
-           cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_filename_suffix",
-            (const xmlChar *) default_etree_filename_suffix());
-    } else {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_filename_suffix",
-            (const xmlChar *) get_etree_filename_suffix());
-    }
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_filename_suffix",
+        (const xmlChar *) get_etree_filename_suffix());
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
@@ -623,13 +610,8 @@ static int appconfig_write_file() {
         return 3;
     }
 
-    if (get_etree_cd_length() == NULL) {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_cd_length",
-            (const xmlChar *) default_etree_cd_length());
-    } else {
-        cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_cd_length",
-            (const xmlChar *) get_etree_cd_length());
-    }
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_cd_length",
+        (const xmlChar *) get_etree_cd_length());
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
@@ -649,7 +631,10 @@ static int appconfig_write_file() {
     */
 
     xmlIndentTreeOutput = 1;
+    /*
+    xmlThrDefIndentTreeOutput(1);
     xmlKeepBlanksDefault(0);
+    */
     if (! xmlSaveFormatFile(get_config_filename(), doc, 1)) {
         fprintf(stderr, "error writing config file: %s", get_config_filename());
         xmlFreeNodeList(root);
@@ -668,12 +653,39 @@ void appconfig_init()
 {
 #ifndef _WIN32
     default_config_filename();
+
+    /*
+     * See if we can read and write the config file,
+     * then try to read in the values.
+     */
     if (access(get_config_filename(), W_OK | F_OK) || appconfig_read_file()) {
+        default_all_strings();
         appconfig_write_file();
+    } else {
+        default_all_strings();
     }
+
 #else
     outputdir = g_strdup("c:\\MyFiles");
     outputdev = g_strdup("/dev/dsp");
+    etree_filename_suffix = g_strdup("-");
+    etree_cd_length = g_strdup("80");
 #endif
+}
+
+void default_all_strings() {
+    /* default any values that where not in the config file */
+    if (get_outputdir() == NULL) {
+        default_outputdir();
+    }
+    if (get_outputdev() == NULL) {
+        default_outputdev();
+    }
+    if (get_etree_filename_suffix() == NULL) {
+        default_etree_filename_suffix();
+    }
+    if (get_etree_cd_length() == NULL) {
+        default_etree_cd_length();
+    }
 }
 
