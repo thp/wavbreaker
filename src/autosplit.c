@@ -72,15 +72,16 @@ static long parse_time_string()
 		tmp_str = str_ptr;
 		str_ptr = strchr(autosplit_time, '.');
 		if (str_ptr == NULL) {
-			return -1;
+			strcpy(sec, tmp_str + 1);
+			time += atoi(sec) * CD_BLOCKS_PER_SEC;
+		} else {
+			len = str_ptr - tmp_str;
+			strncpy(sec, tmp_str + 1, len);
+			time += atoi(sec) * CD_BLOCKS_PER_SEC;
+
+			strcpy(subsec, str_ptr + 1);
+			time += atoi(subsec);
 		}
-
-		len = str_ptr - tmp_str;
-		strncpy(sec, tmp_str + 1, len);
-		time += atoi(sec) * CD_BLOCKS_PER_SEC;
-
-		strcpy(subsec, str_ptr + 1);
-		time += atoi(subsec);
 	}
 
 	return time;
