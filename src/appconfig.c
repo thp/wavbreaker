@@ -373,7 +373,6 @@ static int appconfig_write_file() {
 		return 3;
 	}
 
-	cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdev", (const xmlChar *) get_outputdev());
 	cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir", (const xmlChar *) get_outputdir());
 
 	if (cur == NULL) {
