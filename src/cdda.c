@@ -6,7 +6,7 @@ unsigned long file_size;
 
 int
 cdda_read_header(const char *filename,
-		 SampleInfo *sampleInfo)
+                 SampleInfo *sampleInfo)
 {
 	struct stat statBuf;
 
@@ -91,34 +91,34 @@ cdda_write_file(FILE *fp,
 	}
 
 	/* DEBUG CODE START */
-	/*
+	
 	printf("start_pos: %lu\n", start_pos);
 	printf("end_pos: %lu\n", end_pos);
 	printf("cur_pos: %lu\n", cur_pos);
-	*/
+	
 	/* DEBUG CODE END */
 
+	if (cur_pos + buf_size > end_pos && end_pos != 0) {
+		buf_size = end_pos - cur_pos;
+	}
 	while ((ret = fread(buf, 1, buf_size, fp)) > 0 &&
 				(cur_pos < end_pos || end_pos == 0)) {
 
-		if (cur_pos + buf_size > end_pos && end_pos != 0) {
-			buf_size = end_pos - cur_pos;
-		}
 		if ((fwrite(buf, 1, ret, new_fp)) < ret) {
 			printf("error writing to file %s\n", filename);
 			fclose(new_fp);
 			return -1;
 		}
 		cur_pos += ret;
+
+		if (cur_pos + buf_size > end_pos && end_pos != 0) {
+			buf_size = end_pos - cur_pos;
+		}
 	}
 
 	/* DEBUG CODE START */
-	/*
-	printf("start_pos: %lu\n", start_pos);
-	printf("end_pos: %lu\n", end_pos);
 	printf("cur_pos: %lu\n", cur_pos);
 	printf("done writing - %s\n\n", filename);
-	*/
 	/* DEBUG CODE END */
 
 	fclose(new_fp);
