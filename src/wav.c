@@ -24,6 +24,19 @@ unsigned long wavDataPtr;
 unsigned long wavDataSize;
 long x;
 
+#define ERROR_MESSAGE_SIZE 1024
+static char error_message[ERROR_MESSAGE_SIZE];
+
+char *wav_get_error_message()
+{
+	return error_message;
+}
+
+void wav_set_error_message(const char *val)
+{
+	strncpy(error_message, val, ERROR_MESSAGE_SIZE);
+}
+
 int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 {
 	WaveHeader wavHdr;
@@ -41,22 +54,20 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 	/* DEBUG CODE END */
 
     if ((fp = fopen(sample_file, "rb")) == NULL) {
-        printf("error opening %s\n", sample_file);
+        snprintf(error_message, ERROR_MESSAGE_SIZE, "error opening %s\n", sample_file);
         return 1;
     }
 
 	/* read in file header */
 
 	if (fread(&wavHdr, sizeof(WaveHeader), 1, fp) < 1) {
-		printf("error reading wave header\n");
+        snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading wave header\n");
 		fclose(fp);
 		return 1;
 	}
 
-	if (memcmp(wavHdr.riffID, RiffID, 4) &&
-		memcmp(wavHdr.wavID, WaveID, 4)) {
-
-		printf("%s is not a wave file\n", sample_file);
+	if (memcmp(wavHdr.riffID, RiffID, 4) && memcmp(wavHdr.wavID, WaveID, 4)) {
+		snprintf(error_message, ERROR_MESSAGE_SIZE, "%s is not a wave file\n", sample_file);
 		fclose(fp);
 		return 1;
 	}
@@ -78,7 +89,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 	/* read in format chunk header */
 
 	if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-		printf("error reading chunk\n");
+		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk\n");
 		return 1;
 	}
 
@@ -96,12 +107,12 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 		printf("Chunk %s is not a Format Chunk\n", str);
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-			printf("error seeking to %lu in file", chunkHdr.chunkSize);
+			snprintf(error_message, ERROR_MESSAGE_SIZE, "error seeking to %lu in file", chunkHdr.chunkSize);
 			return 1;
 		}
 
 		if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-			printf("error reading chunk\n");
+			snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk\n");
 			return 1;
 		}
 	}
@@ -118,20 +129,13 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 	/* read in format chunk data */
 
 	if (fread(&fmtChunk, sizeof(FormatChunk), 1, fp) < 1) {
-		printf("error reading format chunk\n");
-		return 1;
-	}
-
-	if (fmtChunk.wFormatTag != 1) {
-		printf("Compressed wave data not supported\n");
-		if (debug) {
-			printf("Compression format is of type: %d\n", fmtChunk.wFormatTag);
-		}
+		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading format chunk\n");
 		return 1;
 	}
 
 	/* DEBUG CODE START */
 	if (debug) {
+		printf("Compression format is of type: %d\n", fmtChunk.wFormatTag);
 		printf("Channels:\t%d\n", fmtChunk.wChannels);
 		printf("Sample Rate:\t%lu\n", fmtChunk.dwSamplesPerSec);
 		printf("Bytes / Sec:\t%lu\n", fmtChunk.dwAvgBytesPerSec);
@@ -140,6 +144,10 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 	}
 	/* DEBUG CODE END */
 
+	if (fmtChunk.wFormatTag != 1) {
+		snprintf(error_message, ERROR_MESSAGE_SIZE, "Compressed wave data not supported\n");
+		return 1;
+	}
 	sampleInfo->channels		= fmtChunk.wChannels;
 	sampleInfo->samplesPerSec	= fmtChunk.dwSamplesPerSec;
 	sampleInfo->avgBytesPerSec	= fmtChunk.dwAvgBytesPerSec;
@@ -149,7 +157,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 	/* read in wav data header */
 
 	if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-		printf("error reading chunk\n");
+		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk");
 		return 1;
 	}
 
@@ -170,13 +178,12 @@ printf("in size compare\n");
 		printf("Chunk %s is not a Format Chunk\n", str);
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-			printf("error seeking to %lu in file",
-				chunkHdr.chunkSize);
+			snprintf(error_message, ERROR_MESSAGE_SIZE, "error seeking to %lu in file", chunkHdr.chunkSize);
 			return 1;
 		}
 
 		if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-			printf("error reading chunk\n");
+			snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk");
 			return 1;
 		}
 	}

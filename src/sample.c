@@ -73,6 +73,19 @@ OpenThreadData open_thread_data;
 
 static void sample_max_min(GraphData *graphData, double *pct);
 
+#define ERROR_MESSAGE_SIZE 1024
+static char error_message[ERROR_MESSAGE_SIZE];
+
+char *sample_get_error_message()
+{
+	return error_message;
+}
+
+void sample_set_error_message(const char *val)
+{
+	strncpy(error_message, val, ERROR_MESSAGE_SIZE);
+}
+
 gint sample_get_playing()
 {
 	return playing;
@@ -203,7 +216,7 @@ open_thread(gpointer data)
 	return NULL;
 }
 
-void sample_open_file(const char *filename, GraphData *graphData, double *pct)
+int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
 	if (sample_file != NULL) {
 		free(sample_file);
@@ -211,7 +224,10 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	sample_file = strdup(filename);
 
 	if (strstr(sample_file, ".wav")) {
-		wav_read_header(sample_file, &sampleInfo, 0);
+		if (wav_read_header(sample_file, &sampleInfo, 0) != 0) {
+			sample_set_error_message(wav_get_error_message());
+			return 1;
+		}
 		audio_type = WAV;
 	} else {
 		cdda_read_header(sample_file, &sampleInfo);
@@ -219,8 +235,8 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	}
 
 	if ((sample_fp = fopen(sample_file, "rb")) == NULL) {
-		printf("error opening %s\n", sample_file);
-		return;
+		snprintf(error_message, ERROR_MESSAGE_SIZE, "error opening %s\n", sample_file);
+		return 2;
 	}
 
 	open_thread_data.graphData = graphData;
@@ -230,9 +246,11 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	thread = g_thread_create(open_thread, &open_thread_data, FALSE, NULL);
 	if (thread == NULL) {
 		perror("Return from g_thread_create was NULL");
-		return;
+		return 3;
 	}
 	/* end new thread stuff */
+
+	return 0;
 }
 
 static void sample_max_min(GraphData *graphData, double *pct)

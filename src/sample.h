@@ -38,6 +38,8 @@ struct SampleInfo_ {
 		unsigned long	numBytes;
 };
 
+char *wav_get_error_message();
+
 void sample_init();
 void sample_set_audio_dev(char *str);
 char * sample_get_audio_dev();
@@ -46,7 +48,7 @@ char * sample_get_sample_file();
 
 int play_sample(gulong, gulong *);
 void stop_sample();
-void sample_open_file(const char *, GraphData *, double *);
+int sample_open_file(const char *, GraphData *, double *);
 void sample_write_files(const char *, GList *, WriteInfo *);
 gint sample_get_playing();
 

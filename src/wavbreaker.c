@@ -37,6 +37,7 @@
 #include "sample.h"
 #include "about.h"
 #include "appconfig.h"
+#include "autosplit.h"
 
 #define play_icon_filename IMAGEDIR"play.png"
 #define stop_icon_filename IMAGEDIR"stop.png"
@@ -190,6 +191,9 @@ static void
 menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
+menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
 menu_play(GtkWidget *widget, gpointer user_data);
 
 static void
@@ -232,10 +236,28 @@ static GtkItemFactoryEntry menu_items[] = {
 
   { "/_Edit",             NULL, 0,           0, "<Branch>" },
   { "/Edit/_Preferences", NULL, menu_config, 0, "" },
+  { "/Edit/_AutoSplit", NULL, menu_autosplit, 0, "" },
 
   { "/_Help",       NULL, 0,          0, "<Branch>" },
   { "/Help/_About", NULL, menu_about, 0, "" },
 };
+
+/*
+static char *status_message = NULL;
+
+char *get_status_message()
+{
+	return status_message;
+}
+
+void set_status_message(const char *val)
+{
+	if (status_message != NULL) {
+		g_free(status_message);
+	}
+	status_message = g_strdup(val);
+}
+*/
 
 /*
  *-------------------------------------------------------------------------
@@ -881,9 +903,12 @@ filesel_ok_clicked(GtkWidget *widget,
 	sample_filename = g_strdup((char *)gtk_file_selection_get_filename(
 	                           GTK_FILE_SELECTION(filesel)));
 
-	sample_open_file(sample_filename, &graphData, &progress_pct);
-
 	gdk_window_hide(widget->window);
+
+	if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
+		popupmessage_show(main_window, sample_get_error_message());
+		return;
+	}
 
 	menu_stop(NULL, NULL);
 
@@ -1560,6 +1585,12 @@ static void
 menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
 	appconfig_show(main_window);
+}
+
+static void
+menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+	autosplit_show(main_window);
 }
 
 /*
