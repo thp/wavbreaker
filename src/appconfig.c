@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <config.h>
 
 #ifndef _WIN32
 #include <libxml/xmlmemory.h>
@@ -63,6 +64,8 @@ static char *config_filename = NULL;
 static int appconfig_write_file();
 static int appconfig_read_file();
 static void default_all_strings();
+static void open_select_outputdir_2();
+static void open_select_outputdir();
 
 int get_use_outputdir()
 {
@@ -244,7 +247,8 @@ static void filesel_ok_clicked(GtkWidget *widget, gpointer user_data)
 {
     GtkFileSelection *filesel = GTK_FILE_SELECTION(user_data);
 
-    gtk_entry_set_text(GTK_ENTRY(outputdir_entry), gtk_file_selection_get_filename(filesel));
+    gtk_entry_set_text(GTK_ENTRY(outputdir_entry),
+        gtk_file_selection_get_filename(filesel));
 
     //printf("file: %s\n", gtk_file_selection_get_filename(filesel));
 
@@ -258,6 +262,36 @@ static void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
 
 static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 {
+#ifdef HAVE_GTK_2_3
+    open_select_outputdir_2();
+#else
+    open_select_outputdir();
+#endif
+}
+
+static void open_select_outputdir_2() {
+    GtkWidget *dialog;
+
+    dialog = gtk_file_chooser_dialog_new("Select Output Directory",
+        GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
+        GTK_RESPONSE_ACCEPT, NULL);
+    gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog),
+        gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
+
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char *filename;
+
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        printf("filename: %s\n", filename);
+        gtk_entry_set_text(GTK_ENTRY(outputdir_entry), filename);
+        g_free(filename);
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
+static void open_select_outputdir() {
     GtkWidget *filesel;
     gchar filename[4096];
 
@@ -269,8 +303,7 @@ static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 
     strcpy(filename, gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
     strcat(filename, "/");
-    gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel),
-        filename);
+    gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel), filename);
 
 //    gtk_dialog_set_has_separator(GTK_DIALOG(filesel), TRUE);
     gtk_widget_hide(GTK_FILE_SELECTION(filesel)->file_list->parent);

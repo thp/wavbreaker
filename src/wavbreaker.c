@@ -117,8 +117,11 @@ void track_break_add_entry();
 void track_break_set_durations();
 void track_break_set_duration(gpointer data, gpointer user_data);
 
+/* File Functions */
 void filesel_ok_clicked(GtkWidget *widget, gpointer data);
 void filesel_cancel_clicked(GtkWidget *widget, gpointer data);
+void set_sample_filename(const char *f);
+static void open_file();
 
 /* Sample and Summary Display Functions */
 static void redraw();
@@ -154,6 +157,7 @@ draw_summary_button_release(GtkWidget *widget,
                             GdkEventButton *event,
                             gpointer user_data);
 
+/* Menu Functions */
 static void
 menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget);
@@ -181,6 +185,9 @@ menu_play(GtkWidget *widget, gpointer user_data);
 static void
 menu_stop(GtkWidget *widget, gpointer user_data);
 
+void
+menu_add_track_break(GtkWidget *widget, gpointer user_data);
+
 static void
 offset_to_time(guint, gchar *);
 
@@ -189,9 +196,6 @@ offset_to_duration(guint, guint, gchar *);
 
 static void
 update_status();
-
-void
-menu_add_track_break(GtkWidget *widget, gpointer user_data);
 
 /*
 char *basename(const char *str)
@@ -1017,14 +1021,14 @@ filesel_ok_clicked(GtkWidget *widget,
 
     filesel = GTK_WIDGET(user_data);
 
-    if (sample_filename != NULL) {
-        free(sample_filename);
-    }
-    sample_filename = g_strdup((char *)gtk_file_selection_get_filename(
-                               GTK_FILE_SELECTION(filesel)));
+    set_sample_filename((char *)gtk_file_selection_get_filename(
+        GTK_FILE_SELECTION(filesel)));
 
     gdk_window_hide(widget->window);
+    open_file();
+}
 
+static void open_file() {
     if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
         popupmessage_show(main_window, sample_get_error_message());
         return;
@@ -1040,7 +1044,7 @@ void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
     gdk_window_hide(widget->window);
 }
 
-static void openfile()
+static void open_select_file()
 {
     static GtkWidget *filesel = NULL;
 
@@ -1059,6 +1063,33 @@ static void openfile()
     } else {
         gdk_window_show(filesel->window);
     }
+}
+
+static void open_select_file_2() {
+    GtkWidget *dialog;
+
+    dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(main_window),
+        GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+        GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+
+    if (gtk_dialog_run(GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+        char *filename;
+
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        printf("filename: \"%s\"\n", filename);
+        set_sample_filename(filename);
+        g_free(filename);
+        open_file();
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
+void set_sample_filename(const char *f) {
+    if (sample_filename != NULL) {
+        g_free(sample_filename);
+    }
+    sample_filename = g_strdup(f);
 }
 
 /*
@@ -1698,7 +1729,12 @@ static void
 menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget)
 {
-    openfile();
+#ifdef HAVE_GTK_2_3
+    open_select_file_2();
+#else
+    open_select_file();
+#endif
+
 }
 
 static void
@@ -1777,7 +1813,7 @@ int main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(main_window), vbox);
     gtk_widget_show(vbox);
 
-/* Menu Items */
+    /* Menu Items */
     accel_group = gtk_accel_group_new();
     gtk_window_add_accel_group(GTK_WINDOW(main_window), accel_group);
     g_object_unref(accel_group);
@@ -1800,7 +1836,7 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
     gtk_widget_show(menu_widget);
 
-/* Button Toolbar */
+    /* Button Toolbar */
     toolbar = gtk_toolbar_new();
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
                              "Open New Wave File", NULL,
@@ -1836,7 +1872,7 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
     gtk_widget_show(toolbar);
 
-/* Set default colors up */
+    /* Set default colors up */
     bg_color.red   = 255*(65535/255);
     bg_color.green = 255*(65535/255);
     bg_color.blue  = 255*(65535/255);
@@ -1907,22 +1943,22 @@ int main(int argc, char **argv)
     sample_colors[9].blue  = 200*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[9]);
 
-/* paned view */
+    /* paned view */
     vpane1 = gtk_vpaned_new();
     gtk_box_pack_start(GTK_BOX(vbox), vpane1, TRUE, TRUE, 0);
     gtk_widget_show(vpane1);
 
-/* vbox for the vpane */
+    /* vbox for the vpane */
     vpane_vbox = gtk_vbox_new(FALSE, 0);
     gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
     gtk_widget_show(vpane_vbox);
 
-/* paned view */
+    /* paned view */
     vpane2 = gtk_vpaned_new();
     gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
     gtk_widget_show(vpane2);
 
-/* The summary_pixmap drawing area */
+    /* The summary_pixmap drawing area */
     draw_summary = gtk_drawing_area_new();
     gtk_widget_set_size_request(draw_summary, 500, 75);
 
@@ -1944,7 +1980,7 @@ int main(int argc, char **argv)
     gtk_paned_add1(GTK_PANED(vpane2), frame);
     gtk_widget_show(draw_summary);
 
-/* The sample_pixmap drawing area */
+    /* The sample_pixmap drawing area */
     draw = gtk_drawing_area_new();
     gtk_widget_set_size_request(draw, 500, 200);
 
