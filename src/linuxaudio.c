@@ -1,5 +1,5 @@
-/* wavbreaker - A tool to split a wave file up into multiple wave.
- * Copyright (C) 2002 Timothy Robinson
+/* wavbreaker - A tool to split a wave file up into multiple waves.
+ * Copyright (C) 2002-2003 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,16 +25,17 @@
 
 #include "linuxaudio.h"
 
-void close_device(int audio_fd)
+static int audio_fd;
+
+void audio_close_device()
 {
 	close(audio_fd);
 }
 
-int open_device(const char *audio_dev, const SampleInfo *sampleInfo)
+int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 {
 	int format, speed, channels;
 	int ret;
-	int audio_fd;
 
 	if (sampleInfo->bitsPerSample == 16) {
 		format = AFMT_S16_LE;
@@ -46,50 +47,53 @@ int open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 
 	/* setup dsp device */
 	if ((audio_fd = open(audio_dev, O_WRONLY)) == -1) {
-	        perror("open");  
-	        printf("error opening %s\n", audio_dev);
-	        return audio_fd;
+		perror("open");
+		printf("error opening %s\n", audio_dev);
+		return audio_fd;
 	}
  
 	/* set format */
 	ret = format;
 	if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &ret) == -1) {
-	        perror("SNDCTL_DSP_SETFMT");
-	        return audio_fd; 
+		perror("SNDCTL_DSP_SETFMT");
+		return -1; 
 	}
 
 	if (format != ret) {  
-	        printf("Device, %s, does not support %d for format.\n",
-			audio_dev, format);
-	        return audio_fd;
+		printf("Device, %s, does not support %d for format.\n", audio_dev, format);
+		return -1;
 	}
 
 	/* set channels */
 	ret = channels;
 	if (ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &ret) == -1) {
-	        perror("SNDCTL_DSP_CHANNELS");
-	        return audio_fd;
+		perror("SNDCTL_DSP_CHANNELS");
+		return -1;
 	}       
 
 	if (channels != ret) {
-	        printf("Device, %s, doesn't support %d channels\n", audio_dev,
-			channels);
-	        return audio_fd;
+		printf("Device, %s, doesn't support %d channels\n", audio_dev, channels);
+		return -1;
 	}
 
 	/* set speed */
 	ret = speed;
 	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &ret) == -1) {
-	        perror("SNDCTL_DSP_SPEED");
-	        return audio_fd;
+		perror("SNDCTL_DSP_SPEED");
+		return -1;
 	}
 
 	if (speed != ret) {
-	        printf("Device, %s, doesn't support speed of %d\n",
-	                audio_dev, speed);
-	        printf("Speed returned was %d\n", ret);
-		return audio_fd;
+		printf("Device, %s, doesn't support speed of %d\n", audio_dev, speed);
+		printf("Speed returned was %d\n", ret);
+		return -1;
 	}
 
-	return audio_fd;
+	return 0;
 }
+
+int audio_write(char *devbuf, int size)
+{
+	return write(audio_fd, devbuf, size);
+}
+
