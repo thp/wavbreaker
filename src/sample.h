@@ -9,12 +9,12 @@
 typedef struct SampleInfo_ SampleInfo;
 
 struct SampleInfo_ {
-        unsigned short	channels;
-        unsigned long	samplesPerSec;
-        unsigned long	avgBytesPerSec;
-        unsigned short	blockAlign;
-        unsigned short	bitsPerSample;
-	unsigned long	numBytes;
+		unsigned short	channels;
+		unsigned long	samplesPerSec;
+		unsigned long	avgBytesPerSec;
+		unsigned short	blockAlign;
+		unsigned short	bitsPerSample;
+		unsigned long	numBytes;
 };
 
 void sample_set_audio_dev(char *str);

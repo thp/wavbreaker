@@ -230,12 +230,23 @@ static void sample_max_min(GraphData *graphData, double *pct)
 	int tmp, min, max;
 	int i, k, ret;
 	int numSampleBlocks;
+	double tmp_sample_calc;
 	unsigned char devbuf[BLOCK_SIZE];
 	Points *graph_data;
 
-	numSampleBlocks = 
-		(((sampleInfo.numBytes / (sampleInfo.bitsPerSample / 8))
-		/ BLOCK_SIZE)) * sampleInfo.channels + 1;
+	tmp_sample_calc = sampleInfo.numBytes / (sampleInfo.bitsPerSample / 8);
+	tmp_sample_calc = tmp_sample_calc / BLOCK_SIZE;
+	tmp_sample_calc = tmp_sample_calc * sampleInfo.channels;
+	numSampleBlocks = (int) (tmp_sample_calc +  1);
+
+	/* DEBUG CODE START */
+	/*
+	printf("\nsampleInfo.numBytes: %lu\n", sampleInfo.numBytes);
+	printf("sampleInfo.bitsPerSample: %d\n", sampleInfo.bitsPerSample);
+	printf("BLOCK_SIZE: %d\n", BLOCK_SIZE);
+	printf("sampleInfo.channels: %d\n\n", sampleInfo.channels);
+	*/
+	/* DEBUG CODE END */
 
 	graph_data = (Points *)malloc(numSampleBlocks * sizeof(Points));
 
@@ -372,6 +383,7 @@ void sample_write_files(const char *filename, GList *tbl)
 		return;
 	}
 
+	/*
 	if (strstr(sample_file, ".wav")) {
 		wav_read_header(sample_fp, &sampleInfo);
 		audio_type = WAV;
@@ -379,6 +391,7 @@ void sample_write_files(const char *filename, GList *tbl)
 		cdda_read_header(sample_file, &sampleInfo);
 		audio_type = CDDA;
 	}
+	*/
 
 /* start new thread stuff */
 	if (pthread_attr_init(&thread_attr) != 0) {
