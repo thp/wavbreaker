@@ -43,9 +43,11 @@ static GtkWidget *outputdir_label = NULL;
 /* Filename suffix (not extension) for wave files. */
 static int use_etree_filename_suffix = 0;
 static GtkWidget *use_etree_filename_suffix_toggle = NULL;
+
 static char *etree_filename_suffix = NULL;
 static GtkWidget *etree_filename_suffix_label = NULL;
 static GtkWidget *etree_filename_suffix_entry = NULL;
+
 static char *etree_cd_length = NULL;
 static GtkWidget *etree_cd_length_label = NULL;
 static GtkWidget *etree_cd_length_entry = NULL;
@@ -320,29 +322,33 @@ void appconfig_show(GtkWidget *main_window)
     gtk_widget_show(vbox);
 
     /* Selectable Output Directory */
-    table = gtk_table_new(3, 2, FALSE);
+    table = gtk_table_new(2, 3, FALSE);
     gtk_container_add(GTK_CONTAINER(vbox), table);
     gtk_widget_show(table);
 
     use_outputdir_toggle = gtk_check_button_new_with_label("Use Selectable Output Directory");
-    gtk_table_attach(GTK_TABLE(table), use_outputdir_toggle, 0, 3, 0, 1, GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), use_outputdir_toggle,
+        0, 2, 0, 1, GTK_FILL, 0, 5, 0);
     g_signal_connect(GTK_OBJECT(use_outputdir_toggle), "toggled",
         G_CALLBACK(use_outputdir_toggled), NULL);
     gtk_widget_show(use_outputdir_toggle);
 
     outputdir_label = gtk_label_new("Wave File Output Directory:");
     gtk_misc_set_alignment(GTK_MISC(outputdir_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), outputdir_label, 0, 1, 1, 2, GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), outputdir_label,
+        0, 2, 1, 2, GTK_FILL, 0, 5, 0);
     gtk_widget_show(outputdir_label);
 
     outputdir_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(outputdir_entry), outputdir);
-    gtk_entry_set_width_chars(GTK_ENTRY(outputdir_entry), 32);
-    gtk_table_attach(GTK_TABLE(table), outputdir_entry, 1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+    gtk_entry_set_width_chars(GTK_ENTRY(outputdir_entry), 40);
+    gtk_table_attach(GTK_TABLE(table), outputdir_entry,
+        0, 1, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     gtk_widget_show(outputdir_entry);
 
     browse_button = gtk_button_new_with_label("Browse");
-    gtk_table_attach(GTK_TABLE(table), browse_button, 2, 3, 1, 2, GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), browse_button,
+        1, 2, 2, 3, GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(browse_button), "clicked", (GtkSignalFunc)browse_button_clicked, window);
     gtk_widget_show(browse_button);
 
@@ -352,55 +358,58 @@ void appconfig_show(GtkWidget *main_window)
     gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
     gtk_widget_show(hseparator);
 
-    table = gtk_table_new(2, 3, FALSE);
+    table = gtk_table_new(2, 5, FALSE);
     gtk_container_add(GTK_CONTAINER(vbox), table);
     gtk_widget_show(table);
 
-    etree_filename_suffix_label = gtk_label_new("Filename Suffix:");
-    gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label, 0, 1, 0, 1, GTK_FILL, 0, 5, 0);
-    gtk_widget_show(etree_filename_suffix_label);
-
-    etree_filename_suffix_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
-    gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 32);
-    gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-    gtk_widget_show(etree_filename_suffix_entry);
-
     use_etree_filename_suffix_toggle = gtk_check_button_new_with_label("Use Etree Style Filename Suffix (d#t##)");
-    gtk_table_attach(GTK_TABLE(table), use_etree_filename_suffix_toggle, 0, 2, 1, 2, GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), use_etree_filename_suffix_toggle,
+        0, 2, 0, 1, GTK_FILL, 0, 5, 0);
     g_signal_connect(GTK_OBJECT(use_etree_filename_suffix_toggle), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
     gtk_widget_show(use_etree_filename_suffix_toggle);
 
+    etree_filename_suffix_label = gtk_label_new("Filename Suffix:");
+    gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
+    gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
+        0, 1, 1, 2, GTK_FILL, 0, 5, 0);
+    gtk_widget_show(etree_filename_suffix_label);
+
+    etree_filename_suffix_entry = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
+    gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
+    gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry,
+        1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+    gtk_widget_show(etree_filename_suffix_entry);
+
     etree_cd_length_label = gtk_label_new("CD Length:");
     gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), etree_cd_length_label, 0, 1, 2, 3, GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
+        0, 1, 2, 3, GTK_FILL, 0, 5, 0);
     gtk_widget_show(etree_cd_length_label);
 
     etree_cd_length_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_cd_length_entry), etree_cd_length);
-    gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 32);
+    gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry, 1, 2, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     gtk_widget_show(etree_cd_length_entry);
 
     /* Audio Output Device */
     hseparator = gtk_hseparator_new();
-    gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
+    gtk_table_attach(GTK_TABLE(table), hseparator,
+        0, 2, 3, 4, GTK_FILL, 0, 5, 5);
     gtk_widget_show(hseparator);
-
-    table = gtk_table_new(3, 1, FALSE);
-    gtk_container_add(GTK_CONTAINER(vbox), table);
-    gtk_widget_show(table);
 
     outputdev_label = gtk_label_new("Audio Device:");
     gtk_misc_set_alignment(GTK_MISC(outputdev_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), outputdev_label, 0, 1, 0, 1, GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), outputdev_label,
+        0, 1, 4, 5, GTK_FILL, 0, 5, 0);
     gtk_widget_show(outputdev_label);
 
     outputdev_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(outputdev_entry), outputdev);
-    gtk_table_attach(GTK_TABLE(table), outputdev_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), outputdev_entry,
+        1, 2, 4, 5, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     gtk_widget_show(outputdev_entry);
 
     /* OK and Cancel Buttons */
