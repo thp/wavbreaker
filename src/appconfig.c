@@ -228,6 +228,7 @@ static int appconfig_read_file() {
 	doc = xmlParseFile(get_configfilename());
 
     if (doc == NULL) {
+		fprintf(stderr, "error reading wavbreaker config file\n");
         fprintf(stderr, "Document not parsed successfully.\n");
         return 1;
     }
@@ -235,13 +236,16 @@ static int appconfig_read_file() {
     cur = xmlDocGetRootElement(doc);
 
     if (cur == NULL) {
+		fprintf(stderr, "error reading wavbreaker config file\n");
         fprintf(stderr, "empty document\n");
         xmlFreeDoc(doc);
         return 2;
     }
 
     if (xmlStrcmp(cur->name, (const xmlChar *) "wavbreaker")) {
+		fprintf(stderr, "error reading wavbreaker config file\n");
         fprintf(stderr, "wrong document type, root node != wavbreaker\n");
+        fprintf(stderr, "document type is: %s\n", cur->name);
         xmlFreeDoc(doc);
         return 3;
     }
@@ -275,13 +279,15 @@ static int appconfig_write_file() {
 	doc = xmlNewDoc((const xmlChar *)"1.0");
 
 	if (doc == NULL) {
-		fprintf(stderr, "Document not created successfully.\n");
+		fprintf(stderr, "error creating wavbreaker config file\n");
+		fprintf(stderr, "error with xmlNewDoc\n");
 		return 1;
 	}
 
 	root = xmlNewDocNode(doc, NULL, (const xmlChar *)"wavbreaker", "");
 
 	if (root == NULL) {
+		fprintf(stderr, "error creating wavbreaker config file\n");
 		fprintf(stderr, "error creating doc node\n");
 		xmlFreeDoc(doc);
 		return 2;
@@ -290,6 +296,7 @@ static int appconfig_write_file() {
 	cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir", (const xmlChar *) get_outputdir());
 
 	if (cur == NULL) {
+		fprintf(stderr, "error creating wavbreaker config file\n");
 		fprintf(stderr, "error creating outputdir node\n");
 		xmlFreeNodeList(root);
 		xmlFreeDoc(doc);
@@ -299,6 +306,7 @@ static int appconfig_write_file() {
 	cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdev", (const xmlChar *) get_outputdev());
 
 	if (cur == NULL) {
+		fprintf(stderr, "error creating wavbreaker config file\n");
 		fprintf(stderr, "error creating outputdev node\n");
 		xmlFreeNodeList(root);
 		xmlFreeDoc(doc);
