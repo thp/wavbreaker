@@ -543,7 +543,11 @@ draw_sample(GtkWidget *widget)
 	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
 	gdk_gc_set_foreground(gc, &color);
 
-	gdk_draw_line(pixmap, gc, 0, xaxis, width, xaxis);
+	if (width > graphData.numSamples) {
+		gdk_draw_line(pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
+	} else {
+		gdk_draw_line(pixmap, gc, 0, xaxis, width, xaxis);
+	}
 }
 
 static void
