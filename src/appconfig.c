@@ -246,6 +246,8 @@ static void filesel_ok_clicked(GtkWidget *widget, gpointer user_data)
 
     gtk_entry_set_text(GTK_ENTRY(outputdir_entry), gtk_file_selection_get_filename(filesel));
 
+    printf("file: %s\n", gtk_file_selection_get_filename(filesel));
+
     gtk_widget_destroy(user_data);
 }
 
@@ -257,6 +259,7 @@ static void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
 static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *filesel;
+    gchar filename[4096];
 
     filesel = gtk_file_selection_new("select output directory");
     gtk_window_set_modal(GTK_WINDOW(filesel), TRUE);
@@ -264,8 +267,10 @@ static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
     gtk_window_set_type_hint(GTK_WINDOW(filesel), GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_resizable(GTK_WINDOW(filesel), TRUE);
 
+    strcpy(filename, gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
+    strcat(filename, "/");
     gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel),
-        gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
+        filename);
 
 //    gtk_dialog_set_has_separator(GTK_DIALOG(filesel), TRUE);
     gtk_widget_hide(GTK_FILE_SELECTION(filesel)->file_list->parent);
