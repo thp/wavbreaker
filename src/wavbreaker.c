@@ -31,6 +31,7 @@ struct TrackBreak_ {
 	GdkColor  color;
 	guint     offset;
 	gchar     *filename;
+	gboolean  editable;
 };
 
 typedef struct CursorData_ CursorData;
@@ -44,6 +45,7 @@ enum {
 	COLUMN_WRITE,
 	COLUMN_FILENAME,
 	COLUMN_OFFSET,
+	COLUMN_EDITABLE,
 	NUM_COLUMNS
 };
 
@@ -56,7 +58,14 @@ GtkListStore *store = NULL;
  *-------------------------------------------------------------------------
  */
 
-void track_break_write_toggled(GtkWidget *widget, gchar *path_str, gpointer data);
+void track_break_write_toggled(GtkWidget *widget,
+                               gchar *path_str,
+                               gpointer data);
+
+void track_break_filename_edited(GtkCellRendererText *cell,
+                                 const gchar *path_str,
+                                 const gchar *new_text,
+                                 gpointer user_data);
 
 void
 filesel_ok_clicked(GtkWidget *widget,
@@ -112,7 +121,8 @@ track_break_create_list_gui(GtkWidget *container)
         store = gtk_list_store_new(NUM_COLUMNS,
                                    G_TYPE_BOOLEAN,
                                    G_TYPE_STRING,
-                                   G_TYPE_UINT);
+                                   G_TYPE_UINT,
+                                   G_TYPE_BOOLEAN);
 
 /* create the treeview */
 
@@ -123,33 +133,37 @@ track_break_create_list_gui(GtkWidget *container)
 
 /* create the columns */
 
-        renderer = gtk_cell_renderer_toggle_new();
-        g_signal_connect(G_OBJECT(renderer), "toggled",
-                         G_CALLBACK(track_break_write_toggled), store);
-        column = gtk_tree_view_column_new_with_attributes("Write", renderer,
-                        "active", COLUMN_WRITE, NULL);
-        gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-                                        GTK_TREE_VIEW_COLUMN_FIXED);
-        gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
-        gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+/* Write Toggle Column */
+	renderer = gtk_cell_renderer_toggle_new();
+	g_signal_connect(G_OBJECT(renderer), "toggled",
+	                 G_CALLBACK(track_break_write_toggled), store);
+	column = gtk_tree_view_column_new_with_attributes("Write", renderer,
+	                    "active", COLUMN_WRITE, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
+	                                GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-        renderer = gtk_cell_renderer_text_new();
-        column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
-                        "text", COLUMN_FILENAME, NULL);
-        gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-                                        GTK_TREE_VIEW_COLUMN_GROW_ONLY);
-        gtk_tree_view_column_set_resizable(column, TRUE);
-        GTK_CELL_RENDERER_TEXT(renderer)->editable = TRUE;
-        gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+/* File Name Column */
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
+	                    "text", COLUMN_FILENAME,
+						"editable", COLUMN_EDITABLE, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
+	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+	gtk_tree_view_column_set_resizable(column, TRUE);
+	g_signal_connect(G_OBJECT(renderer), "edited",
+	                 G_CALLBACK(track_break_filename_edited), store);
+//	GTK_CELL_RENDERER_TEXT(renderer)->editable = TRUE;
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-        renderer = gtk_cell_renderer_text_new();
-        column = gtk_tree_view_column_new_with_attributes("Offset",
-                        renderer, "text", COLUMN_OFFSET, NULL);
-        gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-                                        GTK_TREE_VIEW_COLUMN_GROW_ONLY);
-//      gtk_tree_view_column_set_resizable(column, TRUE);
-        GTK_CELL_RENDERER_TEXT(renderer)->editable = TRUE;
-        gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+/* File Offset Column */
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("Offset",
+	                    renderer, "text", COLUMN_OFFSET, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
+	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 }
 
 gint
@@ -172,9 +186,9 @@ void print_element(gpointer data, gpointer user_data)
 {
 	TrackBreak *breakup;
 
-        breakup = (TrackBreak *)data;
+	breakup = (TrackBreak *)data;
 
-        printf("\t%d\n", breakup->offset);
+	printf("\t%d\n", breakup->offset);
 }
 /* DEBUG FUNCTION END */
 
@@ -184,8 +198,6 @@ track_break_free_element(gpointer data, gpointer user_data)
 	TrackBreak *track_break;
 
 	track_break = (TrackBreak *)data;
-
-	printf("freeing - %d\n", track_break->offset);
 
 	free(track_break);
 }
@@ -199,8 +211,6 @@ track_break_compare_cursor_marker(gpointer data, gpointer user_data)
 	if (cursor_data->marker == track_break->offset) {
 		cursor_data->is_equal = TRUE;
 	}
-
-	g_print("cursor_data->marker: %ld\n", cursor_data->marker);
 }
 
 void track_break_clear_list()
@@ -228,7 +238,6 @@ track_break_add_button_clicked(GtkWidget *widget,
 	g_list_foreach(track_break_list, track_break_compare_cursor_marker,
                    &cursor_data);
 	if (cursor_data.is_equal == TRUE) {
-		printf("cursor is equal\n");
 		return;
 	}
 
@@ -240,6 +249,7 @@ track_break_add_button_clicked(GtkWidget *widget,
 	track_break->write = 1;
 	track_break->filename = "phish - stash.ogg";
 	track_break->offset = cursor_marker;
+	track_break->editable = TRUE;
 
 	track_break_list = g_list_insert_sorted(track_break_list, track_break,
 						track_break_sort);
@@ -251,8 +261,8 @@ track_break_add_button_clicked(GtkWidget *widget,
 /* DEBUG CODE START */
 /*
 	g_print("gtktreepath: %s\n", path_str);
-        printf("list contents:\n");
-        g_list_foreach(track_break_list, print_element, NULL);
+	printf("list contents:\n");
+	g_list_foreach(track_break_list, print_element, NULL);
 */
 /* DEBUG CODE END */
 
@@ -265,6 +275,7 @@ track_break_add_button_clicked(GtkWidget *widget,
                            COLUMN_WRITE, track_break->write,
                            COLUMN_FILENAME, track_break->filename,
                            COLUMN_OFFSET, track_break->offset,
+						   COLUMN_EDITABLE, track_break->editable,
                            -1);
 
 	gtk_tree_path_free(path);
@@ -274,9 +285,9 @@ void track_break_write_toggled(GtkWidget *widget,
 			       gchar *path_str,
 			       gpointer user_data)
 {
-        GtkTreeModel *model = (GtkTreeModel *)user_data;
-        GtkTreeIter iter;
-        GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
+	GtkTreeModel *model = (GtkTreeModel *)user_data;
+	GtkTreeIter iter;
+	GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
 	TrackBreak *track_break;
 	guint list_pos;
 	gpointer list_data;
@@ -284,20 +295,44 @@ void track_break_write_toggled(GtkWidget *widget,
 	list_pos = atoi(path_str);
 	list_data = g_list_nth_data(track_break_list, list_pos);
 	track_break = (TrackBreak *)list_data;
-        track_break->write = !track_break->write;
+	track_break->write = !track_break->write;
 
 /* DEBUG CODE START */
 /*
 	g_print("gtktreepath: %s\n", path_str);
 	g_print("list_pos: %d\n", list_pos);
 	g_print("track_break->offset: %d\n", track_break->offset);
-        g_print("track_break->write: %d\n\n", track_break->write);
+	g_print("track_break->write: %d\n\n", track_break->write);
 */
 /* DEBUG CODE END */
 
 	gtk_tree_model_get_iter(model, &iter, path);
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_WRITE,
-			   track_break->write, -1);
+                       track_break->write, -1);
+
+	gtk_tree_path_free(path);
+}
+
+void track_break_filename_edited(GtkCellRendererText *cell,
+                                 const gchar *path_str,
+                                 const gchar *new_text,
+                                 gpointer user_data)
+{
+	GtkTreeModel *model = (GtkTreeModel *)user_data;
+	GtkTreeIter iter;
+	GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
+	TrackBreak *track_break;
+	guint list_pos;
+	gpointer list_data;
+
+	list_pos = atoi(path_str);
+	list_data = g_list_nth_data(track_break_list, list_pos);
+	track_break = (TrackBreak *)list_data;
+	track_break->filename = g_strdup(new_text);
+
+	gtk_tree_model_get_iter(model, &iter, path);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
+                       track_break->filename, -1);
 
 	gtk_tree_path_free(path);
 }
@@ -608,7 +643,6 @@ static gboolean
 adj_value_changed(GtkAdjustment *adj,
 		  gpointer data)
 {
-printf("cursor_marker: %ld\n", cursor_marker);
 	pixmap_offset = adj->value;
 
 	draw_sample(draw);
@@ -624,14 +658,11 @@ button_release(GtkWidget *widget,
 			   gpointer data)
 {
 
-printf("cursor_marker: %ld\n", cursor_marker);
 	if (event->x + pixmap_offset > graphData.numSamples) {
 		return;
 	}
 
 	cursor_marker = pixmap_offset + event->x;
-
-printf("cursor_marker: %ld\n", cursor_marker);
 
 	draw_sample(draw);
 	draw_cursor_marker();
@@ -686,6 +717,12 @@ open_file_button_clicked(GtkWidget *widget,
 		gdk_window_show(filesel->window);
 	}
 }
+
+/*
+ *-------------------------------------------------------------------------
+ * Main Window Events
+ *-------------------------------------------------------------------------
+ */
 
 static gboolean
 delete_event(GtkWidget *widget,
