@@ -1,4 +1,4 @@
-INCLUDES = $(WAVBREAKER_CFLAGS)
+INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir)
 
 bin_PROGRAMS = wavbreaker wavmerge
 

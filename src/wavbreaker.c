@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -29,9 +30,9 @@
 #include "wavbreaker.h"
 #include "sample.h"
 
-#define play_icon_filename "images/play.png"
-#define stop_icon_filename "images/stop.png"
-#define break_icon_filename "images/break2.png"
+#define play_icon_filename IMAGEDIR"play.png"
+#define stop_icon_filename IMAGEDIR"stop.png"
+#define break_icon_filename IMAGEDIR"break2.png"
 
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
@@ -1283,6 +1284,8 @@ int main(int argc, char **argv)
 	                         G_CALLBACK(menu_quit), main_window, -1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
+printf("filename: %s\n", play_icon_filename);
+printf("icondir: %s\n", IMAGEDIR);
 	icon = gtk_image_new_from_file(play_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
 	                         icon, G_CALLBACK(menu_play), NULL);
