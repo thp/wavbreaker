@@ -16,7 +16,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifdef _WIN32
+#define IMAGEDIR "../images/"
+#else
 #include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -188,10 +193,18 @@ menu_add_track_break(GtkWidget *widget, gpointer user_data);
 char *basename(const char *str)
 {
 #ifdef _WIN32
-    return rindex(str, '\\') + 1;
+    char del = '\\';
 #else
-    return rindex(str, '/') + 1;
+    char del = '/';
 #endif
+    char *ret;
+
+    ret = strrchr(str, del);
+    if (ret == NULL) {
+        return NULL;
+    } else {
+        return ret + 1;
+    }
 }
 
 static GtkItemFactoryEntry menu_items[] = {
@@ -434,7 +447,7 @@ track_break_delete_entry()
 	strcpy(str_tmp, sample_filename);
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
-	str_ptr = rindex(str_tmp, '.');
+	str_ptr = strrchr(str_tmp, '.');
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
@@ -547,7 +560,7 @@ track_break_add_entry()
 	strcpy(str_tmp, sample_filename);
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
-	str_ptr = rindex(str_tmp, '.');
+	str_ptr = strrchr(str_tmp, '.');
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
@@ -632,6 +645,7 @@ file_write_progress_idle_func(gpointer data) {
 	static GtkWidget *filename_label;
 	static char tmp_str[1024];
 	static char str[1024];
+    char *str_ptr;
 	static int cur_file_displayed = 0;
 
 	if (window == NULL) {
@@ -656,11 +670,16 @@ file_write_progress_idle_func(gpointer data) {
 		filename_label = gtk_label_new(NULL);
 		gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
 		gtk_widget_show(filename_label);
-
 		str[0] = '\0';
 		tmp_str[0] = '\0';
 		strcat(str, "Writing: ");
-		strcat(str, basename(write_info.cur_filename));
+
+        str_ptr = basename(write_info.cur_filename);
+        if (str_ptr != NULL) {
+            strcat(str, str_ptr);
+        } else {
+            strcat(str, write_info.cur_filename);
+        }
 		sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
 				write_info.num_files);
 		strcat(str, tmp_str);
@@ -691,7 +710,12 @@ file_write_progress_idle_func(gpointer data) {
 		str[0] = '\0';
 		tmp_str[0] = '\0';
 		strcat(str, "Writing: ");
-		strcat(str, basename(write_info.cur_filename));
+        str_ptr = basename(write_info.cur_filename);
+        if (str_ptr != NULL) {
+            strcat(str, str_ptr);
+        } else {
+            strcat(str, write_info.cur_filename);
+        }
 		sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
 				write_info.num_files);
 		strcat(str, tmp_str);
@@ -1756,6 +1780,8 @@ int main(int argc, char **argv)
 	gtk_widget_show(statusbar);
 
 /* Finish up */
+
+    write_info.cur_filename = NULL;
 
 	sample_init();
 	gtk_widget_show(main_window);
