@@ -252,7 +252,9 @@ track_break_add_entry()
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
 	str_ptr = rindex(str_tmp, '.');
-	*str_ptr = '\0';
+	if (str_ptr != NULL) {
+		*str_ptr = '\0';
+	}
 	track_break->filename = strdup(strcat(str_tmp, "00"));
 
 	track_break_list = g_list_insert_sorted(track_break_list, track_break,
