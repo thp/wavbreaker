@@ -1,0 +1,13 @@
+version 0.2 (2003-04-04)
+	+ Added a delete button that will delete a selected track break from the
+	list.
+	* Modified the track break list to append the list number to the filename
+	and display it in the list.  The name is updated when an add or delete
+	from the list happens.
+	+ Added play tracking.  The sample display will move while it is playing
+	and a marker is drawn on the current position.
+	+ The time is now displayed for the cursor marker and the play marker in
+	the status bar on the bottom.
+	+ The time is now displayed in the track break list.
+	+ Added vertical resizer.  Now the wave sample displays and the track break
+	list can be resized as you please.
