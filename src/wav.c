@@ -125,7 +125,6 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 		printf("Chunk Size:\t%lu\n", chunkHdr.chunkSize);
 	}
 
-
 	/* read in format chunk data */
 
 	if (fread(&fmtChunk, sizeof(FormatChunk), 1, fp) < 1) {
@@ -133,7 +132,6 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 		return 1;
 	}
 
-	/* DEBUG CODE START */
 	if (debug) {
 		printf("Compression format is of type: %d\n", fmtChunk.wFormatTag);
 		printf("Channels:\t%d\n", fmtChunk.wChannels);
@@ -154,23 +152,22 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 	sampleInfo->blockAlign		= fmtChunk.wBlockAlign;
 	sampleInfo->bitsPerSample	= fmtChunk.wBitsPerSample;
 
+	// if we have a FormatChunk that is larger than standard size, skip over extra data
+	if (chunkHdr.chunkSize > sizeof(FormatChunk)) {
+printf("in size compare\n");
+		if (fseek(fp, chunkHdr.chunkSize - sizeof(FormatChunk), SEEK_CUR)) {
+			snprintf(error_message, ERROR_MESSAGE_SIZE, "error seeking to %lu in file", chunkHdr.chunkSize);
+			return 1;
+		}
+	}
+
+	/* DEBUG CODE START */
 	/* read in wav data header */
 
 	if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
 		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk");
 		return 1;
 	}
-
-/*
-	if (chunkHdr.chunkSize > sizeof(ChunkHeader)) {
-printf("in size compare\n");
-		if (fseek(fp, chunkHdr.chunkSize - sizeof(ChunkHeader), SEEK_CUR)) {
-			printf("error seeking to %lu in file", chunkHdr.chunkSize);
-			return 1;
-		}
-	}
-*/
-
 
 	while (memcmp(chunkHdr.chunkID, WaveDataID, 4)) {
 		memcpy(str, chunkHdr.chunkID, 4);
