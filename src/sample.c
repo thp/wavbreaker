@@ -50,7 +50,6 @@ static gboolean kill_play_thread = FALSE;
 static int audio_type;
 static int audio_fd;
 
-static char *audio_dev = "/dev/dsp";
 static char *sample_file = NULL;
 static FILE *sample_fp = NULL;
 
@@ -111,8 +110,9 @@ static gpointer play_thread(gpointer thread_data)
     audio_function_pointers = get_audio_function_pointers();
 
     //printf("play_thread: calling open_audio_device\n");
-    if (oss_audio_open_device(get_outputdev(), &sampleInfo) != 0) {
-    //if (alsa_audio_open_device("plughw:0,0", &sampleInfo) != 0) {
+    if (audio_function_pointers->audio_open_device(
+        audio_function_pointers->get_outputdev(), &sampleInfo) != 0) {
+
         g_mutex_lock(mutex);
         playing = 0;
         audio_function_pointers->audio_close_device();

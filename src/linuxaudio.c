@@ -29,7 +29,7 @@ static int audio_fd;
 
 void oss_audio_close_device()
 {
-//    printf("closing audio device\n");
+    printf("closing audio device\n");
 	close(audio_fd);
 }
 
@@ -53,6 +53,7 @@ int oss_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
 	channels = sampleInfo->channels;
     sampleInfo->bufferSize = DEFAULT_BUF_SIZE;
 
+    printf("opening audio device (%s)\n", audio_dev);
     /*
     printf("opening audio device...");
     fflush(stdout);

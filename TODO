@@ -1,9 +1,14 @@
 Movable Boundaries in wav display
 fix highlight on summary display
 alsa and jack drivers
+    - Config menu
+    - autoconf
+    - dynamic function call based on audio interface
+        - make sure not playing when changing audio interfaces
 sound card format issues
-use new gtk 2.6 file selection
+fix the calculation of the time (error when sample is not 16-bit 44100)
 
+!use new gtk 2.4 file selection
 !fix dir selection in config menu
 !Start, End and Duration in list
 !jump to on right-click in list (gtktreeview)
