@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <limits.h>
+#include <gtk/gtk.h>
 
 #include "wavbreaker.h"
 #include "linuxaudio.h"
@@ -306,4 +307,91 @@ static void sample_max_min(GraphData *graphData, double *pct)
 	printf("\ni: %d\n", i);
 	printf("graphData->numSamples: %ld\n", graphData->numSamples);
 	printf("graphData->maxSampleValue: %ld\n\n", graphData->maxSampleValue);
+}
+
+static void *
+write_thread(void *data)
+{
+	GList *tbl_head = (GList *)data;
+	GList *tbl_cur, *tbl_next;
+	TrackBreak *tb_cur, *tb_next;
+	int i;
+	int ret;
+	int index;
+	unsigned long start_pos, end_pos;
+	char *filename;
+	char str_tmp[1024];
+
+	i = 0;
+
+	tbl_cur = tbl_head;
+	tbl_next = g_list_next(tbl_cur);
+
+	while (tbl_cur != NULL) {
+		index = g_list_position(tbl_head, tbl_cur);
+		tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
+		if (tb_cur->write == TRUE) {
+			start_pos = tb_cur->offset * BLOCK_SIZE;
+			filename = strdup(tb_cur->filename);
+
+			if (tbl_next == NULL) {
+				end_pos = 0;
+				tb_next = NULL;
+			} else {
+				index = g_list_position(tbl_head, tbl_next);
+				tb_next = (TrackBreak *)g_list_nth_data(tbl_head, index);
+				end_pos = tb_next->offset * BLOCK_SIZE;
+			}
+
+			strcpy(str_tmp, "tmp/");
+			filename = strcat(str_tmp, filename);
+printf("writing %s\n", filename);
+			if (audio_type == CDDA) {
+				ret = cdda_write_file(sample_fp, filename, BUF_SIZE,
+				                      start_pos, end_pos);
+			} else if (audio_type == WAV) {
+				printf("can't write wav data yet\n");
+			//	ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
+			//				BLOCK_SIZE * i);
+			}
+		}
+
+		tbl_cur = g_list_next(tbl_cur);
+		tbl_next = g_list_next(tbl_next);
+	}
+
+	return NULL;
+}
+
+void sample_write_files(const char *filename, GList *tbl)
+{
+	sample_file = strdup(filename);
+
+	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
+		printf("error opening %s\n", sample_file);
+		return;
+	}
+
+	if (strstr(sample_file, ".wav")) {
+		wav_read_header(sample_fp, &sampleInfo);
+		audio_type = WAV;
+	} else {
+		cdda_read_header(sample_file, &sampleInfo);
+		audio_type = CDDA;
+	}
+
+/* start new thread stuff */
+	if (pthread_attr_init(&thread_attr) != 0) {
+		perror("return from pthread_attr_init");
+	}
+
+	if (pthread_attr_setdetachstate(&thread_attr,
+			PTHREAD_CREATE_DETACHED) != 0) {
+		perror("return from pthread_attr_setdetachstate");
+	}
+
+	if (pthread_create(&thread, &thread_attr, write_thread, tbl) != 0) {
+		perror("Return from pthread_create");
+	}
+/* end new thread stuff */
 }

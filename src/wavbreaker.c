@@ -20,19 +20,10 @@ static GraphData graphData;
 
 static unsigned long cursor_marker;
 static int pixmap_offset;
+static char *sample_filename;
 
 static guint idle_func_num;
 static gdouble progress_pct;
-
-typedef struct TrackBreak_ TrackBreak;
-
-struct TrackBreak_ {
-	gboolean  write;
-	GdkColor  color;
-	guint     offset;
-	gchar     *filename;
-	gboolean  editable;
-};
 
 typedef struct CursorData_ CursorData;
 
@@ -188,7 +179,8 @@ void print_element(gpointer data, gpointer user_data)
 
 	breakup = (TrackBreak *)data;
 
-	printf("\t%d\n", breakup->offset);
+	printf("\toffset: %d\n", breakup->offset);
+	printf("\tfilename: %s\n\n", breakup->filename);
 }
 /* DEBUG FUNCTION END */
 
@@ -401,17 +393,16 @@ idle_func(gpointer data) {
 
 void
 filesel_ok_clicked(GtkWidget *widget,
-		   gpointer data)
+                   gpointer user_data)
 {
-	char *filename;
 	GtkWidget *filesel;
 
-	filesel = GTK_WIDGET(data);
+	filesel = GTK_WIDGET(user_data);
 
-	filename = g_strdup((char *)gtk_file_selection_get_filename(
-		GTK_FILE_SELECTION(filesel)));
+	sample_filename = g_strdup((char *)gtk_file_selection_get_filename(
+	                           GTK_FILE_SELECTION(filesel)));
 
-	sample_open_file(filename, &graphData, &progress_pct);
+	sample_open_file(sample_filename, &graphData, &progress_pct);
 
 	gdk_window_hide(widget->window);
 
@@ -423,7 +414,7 @@ filesel_ok_clicked(GtkWidget *widget,
 
 void
 filesel_cancel_clicked(GtkWidget *widget,
-		       gpointer data)
+                       gpointer user_data)
 {
 	gdk_window_hide(widget->window);
 }
@@ -671,7 +662,7 @@ button_release(GtkWidget *widget,
 
 static void
 play_button_clicked(GtkWidget *widget,
-		    gpointer data)
+		    gpointer user_data)
 {
 	switch (play_sample(cursor_marker)) {
 		case 0:
@@ -690,9 +681,16 @@ play_button_clicked(GtkWidget *widget,
 
 static void
 stop_button_clicked(GtkWidget *widget,
-                    gpointer data)
+                    gpointer user_data)
 {
 	stop_sample();
+}
+
+static void
+write_button_clicked(GtkWidget *widget,
+                     gpointer user_data)
+{
+	sample_write_files(sample_filename, track_break_list);
 }
 
 static void
@@ -729,7 +727,6 @@ delete_event(GtkWidget *widget,
              GdkEventAny *event,
              gpointer data)
 {
-	g_print("delete event occurred\n");
 	return FALSE;
 }
 
@@ -793,6 +790,15 @@ int main(int argc, char **argv)
 
 	g_signal_connect(G_OBJECT(button), "clicked",
 			 G_CALLBACK(stop_button_clicked), NULL);
+
+	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
+	gtk_widget_show(button);
+
+/* write button */
+	button = gtk_button_new_with_label("Write");
+
+	g_signal_connect(G_OBJECT(button), "clicked",
+			 G_CALLBACK(write_button_clicked), NULL);
 
 	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
 	gtk_widget_show(button);

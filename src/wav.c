@@ -1,6 +1,6 @@
 #include <stdio.h>
+#include <string.h>
 #include "wav.h"
-
 
 #define RiffID "RIFF"
 #define WaveID "WAVE"
@@ -156,10 +156,10 @@ int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 }
 
 int
-wav_read_sample(FILE		*fp,
-		unsigned char	*buf,
-		int		buf_size,
-		unsigned long	start_pos)
+wav_read_sample(FILE *fp,
+                unsigned char *buf,
+                int buf_size,
+                unsigned long start_pos)
 {
 	int ret;
 
@@ -177,4 +177,13 @@ wav_read_sample(FILE		*fp,
 	}
 
 	return ret;
+}
+
+int
+wav_write_file(FILE *fp,
+               char *filename,
+               int buf_size,
+               unsigned long start_pos)
+{
+	return 0;
 }
