@@ -195,8 +195,8 @@ static GtkItemFactoryEntry menu_items[] = {
  *-------------------------------------------------------------------------
  */
 
-void
-track_break_create_list_gui(GtkWidget *container)
+GtkWidget *
+track_break_create_list_gui()
 {
 	GtkWidget *treeview;
 	GtkTreeViewColumn *column;
@@ -210,9 +210,7 @@ track_break_create_list_gui(GtkWidget *container)
         gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw),
                                         GTK_POLICY_AUTOMATIC,
                                         GTK_POLICY_AUTOMATIC);
-        gtk_box_pack_start(GTK_BOX(container), sw, TRUE, TRUE, 0);
         gtk_widget_set_size_request(sw, 350, 75);
-        gtk_widget_show(sw);
 
 /* create the data store */
 
@@ -262,6 +260,8 @@ track_break_create_list_gui(GtkWidget *container)
 	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
 	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+
+	return sw;
 }
 
 gint
@@ -737,9 +737,12 @@ draw_sample(GtkWidget *widget)
 	gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
 	xaxis = height / 2;
-	scale = graphData.maxSampleValue / xaxis;
-
-	if (scale == 0) {
+	if (xaxis != 0) {
+		scale = graphData.maxSampleValue / xaxis;
+		if (scale == 0) {
+			scale = 1;
+		}
+	} else {
 		scale = 1;
 	}
 
@@ -919,9 +922,12 @@ draw_summary_pixmap(GtkWidget *widget)
 	gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
 
 	xaxis = height / 2;
-	scale = graphData.maxSampleValue / xaxis;
-
-	if (scale == 0) {
+	if (xaxis != 0) {
+		scale = graphData.maxSampleValue / xaxis;
+		if (scale == 0) {
+			scale = 1;
+		}
+	} else {
 		scale = 1;
 	}
 
@@ -1122,6 +1128,7 @@ static void
 button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	char strbuf[1024];
+	int min, sec, subsec;
 
 	if (event->x + pixmap_offset > graphData.numSamples) {
 		return;
@@ -1135,7 +1142,16 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	*/
 	/* DEBUG CODE END */
 
-	sprintf(strbuf, "cursor_marker: %lu", cursor_marker);
+	if (cursor_marker > 0) {
+		min = cursor_marker / 3120;
+		sec = cursor_marker % 3120;
+		subsec = sec % 52;
+		sec = sec / 52;
+	} else {
+		min = sec = subsec = 0;
+	}
+
+	sprintf(strbuf, "cursor_marker: %lu\ttime: %d:%d.%d", cursor_marker, min, sec, subsec);
 	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, strbuf);
 
 	draw_sample(draw);
@@ -1227,12 +1243,17 @@ destroy(GtkWidget *widget, GdkEventAny *event, gpointer data)
 
 int main(int argc, char **argv)
 {
-	GtkWidget *packer;
+	GtkWidget *vbox;
+	GtkWidget *tbl_widget;
 	GtkWidget *menu_widget;
 	GtkWidget *toolbar;
 	GtkWidget *icon;
 	GtkAccelGroup *accel_group;      
 	GtkItemFactory *item_factory;
+
+	GtkWidget *vpane1, *vpane2;
+	GtkWidget *vpane_vbox;
+	GtkWidget *frame;
 
 	g_thread_init(NULL);
 	gdk_threads_init();
@@ -1248,9 +1269,9 @@ int main(int argc, char **argv)
 
 	gtk_container_set_border_width(GTK_CONTAINER(main_window), 0);
 
-	packer = gtk_vbox_new(FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(main_window), packer);
-	gtk_widget_show(packer);
+	vbox = gtk_vbox_new(FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(main_window), vbox);
+	gtk_widget_show(vbox);
 
 /* Menu Items */
 	accel_group = gtk_accel_group_new();
@@ -1272,7 +1293,7 @@ int main(int argc, char **argv)
 
 	menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
 
-	gtk_box_pack_start(GTK_BOX(packer), menu_widget, FALSE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
 	gtk_widget_show(menu_widget);
 
 /* Button Toolbar */
@@ -1303,7 +1324,7 @@ int main(int argc, char **argv)
 	                         G_CALLBACK(menu_add_track_break), main_window, -1);
 	*/
 
-	gtk_box_pack_start(GTK_BOX(packer), toolbar, FALSE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
 	gtk_widget_show(toolbar);
 
 /* Set default colors up */
@@ -1372,6 +1393,21 @@ int main(int argc, char **argv)
 	sample_colors[9].blue  = 200*(65535/255);
 	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[9]);
 
+/* paned view */
+	vpane1 = gtk_vpaned_new();
+	gtk_box_pack_start(GTK_BOX(vbox), vpane1, TRUE, TRUE, 0);
+	gtk_widget_show(vpane1);
+
+/* vbox for the vpane */
+	vpane_vbox = gtk_vbox_new(FALSE, 0);
+	gtk_paned_add1(GTK_PANED(vpane1), vpane_vbox);
+	gtk_widget_show(vpane_vbox);
+
+/* paned view */
+	vpane2 = gtk_vpaned_new();
+	gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
+	gtk_widget_show(vpane2);
+
 /* The summary_pixmap drawing area */
 	draw_summary = gtk_drawing_area_new();
 	gtk_widget_set_size_request(draw_summary, 500, 75);
@@ -1386,7 +1422,12 @@ int main(int argc, char **argv)
 	gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
 	gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
 
-	gtk_box_pack_start(GTK_BOX(packer), draw_summary, FALSE, TRUE, 5);
+	frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+	gtk_widget_show(frame);
+
+	gtk_container_add(GTK_CONTAINER(frame), draw_summary);
+	gtk_paned_add1(GTK_PANED(vpane2), frame);
 	gtk_widget_show(draw_summary);
 
 /* The sample_pixmap drawing area */
@@ -1403,7 +1444,13 @@ int main(int argc, char **argv)
 	gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
 	gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
 
-	gtk_box_pack_start(GTK_BOX(packer), draw, TRUE, TRUE, 5);
+	frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+	gtk_widget_show(frame);
+
+	gtk_container_add(GTK_CONTAINER(frame), draw);
+	gtk_paned_add2(GTK_PANED(vpane2), frame);
+//	gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
 	gtk_widget_show(draw);
 
 /* Add scrollbar */
@@ -1412,15 +1459,18 @@ int main(int argc, char **argv)
 			 G_CALLBACK(adj_value_changed), NULL);
 
 	scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
-	gtk_box_pack_start(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(vpane_vbox), scrollbar, FALSE, TRUE, 0);
 	gtk_widget_show(scrollbar);
 
 /* Track Break List */
-	track_break_create_list_gui(packer);
+	tbl_widget = track_break_create_list_gui();
+	gtk_paned_add2(GTK_PANED(vpane1), tbl_widget);
+//	gtk_box_pack_start(GTK_BOX(vbox), tbl_widget, TRUE, TRUE, 0);
+	gtk_widget_show(tbl_widget);
 
 /* Status Bar */
 	statusbar = gtk_statusbar_new();
-	gtk_box_pack_start(GTK_BOX(packer), statusbar, FALSE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, TRUE, 0);
 	gtk_widget_show(statusbar);
 
 /* Finish up */
