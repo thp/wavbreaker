@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <gtk/gtk.h>
 #include <pthread.h>
+#include <string.h>
+#include <libgen.h>
 
 #include "wavbreaker.h"
 #include "sample.h"
@@ -216,8 +218,7 @@ void track_break_clear_list()
 }
 
 void
-track_break_add_button_clicked(GtkWidget *widget,
-                               gpointer user_data)
+track_break_add_entry()
 {
 	GtkTreeIter iter;
 	GtkTreeIter sibling;
@@ -226,6 +227,8 @@ track_break_add_button_clicked(GtkWidget *widget,
 	gint list_pos = 0;
 	TrackBreak *track_break = NULL;
 	CursorData cursor_data;
+	char str_tmp[1024];
+	char *str_ptr;
 
 	cursor_data.is_equal = FALSE;
 	cursor_data.marker = cursor_marker;
@@ -241,12 +244,19 @@ track_break_add_button_clicked(GtkWidget *widget,
 	}
 
 	track_break->write = 1;
-	track_break->filename = "phish - stash.ogg";
 	track_break->offset = cursor_marker;
 	track_break->editable = TRUE;
 
+	/* setup the filename */
+	strcpy(str_tmp, sample_filename);
+	str_ptr = basename(str_tmp);
+	strcpy(str_tmp, str_ptr);
+	str_ptr = rindex(str_tmp, '.');
+	*str_ptr = '\0';
+	track_break->filename = strdup(strcat(str_tmp, "00"));
+
 	track_break_list = g_list_insert_sorted(track_break_list, track_break,
-						track_break_sort);
+											track_break_sort);
 
 	list_pos = g_list_index(track_break_list, track_break);
 	sprintf(path_str, "%d", list_pos);
@@ -276,8 +286,8 @@ track_break_add_button_clicked(GtkWidget *widget,
 }
 
 void track_break_write_toggled(GtkWidget *widget,
-			       gchar *path_str,
-			       gpointer user_data)
+                               gchar *path_str,
+                               gpointer user_data)
 {
 	GtkTreeModel *model = (GtkTreeModel *)user_data;
 	GtkTreeIter iter;
@@ -369,6 +379,9 @@ idle_func(gpointer data) {
 /* Reset things because we have a new file             */
 /* --------------------------------------------------- */
 
+	cursor_marker = 0;
+	track_break_clear_list();
+
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
 	gtk_widget_queue_draw(scrollbar);
 
@@ -380,6 +393,8 @@ idle_func(gpointer data) {
 	draw_sample(draw);
 	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
+
+	track_break_add_entry();
 
 /* --------------------------------------------------- */
 
@@ -410,10 +425,9 @@ filesel_ok_clicked(GtkWidget *widget,
 
 	gdk_window_hide(widget->window);
 
-	idle_func_num = gtk_idle_add(idle_func, NULL);
+	stop_sample();
 
-	cursor_marker = 0;
-	track_break_clear_list();
+	idle_func_num = gtk_idle_add(idle_func, NULL);
 }
 
 void
@@ -690,6 +704,13 @@ write_button_clicked(GtkWidget *widget,
                      gpointer user_data)
 {
 	sample_write_files(sample_filename, track_break_list);
+}
+
+void
+track_break_add_button_clicked(GtkWidget *widget,
+                               gpointer user_data)
+{
+	track_break_add_entry();
 }
 
 static void
