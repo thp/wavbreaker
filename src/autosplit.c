@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "sample.h"
+#include "wavbreaker.h"
 
 static GtkWidget *window;
 
@@ -93,7 +94,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 	autosplit_hide(GTK_WIDGET(user_data));
 	time = parse_time_string();
 	if (time > 0) {
-		
+		wavbreaker_autosplit(time);
 	}
 }
 

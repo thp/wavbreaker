@@ -259,6 +259,17 @@ void set_status_message(const char *val)
 }
 */
 
+void wavbreaker_autosplit(long x) {
+	long n = x;
+
+	while (n <= graphData.numSamples) {
+		cursor_marker = n;
+		track_break_add_entry();
+		n += x;
+	}
+//	redraw();
+}
+
 /*
  *-------------------------------------------------------------------------
  * Track Break
@@ -493,6 +504,8 @@ track_break_delete_entry()
 	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
+
+	redraw();
 }
 
 void
@@ -607,6 +620,7 @@ track_break_add_entry()
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
 
+	redraw();
 /* DEBUG CODE START */
 /*
 	g_list_foreach(track_break_list, track_break_print_element, NULL);
@@ -1552,14 +1566,12 @@ void
 menu_delete_track_break(GtkWidget *widget, gpointer user_data)
 {
 	track_break_delete_entry();
-	redraw();
 }
 
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
 	track_break_add_entry();
-	redraw();
 }
 
 static void

@@ -51,4 +51,6 @@ struct WriteInfo_ {
 	guint sync;
 };
 
+void wavbreaker_autosplit(long x);
+
 #endif /* WAVBREAKER_H */
