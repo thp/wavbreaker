@@ -389,7 +389,6 @@ write_thread(gpointer data)
 			strcpy(filename, get_outputdir());
 			strcat(filename, "/");
 			strcat(filename, tb_cur->filename);
-printf("filename: %s\n", filename);
 
 			/* add file number to filename */
 			/* !!now doing this in the track break list!!
