@@ -20,5 +20,7 @@
 #define APPCONFIG_H
 
 void appconfig_show(GtkWidget *);
+char *get_outputdev();
+char *get_outputdir();
 
 #endif /* APPCONFIG_H */
