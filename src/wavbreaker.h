@@ -36,7 +36,6 @@ struct GraphData_{
 typedef struct TrackBreak_ TrackBreak;
 struct TrackBreak_ {
 	gboolean  write;
-	GdkColor  color;
 	guint     offset;
 	gchar     *filename;
 	gboolean  editable;

@@ -29,8 +29,9 @@
 #include "wavbreaker.h"
 #include "sample.h"
 
-#define play_icon_filename "images/media-play.png"
-#define stop_icon_filename "images/media-stop.png"
+#define play_icon_filename "images/play.png"
+#define stop_icon_filename "images/stop.png"
+#define break_icon_filename "images/break2.png"
 
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
@@ -45,6 +46,11 @@ static GtkWidget *statusbar;
 
 static GraphData graphData;
 
+GdkColor sample_colors[10];
+GdkColor bg_color;
+GdkColor axis_color;
+GdkColor cursor_marker_color;
+
 static unsigned long cursor_marker;
 static int pixmap_offset;
 static char *sample_filename = NULL;
@@ -57,6 +63,7 @@ typedef struct CursorData_ CursorData;
 struct CursorData_ {
 	unsigned long marker;
 	gboolean is_equal;
+	guint index;
 };
 
 enum {
@@ -300,6 +307,17 @@ track_break_compare_cursor_marker(gpointer data, gpointer user_data)
 
 	if (cursor_data->marker == track_break->offset) {
 		cursor_data->is_equal = TRUE;
+	}
+}
+
+void
+track_break_find(gpointer data, gpointer user_data)
+{
+	TrackBreak *tb = (TrackBreak *) data;
+	CursorData *cd = (CursorData *) user_data;
+
+	if (cd->marker < tb->offset) {
+		cd->index = g_list_index(track_break_list, data);
 	}
 }
 
@@ -600,9 +618,11 @@ draw_sample(GtkWidget *widget)
 	int y_min, y_max;
 	int scale;
 	int i;
-
 	GdkGC *gc;
-	GdkColor color;
+
+	int count;
+	GList *tbl;
+	TrackBreak *tb_cur;
 
 	width = widget->allocation.width;
 	height = widget->allocation.height;
@@ -622,12 +642,7 @@ draw_sample(GtkWidget *widget)
 
 	/* clear sample_pixmap before drawing */
 
-	color.red   = 255*(65535/255);
-	color.green = 255*(65535/255);
-	color.blue  = 255*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-	gdk_gc_set_foreground(gc, &color);
-
+	gdk_gc_set_foreground(gc, &bg_color);
 	gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
 	xaxis = height / 2;
@@ -640,24 +655,13 @@ draw_sample(GtkWidget *widget)
 	if (graphData.data == NULL) {
 		/* draw axis */
 
-		color.red   = 0*(65535/255);
-		color.green = 0*(65535/255);
-		color.blue  = 0*(65535/255);
-		gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-		gdk_gc_set_foreground(gc, &color);
-
+		gdk_gc_set_foreground(gc, &axis_color);
 		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
 
 		return;
 	}
 
 	/* draw sample graph */
-
-	color.red   =  15*(65535/255);
-	color.green =  184*(65535/255);
-	color.blue  = 225*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-	gdk_gc_set_foreground(gc, &color);
 
 	for (i = 0; i < width && i < graphData.numSamples; i++) {
 		y_min = graphData.data[i + pixmap_offset].min;
@@ -679,16 +683,28 @@ draw_sample(GtkWidget *widget)
 		*/
 		/* DEBUG CODE END */
 
+		/* find the track break we are drawing now */
+
+		count = 0;
+		tb_cur = NULL;
+		for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
+//			index = g_list_position(track_break_list, tbl);
+//			tb_cur = g_list_nth_data(tbl, index);
+			tb_cur = tbl->data;
+			if (tb_cur != NULL) {
+				if (i + pixmap_offset > tb_cur->offset) {
+					count++;
+				}
+			}
+		}
+
+		gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
 		gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
 	}
 
 	/* draw axis */
 
-	color.red   = 0*(65535/255);
-	color.green = 0*(65535/255);
-	color.blue  = 0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-	gdk_gc_set_foreground(gc, &color);
+	gdk_gc_set_foreground(gc, &axis_color);
 
 	if (width > graphData.numSamples) {
 		gdk_draw_line(sample_pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
@@ -702,7 +718,6 @@ draw_cursor_marker()
 {
 	int height;
 	GdkGC *gc;
-	GdkColor color;
 
 	height = draw->allocation.height;
 
@@ -714,13 +729,7 @@ draw_cursor_marker()
 	}
 
 	gc = gdk_gc_new(cursor_pixmap);
-
-	color.red   = 255*(65535/255);
-	color.green =   0*(65535/255);
-	color.blue  =   0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(draw), &color);
-	gdk_gc_set_foreground(gc, &color);
-
+	gdk_gc_set_foreground(gc, &cursor_marker_color);
 	gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
 }
 
@@ -794,11 +803,12 @@ draw_summary_pixmap(GtkWidget *widget)
 	int leftover_count, loop_end, array_offset;
 
 	GdkGC *gc;
-	GdkColor color;
+	int count;
+	GList *tbl;
+	TrackBreak *tb_cur;
 
 	width = widget->allocation.width;
-	height = widget->allocation.height;
-
+	height = widget->allocation.height; 
 	if (summary_pixmap) {
 		gdk_pixmap_unref(summary_pixmap);
 	}
@@ -814,12 +824,7 @@ draw_summary_pixmap(GtkWidget *widget)
 
 	/* clear summary_pixmap before drawing */
 
-	color.red   = 255*(65535/255);
-	color.green = 255*(65535/255);
-	color.blue  = 255*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-	gdk_gc_set_foreground(gc, &color);
-
+	gdk_gc_set_foreground(gc, &bg_color);
 	gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
 
 	xaxis = height / 2;
@@ -832,22 +837,12 @@ draw_summary_pixmap(GtkWidget *widget)
 	if (graphData.data == NULL) {
 		/* draw axis */
 
-		color.red   = 0*(65535/255);
-		color.green = 0*(65535/255);
-		color.blue  = 0*(65535/255);
-		gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-		gdk_gc_set_foreground(gc, &color);
+		gdk_gc_set_foreground(gc, &axis_color);
 
 		return;
 	}
 
 	/* draw sample graph */
-
-	color.red   =  15*(65535/255);
-	color.green =  184*(65535/255);
-	color.blue  = 225*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-	gdk_gc_set_foreground(gc, &color);
 
 	x_scale = graphData.numSamples / width;
 	if (x_scale == 0) {
@@ -907,35 +902,34 @@ leftover_count = 0;
 		*/
 		/* DEBUG CODE END */
 
-		/* setup colors for graph */
+		count = 0;
+		tb_cur = NULL;
+		for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
+//			index = g_list_position(track_break_list, tbl);
+//			tb_cur = g_list_nth_data(tbl, index);
+			tb_cur = tbl->data;
+			if (tb_cur != NULL) {
+				if (array_offset > tb_cur->offset) {
+					count++;
+				}
+			}
+		}
+
+		gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
+
 		if (i * x_scale + leftover_count >= pixmap_offset &&
 		           i * x_scale + leftover_count < pixmap_offset + width) {
 
 			/* draw reverse background */
-			color.red   =  15*(65535/255);
-			color.green =  184*(65535/255);
-			color.blue  = 225*(65535/255);
-			gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-			gdk_gc_set_foreground(gc, &color);
-
+			gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
 			gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
 
 			/* draw reverse foreground */
-			color.red   =  255*(65535/255);
-			color.green =  255*(65535/255);
-			color.blue  = 225*(65535/255);
-			gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-			gdk_gc_set_foreground(gc, &color);
-
+			gdk_gc_set_foreground(gc, &bg_color);
 			gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
 
 		} else {
-			color.red   =  15*(65535/255);
-			color.green =  184*(65535/255);
-			color.blue  = 225*(65535/255);
-			gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-			gdk_gc_set_foreground(gc, &color);
-
+			gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
 			gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
 		}
 	}
@@ -1196,9 +1190,9 @@ int main(int argc, char **argv)
 	icon = gtk_image_new_from_file(stop_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
 	                         icon, G_CALLBACK(menu_stop), NULL);
-	//icon = gtk_image_new_from_file(break_icon_filename);
+	icon = gtk_image_new_from_file(break_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Break", "Add Track Break",
-	                        NULL, NULL, G_CALLBACK(menu_add_track_break), NULL);
+	                        NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
 	/*
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
 	                         "Add Track Break", NULL,
@@ -1207,6 +1201,72 @@ int main(int argc, char **argv)
 
 	gtk_box_pack_start(GTK_BOX(packer), toolbar, FALSE, TRUE, 0);
 	gtk_widget_show(toolbar);
+
+/* Set default colors up */
+	bg_color.red   = 255*(65535/255);
+	bg_color.green = 255*(65535/255);
+	bg_color.blue  = 255*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &bg_color);
+
+	axis_color.red   = 0*(65535/255);
+	axis_color.green = 0*(65535/255);
+	axis_color.blue  = 0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &axis_color);
+
+	cursor_marker_color.red   = 255*(65535/255);
+	cursor_marker_color.green =   0*(65535/255);
+	cursor_marker_color.blue  =   0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &cursor_marker_color);
+
+	sample_colors[0].red   =  15*(65535/255);
+	sample_colors[0].green =  184*(65535/255);
+	sample_colors[0].blue  = 225*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[0]);
+
+	sample_colors[1].red   = 255*(65535/255);
+	sample_colors[1].green = 0*(65535/255);
+	sample_colors[1].blue  = 0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[1]);
+
+	sample_colors[2].red   = 0*(65535/255);
+	sample_colors[2].green = 255*(65535/255);
+	sample_colors[2].blue  = 0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[2]);
+
+	sample_colors[3].red   = 255*(65535/255);
+	sample_colors[3].green = 255*(65535/255);
+	sample_colors[3].blue  = 0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[3]);
+
+	sample_colors[4].red   = 0*(65535/255);
+	sample_colors[4].green = 255*(65535/255);
+	sample_colors[4].blue  = 255*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[4]);
+
+	sample_colors[5].red   = 255*(65535/255);
+	sample_colors[5].green = 0*(65535/255);
+	sample_colors[5].blue  = 255*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[5]);
+
+	sample_colors[6].red   = 255*(65535/255);
+	sample_colors[6].green = 128*(65535/255);
+	sample_colors[6].blue  = 128*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[6]);
+
+	sample_colors[7].red   = 128*(65535/255);
+	sample_colors[7].green = 128*(65535/255);
+	sample_colors[7].blue  = 255*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[7]);
+
+	sample_colors[8].red   = 128*(65535/255);
+	sample_colors[8].green = 255*(65535/255);
+	sample_colors[8].blue  = 128*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[8]);
+
+	sample_colors[9].red   = 128*(65535/255);
+	sample_colors[9].green = 50*(65535/255);
+	sample_colors[9].blue  = 200*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[9]);
 
 /* The summary_pixmap drawing area */
 	draw_summary = gtk_drawing_area_new();
