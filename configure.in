@@ -1,16 +1,54 @@
-AC_INIT(src/wavbreaker.c)
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(acconfig.h)
 
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(wavbreaker, 0.2)
+AM_INIT_AUTOMAKE(wavbreaker, 0.3)
 
 dnl Checks for programs.
+AC_PROG_AWK
 AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_LN_S
 
 dnl Checks for libraries.
-dnl Replace `main' with a function in -libs:
-AC_CHECK_LIB(ibs, main)
+dnl Replace `main' with a function in -latk:
+AC_CHECK_LIB(atk, main)
+dnl Replace `main' with a function in -ldl:
+AC_CHECK_LIB(dl, main)
+dnl Replace `main' with a function in -lgdk:
+AC_CHECK_LIB(gdk, main)
+dnl Replace `main' with a function in -lgdk_pixbuf:
+AC_CHECK_LIB(gdk_pixbuf, main)
+dnl Replace `main' with a function in -lglib:
+AC_CHECK_LIB(glib, main)
+dnl Replace `main' with a function in -lgmodule:
+AC_CHECK_LIB(gmodule, main)
+dnl Replace `main' with a function in -lgobject:
+AC_CHECK_LIB(gobject, main)
+dnl Replace `main' with a function in -lgthread:
+AC_CHECK_LIB(gthread, main)
+dnl Replace `main' with a function in -lgtk:
+AC_CHECK_LIB(gtk, main)
+dnl Replace `main' with a function in -lm:
+AC_CHECK_LIB(m, main)
+dnl Replace `main' with a function in -lpango:
+AC_CHECK_LIB(pango, main)
+dnl Replace `main' with a function in -lpangoft2:
+AC_CHECK_LIB(pangoft2, main)
+dnl Replace `main' with a function in -lpangowin32:
+AC_CHECK_LIB(pangowin32, main)
+dnl Replace `main' with a function in -lpangox:
+AC_CHECK_LIB(pangox, main)
+dnl Replace `main' with a function in -lpangoxft:
+AC_CHECK_LIB(pangoxft, main)
 dnl Replace `main' with a function in -lpthread:
 AC_CHECK_LIB(pthread, main)
+dnl Replace `main' with a function in -lwinmm:
+AC_CHECK_LIB(winmm, main)
+dnl Replace `main' with a function in -lxml2:
+AC_CHECK_LIB(xml2, main)
+dnl Replace `main' with a function in -lz:
+AC_CHECK_LIB(z, main)
 
 dnl Checks for header files.
 AC_HEADER_STDC
@@ -24,10 +62,10 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MEMCMP
 AC_CHECK_FUNCS(strdup strstr)
 
-PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 >= 2.0 gthread-2.0 >= 2.0 libxml-2.0)
+PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 gthread-2.0 libxml-2.0)
 AC_SUBST(WAVBREAKER_CFLAGS)
 AC_SUBST(WAVBREAKER_LIBS)
 
 AC_DEFINE_UNQUOTED(IMAGEDIR, "${prefix}/share/wavbreaker/images/")
 
-AC_OUTPUT(Makefile src/Makefile images/Makefile)
+AC_OUTPUT(src/Makefile images/Makefile Makefile)
