@@ -1,4 +1,5 @@
-INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir)
+INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) -DIMAGEDIR="\"$(datadir)/wavbreaker/images/\""
+#wavbreaker_CPPFLAGS = -DIMAGEDIR=$(datadir)
 
 bin_PROGRAMS = wavbreaker wavmerge wavinfo
 
