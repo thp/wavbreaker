@@ -178,6 +178,7 @@ void appconfig_show(GtkWidget *main_window)
 
 	outputdir_entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(outputdir_entry), outputdir);
+	gtk_entry_set_width_chars(GTK_ENTRY(outputdir_entry), 32);
 	gtk_table_attach(GTK_TABLE(table), outputdir_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
 	gtk_widget_show(outputdir_entry);
 
