@@ -100,55 +100,30 @@ GtkWidget *treeview;
  *-------------------------------------------------------------------------
  */
 
-static gboolean
-track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+/* Track Break Functions */
+static gboolean track_break_button_press(GtkWidget *widget,
+    GdkEventButton *event, gpointer user_data);
+void track_break_write_toggled(GtkWidget *widget, gchar *path_str,
+    gpointer data);
+void track_break_filename_edited(GtkCellRendererText *cell,
+    const gchar *path_str, const gchar *new_text, gpointer user_data);
+guint track_break_find_offset();
+void track_break_delete_entry();
+void track_break_setup_filename(gpointer data, gpointer user_data);
+void track_break_rename();
+void track_break_add_to_model(gpointer data, gpointer user_data);
+void track_break_add_entry();
 
-void
-track_break_write_toggled(GtkWidget *widget, gchar *path_str, gpointer data);
+void filesel_ok_clicked(GtkWidget *widget, gpointer data);
+void filesel_cancel_clicked(GtkWidget *widget, gpointer data);
 
-void
-track_break_filename_edited(GtkCellRendererText *cell,
-                                 const gchar *path_str,
-                                 const gchar *new_text,
-                                 gpointer user_data);
-
-void 
-track_break_find_offset(CursorData *cursor_data);
-
-void
-track_break_delete_entry();
-
-void
-track_break_setup_filename(gpointer data, gpointer user_data);
-
-void
-track_break_rename();
-
-void
-track_break_add_to_model(gpointer data, gpointer user_data);
-
-void
-track_break_add_entry();
-
-void
-filesel_ok_clicked(GtkWidget *widget,
-                   gpointer data);
-
-void
-filesel_cancel_clicked(GtkWidget *widget,
-                       gpointer data);
-
-static void
-redraw();
-
-static void
-draw_sample(GtkWidget *widget);
-
-static void
-draw_cursor_marker();
-
-static void
-draw_play_marker();
+/* Sample and Summary Display Functions */
+static void redraw();
+static void draw_sample(GtkWidget *widget);
+static void draw_cursor_marker();
+static void draw_play_marker();
+static void draw_summary_pixmap(GtkWidget *widget);
+static void reset_sample_display(guint);
 
 static gboolean
 configure_event(GtkWidget *widget,
@@ -160,8 +135,6 @@ expose_event(GtkWidget *widget,
              GdkEventExpose *event,
              gpointer data);
 
-static void
-draw_summary_pixmap(GtkWidget *widget);
 
 static gboolean
 draw_summary_configure_event(GtkWidget *widget,
@@ -265,15 +238,19 @@ void set_status_message(const char *val)
 }
 */
 
+void jump_to_cursor_marker(GtkWidget *widget, gpointer data) {
+    reset_sample_display(cursor_marker);
+    redraw();
+}
+
 void jump_to_track_break(GtkWidget *widget, gpointer data) {
-    int n = 0;
+    guint n = 0;
 
-    CursorData cursor_data;
-    track_break_find_offset(&cursor_data);
-
+    n = track_break_find_offset();
     if (n <= graphData.numSamples) {
-        //cursor_marker = n;
+        reset_sample_display(n);
     }
+
     redraw();
 }
 
@@ -309,8 +286,7 @@ track_break_create_list_gui()
                                     GTK_POLICY_AUTOMATIC);
     gtk_widget_set_size_request(sw, 350, 100);
 
-/* create the data store */
-
+    /* create the data store */
     store = gtk_list_store_new(NUM_COLUMNS,
                                G_TYPE_BOOLEAN,
                                G_TYPE_STRING,
@@ -318,8 +294,7 @@ track_break_create_list_gui()
                                G_TYPE_UINT,
                                G_TYPE_BOOLEAN);
 
-/* create the treeview */
-
+    /* create the treeview */
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
     gtk_container_add(GTK_CONTAINER(sw), treeview);
 
@@ -331,9 +306,8 @@ track_break_create_list_gui()
 
     gtk_widget_show(treeview);
 
-/* create the columns */
-
-/* Write Toggle Column */
+    /* create the columns */
+    /* Write Toggle Column */
     renderer = gtk_cell_renderer_toggle_new();
     g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(track_break_write_toggled), store);
     column = gtk_tree_view_column_new_with_attributes("Write", renderer, "active", COLUMN_WRITE, NULL);
@@ -341,7 +315,7 @@ track_break_create_list_gui()
     gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-/* File Name Column */
+    /* File Name Column */
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
                         "text", COLUMN_FILENAME,
@@ -351,14 +325,14 @@ track_break_create_list_gui()
     g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-/* File Time Column */
+    /* File Time Column */
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_column_new_with_attributes("Time", renderer, "text", COLUMN_TIME, NULL);
     gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-/* File Offset Column */
+    /* File Offset Column */
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_column_new_with_attributes("Offset", renderer, "text", COLUMN_OFFSET, NULL);
     gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
@@ -436,8 +410,7 @@ track_break_free_element(gpointer data, gpointer user_data)
     g_free(track_break);
 }
 
-void
-track_break_compare_cursor_marker(gpointer data, gpointer user_data)
+void track_break_compare_cursor_marker(gpointer data, gpointer user_data)
 {
     TrackBreak *track_break = (TrackBreak *) data;
     CursorData *cursor_data = (CursorData *) user_data;
@@ -447,8 +420,7 @@ track_break_compare_cursor_marker(gpointer data, gpointer user_data)
     }
 }
 
-void
-track_break_find(gpointer data, gpointer user_data)
+void track_break_find(gpointer data, gpointer user_data)
 {
     TrackBreak *tb = (TrackBreak *) data;
     CursorData *cd = (CursorData *) user_data;
@@ -607,30 +579,39 @@ track_break_add_to_model(gpointer data, gpointer user_data)
     gtk_tree_path_free(path);
 }
 
-void 
-track_break_find_offset(CursorData *cursor_data)
+guint track_break_find_offset()
 {
     GtkTreeSelection *selection;
+    GtkTreeIter iter;
     GtkTreeModel *model;
-    GList *list;
-    gchar str_tmp[1024];
-    gchar *str_ptr;
+    guint offset;
+    gchar *time;
+    gchar *filename;
 
     if (sample_filename == NULL) {
         return;
     }
 
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-    TrackBreak *tb = (TrackBreak *) gtk_tree_selection_get_user_data(selection);
+    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+        gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &filename,
+            COLUMN_TIME, &time, COLUMN_OFFSET, &offset, -1);
+        g_free(time);
+        g_free(filename);
+    }
+
+    return offset;
+/*
+    *tb = (TrackBreak *) gtk_tree_selection_get_user_data(selection);
 
     cursor_data->is_equal = FALSE;
     cursor_data->marker = cursor_marker;
 
     printf("tb->offset: %s\n", tb->offset);
+*/
 }
 
-void
-track_break_add_entry()
+void track_break_add_entry()
 {
     gint list_pos = 0;
     TrackBreak *track_break = NULL;
@@ -994,15 +975,12 @@ filesel_ok_clicked(GtkWidget *widget,
     idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
 }
 
-void
-filesel_cancel_clicked(GtkWidget *widget,
-                       gpointer user_data)
+void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
 {
     gdk_window_hide(widget->window);
 }
 
-static void
-openfile()
+static void openfile()
 {
     static GtkWidget *filesel = NULL;
 
@@ -1029,8 +1007,7 @@ openfile()
  *-------------------------------------------------------------------------
  */
 
-static void
-redraw()
+static void redraw()
 {
     draw_sample(draw);
     gtk_widget_queue_draw(draw);
@@ -1038,8 +1015,7 @@ redraw()
     gtk_widget_queue_draw(draw_summary);
 }
 
-static void
-draw_sample(GtkWidget *widget)
+static void draw_sample(GtkWidget *widget)
 {
     int xaxis;
     int width, height;
@@ -1150,8 +1126,7 @@ draw_sample(GtkWidget *widget)
     g_object_unref(gc);
 }
 
-static void
-draw_cursor_marker()
+static void draw_cursor_marker()
 {
     int height;
     GdkGC *gc;
@@ -1173,8 +1148,7 @@ draw_cursor_marker()
     g_object_unref(gc);
 }
 
-static void
-draw_play_marker()
+static void draw_play_marker()
 {
     int height;
     GdkGC *gc;
@@ -1196,10 +1170,8 @@ draw_play_marker()
     g_object_unref(gc);
 }
 
-static gboolean
-configure_event(GtkWidget *widget,
-                GdkEventConfigure *event,
-                gpointer data)
+static gboolean configure_event(GtkWidget *widget,
+    GdkEventConfigure *event, gpointer data)
 {
     int width;
     width = widget->allocation.width;
@@ -1233,10 +1205,8 @@ configure_event(GtkWidget *widget,
     return TRUE;
 }
 
-static gboolean
-expose_event(GtkWidget *widget,
-             GdkEventExpose *event,
-             gpointer data)
+static gboolean expose_event(GtkWidget *widget,
+    GdkEventExpose *event, gpointer data)
 {
     GdkGC *gc;
 
@@ -1262,8 +1232,7 @@ expose_event(GtkWidget *widget,
     return FALSE;
 }
 
-static void
-draw_summary_pixmap(GtkWidget *widget)
+static void draw_summary_pixmap(GtkWidget *widget)
 {
     int xaxis;
     int width, height;
@@ -1444,10 +1413,10 @@ draw_summary_expose_event(GtkWidget *widget,
     return FALSE;
 }
 
-static gboolean
-draw_summary_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+static gboolean draw_summary_button_release(GtkWidget *widget,
+    GdkEventButton *event, gpointer user_data)
 {
-    int start, midpoint, width;
+    guint start, midpoint, width;
     int x_scale, x_scale_leftover, x_scale_mod;
     int leftover_count;
 
@@ -1468,6 +1437,16 @@ draw_summary_button_release(GtkWidget *widget, GdkEventButton *event, gpointer u
 
     midpoint = event->x * x_scale + leftover_count;
     start = midpoint - width / 2;
+    reset_sample_display(midpoint);
+    redraw();
+
+    return TRUE;
+}
+
+void reset_sample_display(guint midpoint)
+{
+    int width = draw->allocation.width;
+    int start = midpoint - width / 2;
 
     if (graphData.numSamples == 0) {
         pixmap_offset = 0;
@@ -1483,10 +1462,6 @@ draw_summary_button_release(GtkWidget *widget, GdkEventButton *event, gpointer u
 
     gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
     gtk_widget_queue_draw(scrollbar);
-
-    redraw();
-
-    return TRUE;
 }
 
 /*
@@ -1495,9 +1470,7 @@ draw_summary_button_release(GtkWidget *widget, GdkEventButton *event, gpointer u
  *-------------------------------------------------------------------------
  */
 
-static gboolean
-adj_value_changed(GtkAdjustment *adj,
-                  gpointer data)
+static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
 {
     if (sample_get_playing()) {
         return;
@@ -1509,11 +1482,12 @@ adj_value_changed(GtkAdjustment *adj,
     return TRUE;
 }
 
-static gboolean
-button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
+    gpointer data)
 {
     GtkWidget *menu;
     GtkWidget *add_item;
+    GtkWidget *jump_item;
 
     if (event->x + pixmap_offset > graphData.numSamples) {
         return TRUE;
@@ -1526,16 +1500,22 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
         menu = gtk_menu_new();
 
         add_item = gtk_menu_item_new_with_label("Add Track Break");
-        g_signal_connect(G_OBJECT(add_item), "activate", G_CALLBACK(menu_add_track_break), NULL);
+        g_signal_connect(G_OBJECT(add_item), "activate",
+            G_CALLBACK(menu_add_track_break), NULL);
         gtk_widget_show(add_item);
 
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), add_item);
+        jump_item = gtk_menu_item_new_with_label("Jump to Cursor Marker");
+        g_signal_connect(G_OBJECT(jump_item), "activate",
+            G_CALLBACK(jump_to_cursor_marker), NULL);
+        gtk_widget_show(jump_item);
 
-        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
-                  event->button, event->time);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), add_item);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), jump_item);
+
+        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
+            event->button, event->time);
 
         redraw();
-
         return TRUE;
     }
 
@@ -1548,14 +1528,12 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
     /* DEBUG CODE END */
 
     update_status();
-
     redraw();
 
     return TRUE;
 }
 
-static void
-offset_to_time(guint time, gchar *str) {
+static void offset_to_time(guint time, gchar *str) {
     char buf[1024];
     int min, sec, subsec;
 
@@ -1570,8 +1548,7 @@ offset_to_time(guint time, gchar *str) {
     sprintf(str, "%d:%02d.%02d", min, sec, subsec);
 }
 
-static void
-update_status() {
+static void update_status() {
     char str[1024];
     char strbuf[1024];
 
@@ -1587,8 +1564,7 @@ update_status() {
     gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
 }
 
-static void
-menu_play(GtkWidget *widget, gpointer user_data)
+static void menu_play(GtkWidget *widget, gpointer user_data)
 {
     play_marker = cursor_marker;
     switch (play_sample(cursor_marker, &play_marker)) {
@@ -1609,8 +1585,7 @@ menu_play(GtkWidget *widget, gpointer user_data)
     }
 }
 
-static void
-menu_stop(GtkWidget *widget, gpointer user_data)
+static void menu_stop(GtkWidget *widget, gpointer user_data)
 {
     stop_sample();
 }
