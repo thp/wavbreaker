@@ -192,17 +192,17 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
 	sample_file = strdup(filename);
 
-	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
-		printf("error opening %s\n", sample_file);
-		return;
-	}
-
 	if (strstr(sample_file, ".wav")) {
-		wav_read_header(sample_fp, &sampleInfo);
+		wav_read_header(sample_file, &sampleInfo);
 		audio_type = WAV;
 	} else {
 		cdda_read_header(sample_file, &sampleInfo);
 		audio_type = CDDA;
+	}
+
+	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
+		printf("error opening %s\n", sample_file);
+		return;
 	}
 
 	open_thread_data->graphData = graphData;
@@ -313,9 +313,13 @@ static void sample_max_min(GraphData *graphData, double *pct)
 		graphData->maxSampleValue = SHRT_MAX;
 	}
 
+	/* DEBUG CODE START */
+	/*
 	printf("\ni: %d\n", i);
 	printf("graphData->numSamples: %ld\n", graphData->numSamples);
 	printf("graphData->maxSampleValue: %ld\n\n", graphData->maxSampleValue);
+	*/
+	/* DEBUG CODE END */
 }
 
 static void *
@@ -382,16 +386,6 @@ void sample_write_files(const char *filename, GList *tbl)
 		printf("error opening %s\n", sample_file);
 		return;
 	}
-
-	/*
-	if (strstr(sample_file, ".wav")) {
-		wav_read_header(sample_fp, &sampleInfo);
-		audio_type = WAV;
-	} else {
-		cdda_read_header(sample_file, &sampleInfo);
-		audio_type = CDDA;
-	}
-	*/
 
 /* start new thread stuff */
 	if (pthread_attr_init(&thread_attr) != 0) {

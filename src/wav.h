@@ -30,7 +30,7 @@ typedef struct {
 	unsigned short  wBitsPerSample;
 } FormatChunk;
 
-int wav_read_header(FILE *, SampleInfo *);
+int wav_read_header(char *, SampleInfo *);
 int wav_read_sample(FILE *, unsigned char *, int, unsigned long);
 
 int
@@ -40,5 +40,11 @@ wav_write_file(FILE *fp,
                SampleInfo *sample_info,
                unsigned long start_pos,
                unsigned long end_pos);
+
+int
+wav_merge_files(char *filename,
+                int num_files,
+                char *filenames[],
+                int buf_size);
 
 #endif /* WAV_H */

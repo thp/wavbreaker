@@ -6,18 +6,26 @@ unsigned long wavDataPtr;
 unsigned long wavDataSize;
 long x;
 
-int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
+int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 {
 	WaveHeader wavHdr;
 	ChunkHeader chunkHdr;
 	FormatChunk fmtChunk;
 	char str[128];
+	FILE *fp;
 
 	/* DEBUG CODE START */
+	/*
 	printf("WaveHeader Size:\t%u\n", sizeof(WaveHeader));
 	printf("ChunkHeader Size:\t%u\n", sizeof(ChunkHeader));
 	printf("FormatChunk Size:\t%u\n", sizeof(FormatChunk));
+	*/
 	/* DEBUG CODE END */
+
+    if ((fp = fopen(sample_file, "r")) == NULL) {
+        printf("error opening %s\n", sample_file);
+        return 1;
+    }
 
 	/* read in file header */
 
@@ -36,6 +44,7 @@ int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 	}
 
 	/* DEBUG CODE START */
+	/*
 	memcpy(str, wavHdr.riffID, 4);
 	memcpy(str+4, "\0", 1);
 	printf("RIFF ID:\t%s\n", str);
@@ -45,6 +54,7 @@ int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 	memcpy(str, wavHdr.wavID, 4);
 	memcpy(str+4, "\0", 1);
 	printf("Wave ID:\t%s\n", str);
+	*/
 	/* DEBUG CODE END */
 
 	/* read in format chunk header */
@@ -84,6 +94,7 @@ int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 	}
 
 	/* DEBUG CODE START */
+	/*
 	memcpy(str, chunkHdr.chunkID, 4);
 	memcpy(str+4, "\0", 1);
 
@@ -95,6 +106,7 @@ int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 	printf("Bytes / Sec:\t%lu\n", fmtChunk.dwAvgBytesPerSec);
 	printf("wBlockAlign:\t%u\n", fmtChunk.wBlockAlign);
 	printf("Bits Per Sample Point:\t%u\n", fmtChunk.wBitsPerSample);
+	*/
 	/* DEBUG CODE END */
 
 	sampleInfo->channels		= fmtChunk.wChannels;
@@ -135,8 +147,10 @@ int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 	sampleInfo->numBytes = chunkHdr.chunkSize;
 
 	/* DEBUG CODE START */
+	/*
 	printf("wavDataPtr: %lu\n", wavDataPtr);
 	printf("wavDataSize: %lu\n", wavDataSize);
+	*/
 	/* DEBUG CODE END */
 
 	return 0;
@@ -276,9 +290,11 @@ wav_write_file(FILE *fp,
 	}
 
 	/* DEBUG CODE START */
+	/*
 	printf("\nstart_pos: %lu\n", start_pos);
 	printf("end_pos: %lu\n", end_pos);
 	printf("cur_pos: %lu\n", cur_pos);
+	*/
 	/* DEBUG CODE END */
 
 	/*
@@ -303,12 +319,97 @@ wav_write_file(FILE *fp,
 	}
 
 	/* DEBUG CODE START */
+	/*
 	printf("cur_pos: %lu\n", cur_pos);
 	printf("buf_size: %d\n", buf_size);
 	printf("ret: %d\n", ret);
 	printf("num_bytes: %lu\n", num_bytes);
 	printf("done writing - %s\n", filename);
+	*/
 	/* DEBUG CODE END */
+
+	fclose(new_fp);
+
+	return ret;
+}
+
+int
+wav_merge_files(char *filename,
+                int num_files,
+                char *filenames[],
+                int buf_size)
+{
+	int i, ret;
+	SampleInfo sample_info[num_files];
+	unsigned long data_ptr[num_files];
+	FILE *new_fp, *read_fp;
+	unsigned long cur_pos, end_pos, num_bytes;
+	unsigned char buf[buf_size];
+
+	for (i = 0; i < num_files; i++) {
+		wav_read_header(filenames[i], &sample_info[i]);
+		data_ptr[i] = wavDataPtr;
+	}
+
+	num_bytes = sample_info[0].numBytes;
+
+	for (i = 1; i < num_files; i++) {
+		if (sample_info[0].channels != sample_info[i].channels) {
+			return 1;
+		} else if (sample_info[0].samplesPerSec != 
+		                    sample_info[i].samplesPerSec) {
+			return 1;
+		} else if (sample_info[0].avgBytesPerSec != 
+		                    sample_info[i].avgBytesPerSec) {
+			return 1;
+		} else if (sample_info[0].blockAlign != sample_info[i].blockAlign) {
+			return 1;
+		} else if (sample_info[0].bitsPerSample != 
+		                    sample_info[i].bitsPerSample) {
+			return 1;
+		}
+
+		num_bytes += sample_info[i].numBytes;
+	}
+
+	if ((new_fp = fopen(filename, "w")) == NULL) {
+		printf("error opening %s for writing\n", filename);
+		return -1;
+	}
+
+	if ((wav_write_file_header(new_fp, &sample_info[0], num_bytes)) != 0) {
+		fclose(new_fp);
+		return -1;
+	}
+
+	for (i = 0; i < num_files; i++) {
+		if ((read_fp = fopen(filenames[i], "r")) == NULL) {
+			printf("error opening %s for writing\n", filenames[i]);
+			return -1;
+		}
+
+		cur_pos = data_ptr[i];
+		num_bytes = sample_info[i].numBytes;
+		end_pos = cur_pos + num_bytes;
+
+		if (fseek(read_fp, cur_pos, SEEK_SET)) {
+			fclose(new_fp);
+			fclose(read_fp);
+			return -1;
+		}
+
+		while ((ret = fread(buf, 1, buf_size, read_fp)) > 0 &&
+		                   (cur_pos < end_pos)) {
+
+			if ((fwrite(buf, 1, ret, new_fp)) < ret) {
+				printf("error writing to file %s\n", filename);
+				return -1;
+			}
+			cur_pos += ret;
+		}
+
+		fclose(read_fp);
+	}
 
 	fclose(new_fp);
 

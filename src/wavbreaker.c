@@ -11,8 +11,9 @@
 #include "wavbreaker.h"
 #include "sample.h"
 
-static GdkPixmap *pixmap;
-static GdkPixmap *pixmap_cursor;
+static GdkPixmap *sample_pixmap;
+static GdkPixmap *summary_pixmap;
+static GdkPixmap *cursor_pixmap;
 
 static GtkWidget *scrollbar;
 static GtkObject *adj;
@@ -22,7 +23,7 @@ static GraphData graphData;
 
 static unsigned long cursor_marker;
 static int pixmap_offset;
-static char *sample_filename;
+static char *sample_filename = NULL;
 
 static guint idle_func_num;
 static gdouble progress_pct;
@@ -230,6 +231,10 @@ track_break_add_entry()
 	char str_tmp[1024];
 	char *str_ptr;
 
+	if (sample_filename == NULL) {
+		return;
+	}
+
 	cursor_data.is_equal = FALSE;
 	cursor_data.marker = cursor_marker;
 	g_list_foreach(track_break_list, track_break_compare_cursor_marker,
@@ -377,9 +382,9 @@ idle_func(gpointer data) {
 		gtk_widget_destroy(window);
 		window = NULL;
 
-/* --------------------------------------------------- */
-/* Reset things because we have a new file             */
-/* --------------------------------------------------- */
+	/* --------------------------------------------------- */
+	/* Reset things because we have a new file             */
+	/* --------------------------------------------------- */
 
 	cursor_marker = 0;
 	track_break_clear_list();
@@ -460,20 +465,20 @@ draw_sample(GtkWidget *widget)
 	width = widget->allocation.width;
 	height = widget->allocation.height;
 
-	if (pixmap) {
-		gdk_pixmap_unref(pixmap);
+	if (sample_pixmap) {
+		gdk_pixmap_unref(sample_pixmap);
 	}
 
-	pixmap = gdk_pixmap_new(widget->window, width, height, -1);
+	sample_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
 
-	if (!pixmap) {
-		printf("pixmap is NULL\n");
+	if (!sample_pixmap) {
+		printf("sample_pixmap is NULL\n");
 		return;
 	}
 
-	gc = gdk_gc_new(pixmap);
+	gc = gdk_gc_new(sample_pixmap);
 
-	/* clear pixmap before drawing */
+	/* clear sample_pixmap before drawing */
 
 	color.red   = 255*(65535/255);
 	color.green = 255*(65535/255);
@@ -481,7 +486,7 @@ draw_sample(GtkWidget *widget)
 	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
 	gdk_gc_set_foreground(gc, &color);
 
-	gdk_draw_rectangle(pixmap, gc, TRUE, 0, 0, width, height);
+	gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
 	xaxis = height / 2;
 	scale = graphData.maxSampleValue / xaxis;
@@ -499,7 +504,7 @@ draw_sample(GtkWidget *widget)
 		gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
 		gdk_gc_set_foreground(gc, &color);
 
-		gdk_draw_line(pixmap, gc, 0, xaxis, width, xaxis);
+		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
 
 		return;
 	}
@@ -534,7 +539,7 @@ draw_sample(GtkWidget *widget)
 		*/
 		/* DEBUG CODE END */
 
-		gdk_draw_line(pixmap, gc, i, y_min, i, y_max);
+		gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
 	}
 
 	/* draw axis */
@@ -546,9 +551,9 @@ draw_sample(GtkWidget *widget)
 	gdk_gc_set_foreground(gc, &color);
 
 	if (width > graphData.numSamples) {
-		gdk_draw_line(pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
+		gdk_draw_line(sample_pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
 	} else {
-		gdk_draw_line(pixmap, gc, 0, xaxis, width, xaxis);
+		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
 	}
 }
 
@@ -561,14 +566,14 @@ draw_cursor_marker()
 
 	height = draw->allocation.height;
 
-	pixmap_cursor = gdk_pixmap_new(draw->window, 1, height, -1);
+	cursor_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
 
-	if (!pixmap_cursor) {
-		printf("pixmap_cursor is NULL\n");
+	if (!cursor_pixmap) {
+		printf("cursor_pixmap is NULL\n");
 		return;
 	}
 
-	gc = gdk_gc_new(pixmap_cursor);
+	gc = gdk_gc_new(cursor_pixmap);
 
 	color.red   = 255*(65535/255);
 	color.green =   0*(65535/255);
@@ -576,7 +581,7 @@ draw_cursor_marker()
 	gdk_color_alloc(gtk_widget_get_colormap(draw), &color);
 	gdk_gc_set_foreground(gc, &color);
 
-	gdk_draw_line(pixmap_cursor, gc, 0, 0, 0, height);
+	gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
 }
 
 static gboolean
@@ -622,15 +627,15 @@ expose_event(GtkWidget *widget,
 {
 	GdkGC *gc;
 
-	gc = gdk_gc_new(pixmap);
+	gc = gdk_gc_new(sample_pixmap);
 
-	gdk_draw_drawable(widget->window, gc, pixmap, 0, 0, 0, 0, -1, -1);
+	gdk_draw_drawable(widget->window, gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
 
 	if (cursor_marker >= pixmap_offset &&
 	    cursor_marker <= pixmap_offset + widget->allocation.width) {
 
 		int x = cursor_marker - pixmap_offset;
-		gdk_draw_drawable(widget->window, gc, pixmap_cursor, 0, 0,
+		gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
 				  x, 0, -1, -1);
 	}
 
@@ -690,10 +695,10 @@ play_button_clicked(GtkWidget *widget,
 			printf("error in play_sample\n");
 			break;
 		case 2:
-			printf("already playing\n");
+//			printf("already playing\n");
 			break;
 		case 3:
-			printf("must open sample file to play\n");
+//			printf("must open sample file to play\n");
 			break;
 	}
 }
@@ -709,6 +714,10 @@ static void
 write_button_clicked(GtkWidget *widget,
                      gpointer user_data)
 {
+	if (sample_filename == NULL) {
+		return;
+	}
+
 	sample_write_files(sample_filename, track_break_list);
 }
 
