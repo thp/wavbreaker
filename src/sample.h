@@ -38,6 +38,7 @@ struct SampleInfo_ {
 		unsigned long	numBytes;
 };
 
+void sample_init();
 void sample_set_audio_dev(char *str);
 char * sample_get_audio_dev();
 

@@ -23,7 +23,6 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <gtk/gtk.h>
-#include <pthread.h>
 #include <string.h>
 #include <libgen.h>
 
@@ -413,10 +412,11 @@ track_break_delete_entry()
 	gchar str_tmp[1024];
 	gchar *str_ptr;
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	if (selection == NULL) {
-		printf("Selection is null also!\n");
+	if (sample_filename == NULL) {
+		return;
 	}
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 
 	list = gtk_tree_selection_get_selected_rows(selection, &model);
 	g_list_foreach(list, track_break_selection, NULL);
@@ -1427,8 +1427,8 @@ menu_play(GtkWidget *widget, gpointer user_data)
 			break;
 		case 2:
 //			printf("already playing\n");
-			menu_stop(NULL, NULL);
-			play_sample(cursor_marker, &play_marker);
+//			menu_stop(NULL, NULL);
+//			play_sample(cursor_marker, &play_marker);
 			break;
 		case 3:
 //			printf("must open sample file to play\n");
@@ -1749,8 +1749,10 @@ int main(int argc, char **argv)
 
 /* Finish up */
 
+	sample_init();
 	gtk_widget_show(main_window);
 
+	if (!g_thread_supported ()) g_thread_init (NULL);
 	gdk_threads_enter();
 	gtk_main();
 	gdk_threads_leave();

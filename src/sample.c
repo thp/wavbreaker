@@ -22,7 +22,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <limits.h>
 #include <gtk/gtk.h>
  
@@ -38,6 +37,7 @@
 static SampleInfo sampleInfo;
 static unsigned long sample_start = 0;
 static int playing = 0;
+static gboolean kill_play_thread = FALSE;
 static int audio_type;
 static int audio_fd;
 
@@ -45,9 +45,8 @@ static char *audio_dev = "/dev/dsp";
 static char *sample_file = NULL;
 static FILE *sample_fp = NULL;
 
-static pthread_t thread;
-static pthread_attr_t thread_attr;
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static GThread *thread;
+static GMutex *mutex = NULL;
 
 /* typedef and struct stuff for new thread open junk */
 
@@ -56,14 +55,14 @@ struct WriteThreadData_ {
 	GList *tbl;
 	WriteInfo *write_info;
 };
-	WriteThreadData wtd;
+WriteThreadData wtd;
 
 typedef struct OpenThreadData_ OpenThreadData;
 struct OpenThreadData_ {
 	GraphData *graphData;
 	double *pct;
 };
-	OpenThreadData open_thread_data;
+OpenThreadData open_thread_data;
 
 static void sample_max_min(GraphData *graphData, double *pct);
 
@@ -87,8 +86,17 @@ gint sample_get_playing()
 	return playing;
 }
 
-static void *
-play_thread(void *thread_data)
+void sample_init()
+{
+	mutex = g_mutex_new();
+	if (mutex == NULL) {
+		perror("Return from g_mutex_init was NULL");
+		exit(1);
+	}
+}
+
+static gpointer
+play_thread(gpointer thread_data)
 {
 	int ret, i;
 	guint *play_marker = (guint *)thread_data;
@@ -110,7 +118,18 @@ play_thread(void *thread_data)
 	}
 
 	while (ret > 0 && ret <= BUF_SIZE) {
-	        write(audio_fd, devbuf, ret);
+        write(audio_fd, devbuf, ret);
+
+		if (g_mutex_trylock(mutex)) {
+			if (kill_play_thread == TRUE) {
+				close_device(audio_fd);
+				playing = 0;
+				kill_play_thread = FALSE;
+				g_mutex_unlock(mutex);
+				return NULL;
+			}
+			g_mutex_unlock(mutex);
+		}
 
 		if (audio_type == CDDA) {
 			ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
@@ -123,12 +142,12 @@ play_thread(void *thread_data)
 		*play_marker = ((BUF_SIZE * i) + sample_start) / CD_BLOCK_SIZE;
 	}
 
-	pthread_mutex_lock(&mutex);
+	g_mutex_lock(mutex);
 
 	close_device(audio_fd);
 	playing = 0;
 
-	pthread_mutex_unlock(&mutex);
+	g_mutex_unlock(mutex);
 
 	return NULL;
 }
@@ -137,11 +156,14 @@ int play_sample(gulong startpos, gulong *play_marker)
 {       
 	int ret;
 
+	g_mutex_lock(mutex);
 	if (playing) {
+		g_mutex_unlock(mutex);
 		return 2;
 	}
 
 	if (sample_file == NULL) {
+		g_mutex_unlock(mutex);
 		return 3;
 	}
 
@@ -150,63 +172,32 @@ int play_sample(gulong startpos, gulong *play_marker)
 
 	/* setup thread */
 
-	if ((ret = pthread_mutex_init(&mutex, NULL)) != 0) {
-		perror("Return from pthread_mutex_init");
-		printf("Error #%d\n", ret);
+	thread = g_thread_create(play_thread, play_marker, FALSE, NULL);
+	if (thread == NULL) {
+		perror("Return from g_thread_create was NULL");
+		g_mutex_unlock(mutex);
 		return 1;
 	}
 
-	if ((ret = pthread_attr_init(&thread_attr)) != 0) {
-		perror("Return from pthread_attr_init");
-		printf("Error #%d\n", ret);
-		return 1;
-	}
-
-	if ((ret = pthread_attr_setdetachstate(&thread_attr,
-		PTHREAD_CREATE_DETACHED)) != 0) {
-
-		perror("Return from pthread_attr_setdetachstate");
-		printf("Error #%d\n", ret);
-		return 1;
-	}
-
-	if ((ret = pthread_create(&thread, &thread_attr, play_thread,
-			play_marker)) != 0) {
-
-		perror("Return from pthread_create");
-		printf("Error #%d\n", ret);
-		return 1;
-	}
-
+	g_mutex_unlock(mutex);
 	return 0;
 }               
 
 void stop_sample()
 {       
-	if (pthread_mutex_trylock(&mutex)) {
-		return;
-	}
+	g_mutex_lock(mutex);
 
 	if (!playing) {
-		pthread_mutex_unlock(&mutex);
+		g_mutex_unlock(mutex);
 		return;
 	}
 
-	if (pthread_cancel(thread)) {
-		perror("Return from pthread_cancel");
-	        printf("trouble cancelling the thread\n");
-		pthread_mutex_unlock(&mutex);
-		return;
-	}
-
-	close_device(audio_fd);
-	playing = 0;
-
-	pthread_mutex_unlock(&mutex);
+	kill_play_thread = TRUE;
+	g_mutex_unlock(mutex);
 }
 
-static void *
-open_thread(void *data)
+static gpointer
+open_thread(gpointer data)
 {
 	OpenThreadData *thread_data = data;
 
@@ -239,21 +230,13 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	open_thread_data.graphData = graphData;
 	open_thread_data.pct = pct;
 
-/* start new thread stuff */
-	if (pthread_attr_init(&thread_attr) != 0) {
-		perror("return from pthread_attr_init");
+	/* start new thread stuff */
+	thread = g_thread_create(open_thread, &open_thread_data, FALSE, NULL);
+	if (thread == NULL) {
+		perror("Return from g_thread_create was NULL");
+		return;
 	}
-
-	if (pthread_attr_setdetachstate(&thread_attr,
-			PTHREAD_CREATE_DETACHED) != 0) {
-		perror("return from pthread_attr_setdetachstate");
-	}
-
-	if (pthread_create(&thread, &thread_attr, open_thread, 
-			   &open_thread_data) != 0) {
-		perror("Return from pthread_create");
-	}
-/* end new thread stuff */
+	/* end new thread stuff */
 }
 
 static void sample_max_min(GraphData *graphData, double *pct)
@@ -353,8 +336,8 @@ static void sample_max_min(GraphData *graphData, double *pct)
 	/* DEBUG CODE END */
 }
 
-static void *
-write_thread(void *data)
+static gpointer
+write_thread(gpointer data)
 {
 	WriteThreadData *thread_data = data;
 
@@ -468,18 +451,11 @@ void sample_write_files(const char *filename, GList *tbl, WriteInfo *write_info)
 		return;
 	}
 
-/* start new thread stuff */
-	if (pthread_attr_init(&thread_attr) != 0) {
-		perror("return from pthread_attr_init");
+	/* start new thread stuff */
+	thread = g_thread_create(write_thread, &wtd, FALSE, NULL);
+	if (thread == NULL) {
+		perror("Return from g_thread_create was NULL");
+		return;
 	}
-
-	if (pthread_attr_setdetachstate(&thread_attr,
-			PTHREAD_CREATE_DETACHED) != 0) {
-		perror("return from pthread_attr_setdetachstate");
-	}
-
-	if (pthread_create(&thread, &thread_attr, write_thread, &wtd) != 0) {
-		perror("Return from pthread_create");
-	}
-/* end new thread stuff */
+	/* end new thread stuff */
 }
