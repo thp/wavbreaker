@@ -409,12 +409,14 @@ write_thread(void *data)
 			strcpy(filename, tb_cur->filename);
 
 			/* add file number to filename */
+			/* !!now doing this in the track break list!!
 			if (i < 10) {
 				sprintf(str_tmp, "0%d", i);
 			} else {
 				sprintf(str_tmp, "%d", i);
 			}
 			strcat(filename, str_tmp);
+			*/
 
 			/* add file extension to filename */
 			if ((audio_type == WAV) && (!strstr(filename, ".wav"))) {

@@ -82,6 +82,7 @@ enum {
 
 static GList *track_break_list = NULL;
 static GtkListStore *store = NULL;
+GtkWidget *treeview;
 
 /*
  *-------------------------------------------------------------------------
@@ -101,12 +102,27 @@ track_break_filename_edited(GtkCellRendererText *cell,
                                  gpointer user_data);
 
 void
+track_break_delete_entry();
+
+void
+track_break_setup_filename(gpointer data, gpointer user_data);
+
+void
+track_break_add_to_model(gpointer data, gpointer user_data);
+
+void
+track_break_add_entry();
+
+void
 filesel_ok_clicked(GtkWidget *widget,
                    gpointer data);
 
 void
 filesel_cancel_clicked(GtkWidget *widget,
                        gpointer data);
+
+static void
+redraw();
 
 static void
 draw_sample(GtkWidget *widget);
@@ -211,7 +227,6 @@ static GtkItemFactoryEntry menu_items[] = {
 GtkWidget *
 track_break_create_list_gui()
 {
-	GtkWidget *treeview;
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
 	GtkWidget *sw;
@@ -303,14 +318,15 @@ track_break_sort(gconstpointer a, gconstpointer b)
 }
 
 /* DEBUG FUNCTION START */
-void print_element(gpointer data, gpointer user_data)
+void track_break_print_element(gpointer data, gpointer user_data)
 {
 	TrackBreak *breakup;
 
 	breakup = (TrackBreak *)data;
 
+	printf("filename: %s", breakup->filename);
+	printf("\ttime: %s", breakup->time);
 	printf("\toffset: %d\n", breakup->offset);
-	printf("\tfilename: %s\n\n", breakup->filename);
 }
 /* DEBUG FUNCTION END */
 
@@ -321,7 +337,8 @@ track_break_free_element(gpointer data, gpointer user_data)
 
 	track_break = (TrackBreak *)data;
 
-	free(track_break);
+	g_free(track_break->filename);
+	g_free(track_break);
 }
 
 void
@@ -354,18 +371,140 @@ void track_break_clear_list()
 	track_break_list = NULL;
 }
 
+void track_break_selection(gpointer data, gpointer user_data)
+{
+	GtkTreePath *path = (GtkTreePath*)data;
+	TrackBreak *track_break;
+	guint list_pos;
+	gpointer list_data;
+	gchar *path_str;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	path_str = gtk_tree_path_to_string(path);
+	list_pos = atoi(path_str);
+	list_data = g_list_nth_data(track_break_list, list_pos);
+	track_break = (TrackBreak *)list_data;
+	track_break_list = g_list_remove(track_break_list, track_break);
+	track_break_free_element(track_break, NULL);
+
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
+	gtk_tree_model_get_iter(model, &iter, path);
+	gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+
+/* DEBUG CODE START */
+/*
+	g_list_foreach(track_break_list, track_break_print_element, NULL);
+	g_print("\n");
+*/
+/* DEBUG CODE END */
+
+	g_free(path_str);
+	gtk_tree_path_free(path);
+}
+
 void
-track_break_add_entry()
+track_break_delete_entry()
+{
+	GtkTreeSelection *selection;
+	GtkTreeModel *model;
+	GList *list;
+	gchar str_tmp[1024];
+	gchar *str_ptr;
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	if (selection == NULL) {
+		printf("Selection is null also!\n");
+	}
+
+	list = gtk_tree_selection_get_selected_rows(selection, &model);
+	g_list_foreach(list, track_break_selection, NULL);
+	g_list_free(list);
+
+	/* setup the filename */
+	strcpy(str_tmp, sample_filename);
+	str_ptr = basename(str_tmp);
+	strcpy(str_tmp, str_ptr);
+	str_ptr = rindex(str_tmp, '.');
+	if (str_ptr != NULL) {
+		*str_ptr = '\0';
+	}
+	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
+	gtk_list_store_clear(store);
+	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
+}
+
+void
+track_break_setup_filename(gpointer data, gpointer user_data)
+{
+	TrackBreak *track_break = (TrackBreak *)data;
+	gchar *fn = g_strdup((gchar *)user_data);
+	gchar buf[128];
+	int index;
+
+	index = g_list_index(track_break_list, track_break);
+	index++;
+	if (index < 10) {
+		sprintf(buf, "-0%d", index);
+	} else {
+		sprintf(buf, "-%d", index);
+	}
+	strcat(fn, buf);
+	if (track_break->filename != NULL) {
+		g_free(track_break->filename);
+	}
+	track_break->filename = g_strdup(fn);
+
+	g_free(fn);
+}
+
+void
+track_break_add_to_model(gpointer data, gpointer user_data)
 {
 	GtkTreeIter iter;
 	GtkTreeIter sibling;
 	GtkTreePath *path;
-	gchar path_str[256];
+	gchar path_str[8];
+	TrackBreak *track_break = (TrackBreak *)data;
+	int index = g_list_index(track_break_list, track_break);
+
+	sprintf(path_str, "%d", index);
+	path = gtk_tree_path_new_from_string(path_str);
+
+/* DEBUG CODE START */
+/*
+	g_print("gtktreepath: %s\n", path_str);
+	printf("list contents:\n");
+	g_list_foreach(track_break_list, print_element, NULL);
+*/
+/* DEBUG CODE END */
+
+	gtk_list_store_append(store, &iter);
+/*
+	if (gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &sibling, path)) {
+		gtk_list_store_insert_before(store, &iter, &sibling);
+	} else {
+		gtk_list_store_append(store, &iter);
+	}
+*/
+	gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
+	                                 COLUMN_FILENAME, track_break->filename,
+	                                 COLUMN_TIME, track_break->time,
+	                                 COLUMN_OFFSET, track_break->offset,
+	                                 COLUMN_EDITABLE, track_break->editable,
+	                                 -1);
+
+	gtk_tree_path_free(path);
+}
+
+void
+track_break_add_entry()
+{
 	gint list_pos = 0;
 	TrackBreak *track_break = NULL;
 	CursorData cursor_data;
-	char str_tmp[1024];
-	char *str_ptr;
+	gchar str_tmp[1024];
+	gchar *str_ptr;
 
 	if (sample_filename == NULL) {
 		return;
@@ -380,7 +519,7 @@ track_break_add_entry()
 		return;
 	}
 
-	if (! (track_break = (TrackBreak *)malloc(sizeof(TrackBreak)))) {
+	if (! (track_break = (TrackBreak *)g_malloc(sizeof(TrackBreak)))) {
 		printf("couldn't malloc enough memory for track_break\n");
 		exit(1);
 	}
@@ -389,6 +528,10 @@ track_break_add_entry()
 	track_break->offset = cursor_marker;
 	track_break->editable = TRUE;
 	offset_to_time(cursor_marker, track_break->time);
+	track_break->filename = NULL;
+
+	track_break_list = g_list_insert_sorted(track_break_list, track_break,
+											track_break_sort);
 
 	/* setup the filename */
 	strcpy(str_tmp, sample_filename);
@@ -398,37 +541,12 @@ track_break_add_entry()
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
-//	track_break->filename = strdup(strcat(str_tmp, "00"));
-	track_break->filename = strdup(str_tmp);
+	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
+	gtk_list_store_clear(store);
+	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
 
-	track_break_list = g_list_insert_sorted(track_break_list, track_break,
-											track_break_sort);
-
-	list_pos = g_list_index(track_break_list, track_break);
-	sprintf(path_str, "%d", list_pos);
-	path = gtk_tree_path_new_from_string(path_str);
-
-/* DEBUG CODE START */
-/*
-	g_print("gtktreepath: %s\n", path_str);
-	printf("list contents:\n");
-	g_list_foreach(track_break_list, print_element, NULL);
-*/
-/* DEBUG CODE END */
-
-	if (gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &sibling, path)) {
-		gtk_list_store_insert_before(store, &iter, &sibling);
-	} else {
-		gtk_list_store_append(store, &iter);
-	}
-	gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
-	                                 COLUMN_FILENAME, track_break->filename,
-	                                 COLUMN_TIME, track_break->time,
-	                                 COLUMN_OFFSET, track_break->offset,
-	                                 COLUMN_EDITABLE, track_break->editable,
-	                                 -1);
-
-	gtk_tree_path_free(path);
+	g_list_foreach(track_break_list, track_break_print_element, NULL);
+	g_print("\n");
 }
 
 void track_break_write_toggled(GtkWidget *widget,
@@ -594,10 +712,7 @@ file_play_progress_idle_func(gpointer data) {
 		gtk_widget_queue_draw(scrollbar);
 	}
 
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
-	draw_summary_pixmap(draw_summary);
-	gtk_widget_queue_draw(draw_summary);
+	redraw();
 	update_status();
 
 	if (sample_get_playing()) {
@@ -681,10 +796,7 @@ file_open_progress_idle_func(gpointer data) {
 /* Remove FIX !!!!!!!!!!! */
 	configure_event(draw, NULL, NULL);
 
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
-	draw_summary_pixmap(draw_summary);
-	gtk_widget_queue_draw(draw_summary);
+	redraw();
 
 /* --------------------------------------------------- */
 
@@ -754,6 +866,15 @@ openfile()
  * Sample Drawing Area Stuff
  *-------------------------------------------------------------------------
  */
+
+static void
+redraw()
+{
+	draw_sample(draw);
+	gtk_widget_queue_draw(draw);
+	draw_summary_pixmap(draw_summary);
+	gtk_widget_queue_draw(draw_summary);
+}
 
 static void
 draw_sample(GtkWidget *widget)
@@ -1178,10 +1299,7 @@ draw_summary_button_release(GtkWidget *widget,
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
 	gtk_widget_queue_draw(scrollbar);
 
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
-	draw_summary_pixmap(draw_summary);
-	gtk_widget_queue_draw(draw_summary);
+	redraw();
 
 	return;
 }
@@ -1201,10 +1319,7 @@ adj_value_changed(GtkAdjustment *adj,
 	}
 	pixmap_offset = adj->value;
 
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
-	draw_summary_pixmap(draw_summary);
-	gtk_widget_queue_draw(draw_summary);
+	redraw();
 
 	return TRUE;
 }
@@ -1229,8 +1344,7 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 
 	update_status();
 
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
+	redraw();
 }
 
 static void
@@ -1307,14 +1421,17 @@ menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 }
 
 void
+menu_delete_track_break(GtkWidget *widget, gpointer user_data)
+{
+	track_break_delete_entry();
+	redraw();
+}
+
+void
 menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
 	track_break_add_entry();
-
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
-	draw_summary_pixmap(draw_summary);
-	gtk_widget_queue_draw(draw_summary);
+	redraw();
 }
 
 static void
@@ -1425,8 +1542,12 @@ int main(int argc, char **argv)
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
 	                         icon, G_CALLBACK(menu_stop), NULL);
 	icon = gtk_image_new_from_file(break_icon_filename);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Break", "Add Track Break",
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Add", "Add Track Break",
 	                        NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
+	icon = gtk_image_new_from_file(break_icon_filename);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
+							"Delete Track Break", NULL, icon,
+							G_CALLBACK(menu_delete_track_break), NULL);
 	/*
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
 	                         "Add Track Break", NULL,
