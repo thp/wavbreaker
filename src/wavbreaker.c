@@ -653,10 +653,14 @@ void track_break_rename() {
     gchar str_tmp[1024];
     gchar *str_ptr;
 
+    if (sample_filename == NULL) {
+        return;
+    }
+
     /* setup the filename */
-    strcpy(str_tmp, sample_filename);
+    strncpy(str_tmp, sample_filename, 1024);
     str_ptr = basename(str_tmp);
-    strcpy(str_tmp, str_ptr);
+    strncpy(str_tmp, str_ptr, 1024);
     str_ptr = strrchr(str_tmp, '.');
     if (str_ptr != NULL) {
         *str_ptr = '\0';
