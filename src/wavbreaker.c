@@ -364,7 +364,10 @@ idle_func(gpointer data) {
 		window = NULL;
 
 /* --------------------------------------------------- */
+/* Reset things because we have a new file             */
+/* --------------------------------------------------- */
 
+	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
 	gtk_widget_queue_draw(scrollbar);
 
 //	gdk_window_process_all_updates();
@@ -372,8 +375,8 @@ idle_func(gpointer data) {
 /* Remove FIX !!!!!!!!!!! */
 	configure_event(draw, NULL, NULL);
 
-//	draw_sample(draw);
-//	draw_cursor_marker();
+	draw_sample(draw);
+	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
 
 /* --------------------------------------------------- */
@@ -384,8 +387,7 @@ idle_func(gpointer data) {
 
 	} else {
 		gdk_threads_enter();
-		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
-						progress_pct);
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
 		gdk_threads_leave();
 		return TRUE;
 	}
@@ -614,8 +616,9 @@ expose_event(GtkWidget *widget,
 
 	gdk_draw_drawable(widget->window, gc, pixmap, 0, 0, 0, 0, -1, -1);
 
-	if (cursor_marker > pixmap_offset &&
-	    cursor_marker < pixmap_offset + widget->allocation.width) {
+	if (cursor_marker >= pixmap_offset &&
+	    cursor_marker <= pixmap_offset + widget->allocation.width) {
+
 		int x = cursor_marker - pixmap_offset;
 		gdk_draw_drawable(widget->window, gc, pixmap_cursor, 0, 0,
 				  x, 0, -1, -1);
@@ -632,7 +635,7 @@ expose_event(GtkWidget *widget,
 
 static gboolean
 adj_value_changed(GtkAdjustment *adj,
-		  gpointer data)
+                  gpointer data)
 {
 	pixmap_offset = adj->value;
 
