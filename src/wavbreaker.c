@@ -936,6 +936,9 @@ draw_sample(GtkWidget *widget)
 
 		gdk_gc_set_foreground(gc, &axis_color);
 		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
+		
+		//cleanup
+		g_object_unref(gc);
 
 		return;
 	}
@@ -989,6 +992,9 @@ draw_sample(GtkWidget *widget)
 	} else {
 		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
 	}
+
+	//cleanup
+	g_object_unref(gc);
 }
 
 static void
@@ -1009,6 +1015,9 @@ draw_cursor_marker()
 	gc = gdk_gc_new(cursor_pixmap);
 	gdk_gc_set_foreground(gc, &cursor_marker_color);
 	gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
+
+	//cleanup
+	g_object_unref(gc);
 }
 
 static void
@@ -1029,6 +1038,9 @@ draw_play_marker()
 	gc = gdk_gc_new(play_pixmap);
 	gdk_gc_set_foreground(gc, &play_marker_color);
 	gdk_draw_line(play_pixmap, gc, 0, 0, 0, height);
+
+	//cleanup
+	g_object_unref(gc);
 }
 
 static gboolean
@@ -1091,6 +1103,9 @@ expose_event(GtkWidget *widget,
 				  play_marker - pixmap_offset, 0, -1, -1);
 	}
 
+	//cleanup
+	g_object_unref(gc);
+
 	return FALSE;
 }
 
@@ -1121,6 +1136,8 @@ draw_summary_pixmap(GtkWidget *widget)
 
 	if (!summary_pixmap) {
 		printf("summary_pixmap is NULL\n");
+		//cleanup
+		g_object_unref(gc);
 		return;
 	}
 
@@ -1146,6 +1163,8 @@ draw_summary_pixmap(GtkWidget *widget)
 
 		gdk_gc_set_foreground(gc, &axis_color);
 
+		//cleanup
+		g_object_unref(gc);
 		return;
 	}
 
@@ -1240,6 +1259,9 @@ leftover_count = 0;
 		}
 	}
 //printf("leftover_count: %d\n", leftover_count);
+
+	//cleanup
+	g_object_unref(gc);
 }
 
 static gboolean
@@ -1262,6 +1284,9 @@ draw_summary_expose_event(GtkWidget *widget,
 	gc = gdk_gc_new(summary_pixmap);
 
 	gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
+
+	//cleanup
+	g_object_unref(gc);
 
 	return FALSE;
 }
@@ -1557,6 +1582,7 @@ int main(int argc, char **argv)
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
 							"Delete Track Break", NULL, icon,
 							G_CALLBACK(menu_delete_track_break), NULL);
+
 	/*
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
 	                         "Add Track Break", NULL,
