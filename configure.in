@@ -1,0 +1,30 @@
+AC_INIT(src/wavbreaker.c)
+AM_INIT_AUTOMAKE(wavbreaker, 0.1)
+AM_CONFIG_HEADER(config.h)
+
+dnl Checks for programs.
+AC_PROG_CC
+
+dnl Checks for libraries.
+dnl Replace `main' with a function in -libs:
+AC_CHECK_LIB(ibs, main)
+dnl Replace `main' with a function in -lpthread:
+AC_CHECK_LIB(pthread, main)
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(fcntl.h limits.h sys/ioctl.h unistd.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+
+dnl Checks for library functions.
+AC_PROG_GCC_TRADITIONAL
+AC_FUNC_MEMCMP
+AC_CHECK_FUNCS(strdup strstr)
+
+PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 >= 2.0 gthread-2.0 >= 2.0)
+AC_SUBST(WAVBREAKER_CFLAGS)
+AC_SUBST(WAVBREAKER_LIBS)
+
+AC_OUTPUT(Makefile src/Makefile)
