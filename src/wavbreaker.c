@@ -451,6 +451,9 @@ gboolean
 idle_func(gpointer data) {
 	static GtkWidget *window;
 	static GtkWidget *pbar;
+	static GtkWidget *vbox;
+	static GtkWidget *filename_label;
+	static char tmp_str[1024];
 
 	if (window == NULL) {
 		gdk_threads_enter();
@@ -460,8 +463,23 @@ idle_func(gpointer data) {
 		gtk_window_set_modal(GTK_WINDOW(window), TRUE);
 		gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
 
+		vbox = gtk_vbox_new(FALSE, 0);
+		gtk_container_add(GTK_CONTAINER(window), vbox);
+		gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
+		gtk_widget_show(vbox);
+
+		filename_label = gtk_label_new(NULL);
+		gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
+		gtk_widget_show(filename_label);
+
+		tmp_str[0] = '\0';
+		strcat(tmp_str, "Opening: ");
+		strcat(tmp_str, basename(sample_filename));
+
+		gtk_label_set_text(GTK_LABEL(filename_label), tmp_str);
+
 		pbar = gtk_progress_bar_new();
-		gtk_container_add(GTK_CONTAINER(window), pbar);
+		gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
 		gtk_widget_show(pbar);
 
 		gtk_widget_show(window);
