@@ -1,0 +1,7 @@
+.deps
+Makefile
+Makefile.in
+wavbreaker
+wavinfo
+wavmerge
+*.wav
