@@ -1,4 +1,4 @@
-/* wavbreaker - A tool to split a wave file up into multiple wave.
+/* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
@@ -36,6 +36,7 @@
 #include "sample.h"
 #include "wav.h"
 #include "cdda.h"
+#include "appconfig.h"
 
 #define CDDA 1
 #define WAV  2 
@@ -72,21 +73,6 @@ OpenThreadData open_thread_data;
 
 static void sample_max_min(GraphData *graphData, double *pct);
 
-void sample_set_audio_dev(char *str)
-{
-	audio_dev = str;
-}
-
-char * sample_get_audio_dev()
-{
-	return audio_dev;
-}
-
-char * sample_get_sample_file()
-{
-	return sample_file;
-}
-
 gint sample_get_playing()
 {
 	return playing;
@@ -108,7 +94,7 @@ play_thread(gpointer thread_data)
 	guint *play_marker = (guint *)thread_data;
 	unsigned char devbuf[BUF_SIZE];
 
-	if ((audio_fd = open_device(audio_dev, &sampleInfo)) < 0) {
+	if (audio_open_device(get_outputdev(), &sampleInfo) != 0) {
 		playing = 0;
 		return NULL;
 	}
@@ -124,11 +110,15 @@ play_thread(gpointer thread_data)
 	}
 
 	while (ret > 0 && ret <= BUF_SIZE) {
-        write(audio_fd, devbuf, ret);
+		if (audio_write(devbuf, ret) < 0) {
+			audio_close_device();
+			playing = 0;
+			break;
+		}
 
 		if (g_mutex_trylock(mutex)) {
 			if (kill_play_thread == TRUE) {
-				close_device(audio_fd);
+				audio_close_device();
 				playing = 0;
 				kill_play_thread = FALSE;
 				g_mutex_unlock(mutex);
@@ -150,7 +140,7 @@ play_thread(gpointer thread_data)
 
 	g_mutex_lock(mutex);
 
-	close_device(audio_fd);
+	audio_close_device();
 	playing = 0;
 
 	g_mutex_unlock(mutex);
@@ -396,8 +386,10 @@ write_thread(gpointer data)
 			}
 
 			/* add output directory to filename */
-//			strcpy(str_tmp, "/data/tmp/wavbreaker");
-			strcpy(filename, tb_cur->filename);
+			strcpy(filename, get_outputdir());
+			strcat(filename, "/");
+			strcat(filename, tb_cur->filename);
+printf("filename: %s\n", filename);
 
 			/* add file number to filename */
 			/* !!now doing this in the track break list!!

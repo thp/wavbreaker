@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <gtk/gtk.h>
 #include <string.h>
+#include <libgen.h>
 
 #include "wavbreaker.h"
 #include "sample.h"
@@ -203,6 +204,7 @@ update_status();
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
 
+/*
 char *basename(const char *str)
 {
 #ifdef _WIN32
@@ -219,6 +221,7 @@ char *basename(const char *str)
         return ret + 1;
     }
 }
+*/
 
 static GtkItemFactoryEntry menu_items[] = {
   { "/_File",      NULL,         0,              0, "<Branch>"},
@@ -461,10 +464,12 @@ track_break_delete_entry()
 	strcpy(str_tmp, sample_filename);
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
+	/*
 	str_ptr = strrchr(str_tmp, '.');
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
+	*/
 	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
@@ -574,10 +579,12 @@ track_break_add_entry()
 	strcpy(str_tmp, sample_filename);
 	str_ptr = basename(str_tmp);
 	strcpy(str_tmp, str_ptr);
+	/*
 	str_ptr = strrchr(str_tmp, '.');
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
+	*/
 	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
