@@ -51,13 +51,19 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* typedef and struct stuff for new thread open junk */
 
-typedef struct {
+typedef struct WriteThreadData_ WriteThreadData;
+struct WriteThreadData_ {
+	GList *tbl;
+	WriteInfo *write_info;
+};
+	WriteThreadData wtd;
+
+typedef struct OpenThreadData_ OpenThreadData;
+struct OpenThreadData_ {
 	GraphData *graphData;
 	double *pct;
-} OpenThreadType;
-
-OpenThreadType o;
-OpenThreadType *open_thread_data = &o;
+};
+	OpenThreadData open_thread_data;
 
 static void sample_max_min(GraphData *graphData, double *pct);
 
@@ -194,7 +200,7 @@ void stop_sample()
 static void *
 open_thread(void *data)
 {
-	OpenThreadType *thread_data = data;
+	OpenThreadData *thread_data = data;
 
 	sample_max_min(thread_data->graphData,
 	               thread_data->pct);
@@ -204,6 +210,7 @@ open_thread(void *data)
 
 void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
+
 	sample_file = strdup(filename);
 
 	if (strstr(sample_file, ".wav")) {
@@ -219,8 +226,8 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 		return;
 	}
 
-	open_thread_data->graphData = graphData;
-	open_thread_data->pct = pct;
+	open_thread_data.graphData = graphData;
+	open_thread_data.pct = pct;
 
 /* start new thread stuff */
 	if (pthread_attr_init(&thread_attr) != 0) {
@@ -233,7 +240,7 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	}
 
 	if (pthread_create(&thread, &thread_attr, open_thread, 
-			   open_thread_data) != 0) {
+			   &open_thread_data) != 0) {
 		perror("Return from pthread_create");
 	}
 /* end new thread stuff */
@@ -339,15 +346,35 @@ static void sample_max_min(GraphData *graphData, double *pct)
 static void *
 write_thread(void *data)
 {
-	GList *tbl_head = (GList *)data;
+	WriteThreadData *thread_data = data;
+
+	GList *tbl_head = thread_data->tbl;
 	GList *tbl_cur, *tbl_next;
 	TrackBreak *tb_cur, *tb_next;
+	WriteInfo *write_info = thread_data->write_info;
+
 	int i;
 	int ret;
 	int index;
 	unsigned long start_pos, end_pos;
-	char *filename;
+	char filename[1024];
 	char str_tmp[1024];
+
+	write_info->num_files = 0;
+	write_info->cur_file = 0;
+
+	i = 1;
+	tbl_cur = tbl_head;
+	while (tbl_cur != NULL) {
+		index = g_list_position(tbl_head, tbl_cur);
+		tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
+
+		if (tb_cur->write == TRUE) {
+			write_info->num_files++;
+		}
+
+		tbl_cur = g_list_next(tbl_cur);
+	}
 
 	i = 1;
 	tbl_cur = tbl_head;
@@ -358,7 +385,6 @@ write_thread(void *data)
 		tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
 		if (tb_cur->write == TRUE) {
 			start_pos = tb_cur->offset * BLOCK_SIZE;
-			filename = strdup(tb_cur->filename);
 
 			if (tbl_next == NULL) {
 				end_pos = 0;
@@ -370,8 +396,8 @@ write_thread(void *data)
 			}
 
 			/* add output directory to filename */
-			strcpy(str_tmp, "/data/tmp/wavbreaker");
-			filename = strdup(strcat(str_tmp, filename));
+//			strcpy(str_tmp, "/data/tmp/wavbreaker");
+			strcpy(filename, tb_cur->filename);
 
 			/* add file number to filename */
 			if (i < 10) {
@@ -379,21 +405,24 @@ write_thread(void *data)
 			} else {
 				sprintf(str_tmp, "%d", i);
 			}
-			filename = strcat(filename, str_tmp);
+			strcat(filename, str_tmp);
 
 			/* add file extension to filename */
 			if ((audio_type == WAV) && (!strstr(filename, ".wav"))) {
-				filename = strcat(filename, ".wav");
+				strcat(filename, ".wav");
 			} else if ((audio_type == CDDA) && (!strstr(filename, ".dat"))) {
-				filename = strcat(filename, ".dat");
+				strcat(filename, ".dat");
 			}
+			write_info->cur_file++;
+			write_info->cur_filename = strdup(filename);
 
 			if (audio_type == CDDA) {
 				ret = cdda_write_file(sample_fp, filename, BUF_SIZE,
 							start_pos, end_pos);
 			} else if (audio_type == WAV) {
 				ret = wav_write_file(sample_fp, filename, BLOCK_SIZE,
-							&sampleInfo, start_pos, end_pos);
+							&sampleInfo, start_pos, end_pos,
+							&write_info->pct_done);
 			}
 			i++;
 		}
@@ -405,8 +434,13 @@ write_thread(void *data)
 	return NULL;
 }
 
-void sample_write_files(const char *filename, GList *tbl)
+void sample_write_files(const char *filename, GList *tbl, WriteInfo *write_info)
 {
+//	WriteThreadData wtd;
+
+	wtd.tbl = tbl;
+	wtd.write_info = write_info;
+
 	sample_file = strdup(filename);
 
 	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
@@ -424,7 +458,7 @@ void sample_write_files(const char *filename, GList *tbl)
 		perror("return from pthread_attr_setdetachstate");
 	}
 
-	if (pthread_create(&thread, &thread_attr, write_thread, tbl) != 0) {
+	if (pthread_create(&thread, &thread_attr, write_thread, &wtd) != 0) {
 		perror("Return from pthread_create");
 	}
 /* end new thread stuff */

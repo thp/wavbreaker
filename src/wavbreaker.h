@@ -41,4 +41,12 @@ struct TrackBreak_ {
 	gboolean  editable;
 };
 
+typedef struct WriteInfo_ WriteInfo;
+struct WriteInfo_ {
+    guint num_files;
+    guint cur_file;
+    char *cur_filename;
+    double pct_done;
+};
+
 #endif /* WAVBREAKER_H */

@@ -271,7 +271,8 @@ wav_write_file(FILE *fp,
                int buf_size,
                SampleInfo *sample_info,
                unsigned long start_pos,
-               unsigned long end_pos)
+               unsigned long end_pos,
+			   double *pct_done)
 {
 	int ret;
 	FILE *new_fp;
@@ -329,6 +330,8 @@ wav_write_file(FILE *fp,
 			return -1;
 		}
 		cur_pos += ret;
+		*pct_done = (double) (cur_pos - start_pos) / num_bytes;
+
 		/*
 		if (cur_pos + buf_size > end_pos && end_pos != 0) {
 			buf_size = end_pos - cur_pos;
@@ -347,6 +350,8 @@ wav_write_file(FILE *fp,
 	/* DEBUG CODE END */
 
 	fclose(new_fp);
+
+	*pct_done = 1.0;
 
 	return ret;
 }

@@ -43,6 +43,6 @@ char * sample_get_sample_file();
 int play_sample(unsigned long);
 void stop_sample();
 void sample_open_file(const char *, GraphData *, double *);
-void sample_write_files(const char *, GList *);
+void sample_write_files(const char *, GList *, WriteInfo *);
 
 #endif /* SAMPLE_H*/

@@ -57,7 +57,8 @@ wav_write_file(FILE *fp,
                int buf_size,
                SampleInfo *sample_info,
                unsigned long start_pos,
-               unsigned long end_pos);
+               unsigned long end_pos,
+			   double *pct_done);
 
 int
 wav_merge_files(char *filename,

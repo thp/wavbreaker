@@ -57,6 +57,7 @@ static char *sample_filename = NULL;
 
 static guint idle_func_num;
 static gdouble progress_pct;
+static WriteInfo write_info;
 
 typedef struct CursorData_ CursorData;
 
@@ -462,12 +463,106 @@ void track_break_filename_edited(GtkCellRendererText *cell,
 
 /*
  *-------------------------------------------------------------------------
+ * File Save Dialog Stuff
+ *-------------------------------------------------------------------------
+ */
+gboolean
+file_write_progress_idle_func(gpointer data) {
+	static GtkWidget *window;
+	static GtkWidget *pbar;
+	static GtkWidget *vbox;
+	static GtkWidget *filename_label;
+	static char tmp_str[1024];
+	static char str[1024];
+	static int last_file_flag = 0;
+
+	if (window == NULL) {
+		gdk_threads_enter();
+		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+		gtk_widget_realize(window);
+		gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+		gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+		gtk_window_set_transient_for(GTK_WINDOW(window),
+				GTK_WINDOW(main_window));
+		gtk_window_set_type_hint(GTK_WINDOW(window),
+				GDK_WINDOW_TYPE_HINT_DIALOG);
+		gtk_window_set_position(GTK_WINDOW(window),
+				GTK_WIN_POS_CENTER_ON_PARENT);
+		gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+
+		vbox = gtk_vbox_new(FALSE, 0);
+		gtk_container_add(GTK_CONTAINER(window), vbox);
+		gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
+		gtk_widget_show(vbox);
+
+		filename_label = gtk_label_new(NULL);
+		gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
+		gtk_widget_show(filename_label);
+
+		str[0] = '\0';
+		tmp_str[0] = '\0';
+		strcat(str, "Writing: ");
+		strcat(str, basename(write_info.cur_filename));
+		sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
+				write_info.num_files);
+		strcat(str, tmp_str);
+		gtk_label_set_text(GTK_LABEL(filename_label), str);
+
+		pbar = gtk_progress_bar_new();
+		gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
+		gtk_widget_show(pbar);
+
+		gtk_widget_show(window);
+		gdk_threads_leave();
+	}
+
+	if (write_info.pct_done >= 1.0) {
+		write_info.pct_done = 0;
+
+		if (last_file_flag) {
+			last_file_flag = 0; 
+
+			gdk_threads_enter();
+			gtk_widget_destroy(window);
+			window = NULL;
+
+			gdk_threads_leave();
+			return FALSE;
+		}
+
+		return TRUE;
+	} else {
+		if (write_info.num_files == write_info.cur_file) {
+			last_file_flag = 1;
+		}
+
+		gdk_threads_enter();
+
+		str[0] = '\0';
+		tmp_str[0] = '\0';
+		strcat(str, "Writing: ");
+		strcat(str, basename(write_info.cur_filename));
+		sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
+				write_info.num_files);
+		strcat(str, tmp_str);
+		gtk_label_set_text(GTK_LABEL(filename_label), str);
+
+		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
+				write_info.pct_done);
+		gdk_threads_leave();
+
+		return TRUE;
+	}
+}
+
+/*
+ *-------------------------------------------------------------------------
  * File Open Dialog Stuff
  *-------------------------------------------------------------------------
  */
 
 gboolean
-idle_func(gpointer data) {
+file_open_progress_idle_func(gpointer data) {
 	static GtkWidget *window;
 	static GtkWidget *pbar;
 	static GtkWidget *vbox;
@@ -571,7 +666,7 @@ filesel_ok_clicked(GtkWidget *widget,
 
 	stop_sample();
 
-	idle_func_num = gtk_idle_add(idle_func, NULL);
+	idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
 }
 
 void
@@ -1079,7 +1174,9 @@ menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 		return;
 	}
 
-	sample_write_files(sample_filename, track_break_list);
+	sample_write_files(sample_filename, track_break_list, &write_info);
+
+	idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
 }
 
 void
