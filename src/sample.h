@@ -43,9 +43,10 @@ char * sample_get_audio_dev();
 
 char * sample_get_sample_file();
 
-int play_sample(unsigned long);
+int play_sample(gulong, gulong *);
 void stop_sample();
 void sample_open_file(const char *, GraphData *, double *);
 void sample_write_files(const char *, GList *, WriteInfo *);
+gint sample_get_playing();
 
 #endif /* SAMPLE_H*/

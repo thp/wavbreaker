@@ -37,6 +37,7 @@
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
 static GdkPixmap *cursor_pixmap;
+static GdkPixmap *play_pixmap;
 
 GtkWidget *main_window;
 static GtkWidget *scrollbar;
@@ -51,8 +52,10 @@ GdkColor sample_colors[10];
 GdkColor bg_color;
 GdkColor axis_color;
 GdkColor cursor_marker_color;
+GdkColor play_marker_color;
 
-static unsigned long cursor_marker;
+static gulong cursor_marker;
+static gulong play_marker;
 static int pixmap_offset;
 static char *sample_filename = NULL;
 
@@ -63,7 +66,7 @@ static WriteInfo write_info;
 typedef struct CursorData_ CursorData;
 
 struct CursorData_ {
-	unsigned long marker;
+	gulong marker;
 	gboolean is_equal;
 	guint index;
 };
@@ -71,6 +74,7 @@ struct CursorData_ {
 enum {
 	COLUMN_WRITE,
 	COLUMN_FILENAME,
+	COLUMN_TIME,
 	COLUMN_OFFSET,
 	COLUMN_EDITABLE,
 	NUM_COLUMNS
@@ -109,6 +113,9 @@ draw_sample(GtkWidget *widget);
 
 static void
 draw_cursor_marker();
+
+static void
+draw_play_marker();
 
 static gboolean
 configure_event(GtkWidget *widget,
@@ -153,6 +160,12 @@ menu_play(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_stop(GtkWidget *widget, gpointer user_data);
+
+static void
+offset_to_time(guint, gchar *);
+
+static void
+update_status();
 
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
@@ -217,6 +230,7 @@ track_break_create_list_gui()
         store = gtk_list_store_new(NUM_COLUMNS,
                                    G_TYPE_BOOLEAN,
                                    G_TYPE_STRING,
+                                   G_TYPE_STRING,
                                    G_TYPE_UINT,
                                    G_TYPE_BOOLEAN);
 
@@ -251,6 +265,15 @@ track_break_create_list_gui()
 	g_signal_connect(G_OBJECT(renderer), "edited",
 	                 G_CALLBACK(track_break_filename_edited), store);
 //	GTK_CELL_RENDERER_TEXT(renderer)->editable = TRUE;
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+
+/* File Time Column */
+	renderer = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes("Time",
+	                    renderer, "text", COLUMN_TIME, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
+	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+	gtk_tree_view_column_set_resizable(column, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 /* File Offset Column */
@@ -365,6 +388,7 @@ track_break_add_entry()
 	track_break->write = 1;
 	track_break->offset = cursor_marker;
 	track_break->editable = TRUE;
+	offset_to_time(cursor_marker, track_break->time);
 
 	/* setup the filename */
 	strcpy(str_tmp, sample_filename);
@@ -399,6 +423,7 @@ track_break_add_entry()
 	}
 	gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
 	                                 COLUMN_FILENAME, track_break->filename,
+	                                 COLUMN_TIME, track_break->time,
 	                                 COLUMN_OFFSET, track_break->offset,
 	                                 COLUMN_EDITABLE, track_break->editable,
 	                                 -1);
@@ -551,6 +576,37 @@ file_write_progress_idle_func(gpointer data) {
 	return TRUE;
 }
 
+gboolean
+file_play_progress_idle_func(gpointer data) {
+	gint n = play_marker + draw->allocation.width / 2;
+	gint m = graphData.numSamples;
+	gint x = play_marker - draw->allocation.width / 2;
+	gint y = play_marker - pixmap_offset;
+	gint z = draw->allocation.width / 2;
+
+	if (y > z && x > 0 && n <= m) {
+		pixmap_offset = play_marker - draw->allocation.width / 2;
+		gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+		gtk_widget_queue_draw(scrollbar);
+	} else if (pixmap_offset > play_marker) {
+		pixmap_offset = 0;
+		gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+		gtk_widget_queue_draw(scrollbar);
+	}
+
+	draw_sample(draw);
+	gtk_widget_queue_draw(draw);
+	draw_summary_pixmap(draw_summary);
+	gtk_widget_queue_draw(draw_summary);
+	update_status();
+
+	if (sample_get_playing()) {
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
 /*
  *-------------------------------------------------------------------------
  * File Open Dialog Stuff
@@ -626,7 +682,6 @@ file_open_progress_idle_func(gpointer data) {
 	configure_event(draw, NULL, NULL);
 
 	draw_sample(draw);
-	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
 	draw_summary_pixmap(draw_summary);
 	gtk_widget_queue_draw(draw_summary);
@@ -660,7 +715,7 @@ filesel_ok_clicked(GtkWidget *widget,
 
 	gdk_window_hide(widget->window);
 
-	stop_sample();
+	menu_stop(NULL, NULL);
 
 	idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
 }
@@ -826,6 +881,26 @@ draw_cursor_marker()
 	gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
 }
 
+static void
+draw_play_marker()
+{
+	int height;
+	GdkGC *gc;
+
+	height = draw->allocation.height;
+
+	play_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
+
+	if (!play_pixmap) {
+		printf("play_pixmap is NULL\n");
+		return;
+	}
+
+	gc = gdk_gc_new(play_pixmap);
+	gdk_gc_set_foreground(gc, &play_marker_color);
+	gdk_draw_line(play_pixmap, gc, 0, 0, 0, height);
+}
+
 static gboolean
 configure_event(GtkWidget *widget,
 				GdkEventConfigure *event,
@@ -858,6 +933,7 @@ configure_event(GtkWidget *widget,
 
 	draw_sample(widget);
 	draw_cursor_marker();
+	draw_play_marker();
 
 	return TRUE;
 }
@@ -876,9 +952,13 @@ expose_event(GtkWidget *widget,
 	if (cursor_marker >= pixmap_offset &&
 	    cursor_marker <= pixmap_offset + widget->allocation.width) {
 
-		int x = cursor_marker - pixmap_offset;
 		gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
-				  x, 0, -1, -1);
+				  cursor_marker - pixmap_offset, 0, -1, -1);
+	}
+
+	if (sample_get_playing()) {
+		gdk_draw_drawable(widget->window, gc, play_pixmap, 0, 0,
+				  play_marker - pixmap_offset, 0, -1, -1);
 	}
 
 	return FALSE;
@@ -1065,6 +1145,10 @@ draw_summary_button_release(GtkWidget *widget,
 	int x_scale, x_scale_leftover, x_scale_mod;
 	int leftover_count;
 
+	if (sample_get_playing()) {
+		return;
+	}
+
 	width = widget->allocation.width;
 	x_scale = graphData.numSamples / width;
 	x_scale_leftover = graphData.numSamples % width;
@@ -1095,7 +1179,6 @@ draw_summary_button_release(GtkWidget *widget,
 	gtk_widget_queue_draw(scrollbar);
 
 	draw_sample(draw);
-	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
 	draw_summary_pixmap(draw_summary);
 	gtk_widget_queue_draw(draw_summary);
@@ -1113,10 +1196,12 @@ static gboolean
 adj_value_changed(GtkAdjustment *adj,
                   gpointer data)
 {
+	if (sample_get_playing()) {
+		return;
+	}
 	pixmap_offset = adj->value;
 
 	draw_sample(draw);
-	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
 	draw_summary_pixmap(draw_summary);
 	gtk_widget_queue_draw(draw_summary);
@@ -1127,10 +1212,10 @@ adj_value_changed(GtkAdjustment *adj,
 static void
 button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	char strbuf[1024];
-	int min, sec, subsec;
-
 	if (event->x + pixmap_offset > graphData.numSamples) {
+		return;
+	}
+	if (sample_get_playing()) {
 		return;
 	}
 
@@ -1142,28 +1227,52 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	*/
 	/* DEBUG CODE END */
 
-	if (cursor_marker > 0) {
-		min = cursor_marker / (CD_BLOCKS_PER_SEC * 60);
-		sec = cursor_marker % (CD_BLOCKS_PER_SEC * 60);
+	update_status();
+
+	draw_sample(draw);
+	gtk_widget_queue_draw(draw);
+}
+
+static void
+offset_to_time(guint time, gchar *str) {
+	char buf[1024];
+	int min, sec, subsec;
+
+	if (time > 0) {
+		min = time / (CD_BLOCKS_PER_SEC * 60);
+		sec = time % (CD_BLOCKS_PER_SEC * 60);
 		subsec = sec % CD_BLOCKS_PER_SEC;
 		sec = sec / CD_BLOCKS_PER_SEC;
 	} else {
 		min = sec = subsec = 0;
 	}
+	sprintf(str, "%d:%02d.%02d", min, sec, subsec);
+}
 
-	sprintf(strbuf, "cursor_marker: %lu\ttime: %d:%02d.%02d", cursor_marker, min, sec, subsec);
-	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, strbuf);
+static void
+update_status() {
+	char str[1024];
+	char strbuf[1024];
 
-	draw_sample(draw);
-	draw_cursor_marker();
-	gtk_widget_queue_draw(draw);
+	sprintf(str, "cursor_marker: ");
+	offset_to_time(cursor_marker, strbuf);
+	strcat(str, strbuf);
+
+	sprintf(strbuf, "\tplaying: ");
+	strcat(str, strbuf);
+	offset_to_time(play_marker, strbuf);
+	strcat(str, strbuf);
+
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
 }
 
 static void
 menu_play(GtkWidget *widget, gpointer user_data)
 {
-	switch (play_sample(cursor_marker)) {
+	play_marker = cursor_marker;
+	switch (play_sample(cursor_marker, &play_marker)) {
 		case 0:
+			idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
 			break;
 		case 1:
 			printf("error in play_sample\n");
@@ -1171,7 +1280,7 @@ menu_play(GtkWidget *widget, gpointer user_data)
 		case 2:
 //			printf("already playing\n");
 			menu_stop(NULL, NULL);
-			play_sample(cursor_marker);
+			play_sample(cursor_marker, &play_marker);
 			break;
 		case 3:
 //			printf("must open sample file to play\n");
@@ -1203,7 +1312,6 @@ menu_add_track_break(GtkWidget *widget, gpointer user_data)
 	track_break_add_entry();
 
 	draw_sample(draw);
-	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
 	draw_summary_pixmap(draw_summary);
 	gtk_widget_queue_draw(draw_summary);
@@ -1344,8 +1452,13 @@ int main(int argc, char **argv)
 	cursor_marker_color.blue  =   0*(65535/255);
 	gdk_color_alloc(gtk_widget_get_colormap(main_window), &cursor_marker_color);
 
+	play_marker_color.red   =   0*(65535/255);
+	play_marker_color.green = 255*(65535/255);
+	play_marker_color.blue  =   0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(main_window), &play_marker_color);
+
 	sample_colors[0].red   =  15*(65535/255);
-	sample_colors[0].green =  184*(65535/255);
+	sample_colors[0].green = 184*(65535/255);
 	sample_colors[0].blue  = 225*(65535/255);
 	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[0]);
 

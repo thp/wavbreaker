@@ -38,6 +38,7 @@ struct TrackBreak_ {
 	gboolean  write;
 	guint     offset;
 	gchar     *filename;
+	gchar     time[1024];
 	gboolean  editable;
 };
 

@@ -25,7 +25,7 @@
 #include <pthread.h>
 #include <limits.h>
 #include <gtk/gtk.h>
-
+ 
 #include "wavbreaker.h"
 #include "linuxaudio.h"
 #include "sample.h"
@@ -82,10 +82,16 @@ char * sample_get_sample_file()
 	return strdup(sample_file);
 }
 
+gint sample_get_playing()
+{
+	return playing;
+}
+
 static void *
 play_thread(void *thread_data)
 {
 	int ret, i;
+	guint *play_marker = (guint *)thread_data;
 	unsigned char devbuf[BUF_SIZE];
 
 	if ((audio_fd = open_device(audio_dev, &sampleInfo)) < 0) {
@@ -113,6 +119,8 @@ play_thread(void *thread_data)
 			ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
 				sample_start + (BUF_SIZE * i++));
 		}
+
+		*play_marker = ((BUF_SIZE * i) + sample_start) / CD_BLOCK_SIZE;
 	}
 
 	pthread_mutex_lock(&mutex);
@@ -125,7 +133,7 @@ play_thread(void *thread_data)
 	return NULL;
 }
 
-int play_sample(unsigned long startpos)
+int play_sample(gulong startpos, gulong *play_marker)
 {       
 	int ret;
 
@@ -163,7 +171,7 @@ int play_sample(unsigned long startpos)
 	}
 
 	if ((ret = pthread_create(&thread, &thread_attr, play_thread,
-			NULL)) != 0) {
+			play_marker)) != 0) {
 
 		perror("Return from pthread_create");
 		printf("Error #%d\n", ret);
