@@ -36,6 +36,7 @@ static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
 static GdkPixmap *cursor_pixmap;
 
+GtkWidget *main_window;
 static GtkWidget *scrollbar;
 static GtkObject *adj;
 static GtkWidget *draw;
@@ -461,6 +462,12 @@ idle_func(gpointer data) {
 		gtk_widget_realize(window);
 		gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 		gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+		gtk_window_set_transient_for(GTK_WINDOW(window),
+				GTK_WINDOW(main_window));
+		gtk_window_set_type_hint(GTK_WINDOW(window),
+				GDK_WINDOW_TYPE_HINT_DIALOG);
+		gtk_window_set_position(GTK_WINDOW(window),
+				GTK_WIN_POS_CENTER_ON_PARENT);
 		gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
 
 		vbox = gtk_vbox_new(FALSE, 0);
@@ -1122,7 +1129,6 @@ destroy(GtkWidget *widget, GdkEventAny *event, gpointer data)
 
 int main(int argc, char **argv)
 {
-	GtkWidget *window;
 	GtkWidget *packer;
 	GtkWidget *menu_widget;
 	GtkWidget *toolbar;
@@ -1134,23 +1140,23 @@ int main(int argc, char **argv)
 	gdk_threads_init();
 	gtk_init(&argc, &argv);
 
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
-	g_signal_connect(G_OBJECT(window), "delete_event",
+	g_signal_connect(G_OBJECT(main_window), "delete_event",
 			 G_CALLBACK(delete_event), NULL);
 
-	g_signal_connect(G_OBJECT(window), "destroy",
+	g_signal_connect(G_OBJECT(main_window), "destroy",
 			 G_CALLBACK(destroy), NULL);
 
-	gtk_container_set_border_width(GTK_CONTAINER(window), 0);
+	gtk_container_set_border_width(GTK_CONTAINER(main_window), 0);
 
 	packer = gtk_vbox_new(FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(window), packer);
+	gtk_container_add(GTK_CONTAINER(main_window), packer);
 	gtk_widget_show(packer);
 
 /* Menu Items */
 	accel_group = gtk_accel_group_new();
-	gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
+	gtk_window_add_accel_group(GTK_WINDOW(main_window), accel_group);
 	g_object_unref(accel_group);
 
 	item_factory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<main>",
@@ -1159,12 +1165,12 @@ int main(int argc, char **argv)
 	/* Set up item factory to go away with the window */
 	g_object_ref (item_factory);
 	gtk_object_sink (GTK_OBJECT (item_factory));
-	g_object_set_data_full(G_OBJECT(window), "<main>", item_factory,
+	g_object_set_data_full(G_OBJECT(main_window), "<main>", item_factory,
 	                      (GDestroyNotify)g_object_unref);
 
 	/* create menu items */
 	gtk_item_factory_create_items(item_factory, G_N_ELEMENTS(menu_items),
-	                              menu_items, window);
+	                              menu_items, main_window);
 
 	menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
 
@@ -1175,13 +1181,13 @@ int main(int argc, char **argv)
 	toolbar = gtk_toolbar_new();
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
 	                         "Open New Wave File", NULL,
-	                         G_CALLBACK(menu_open_file), window, -1);
+	                         G_CALLBACK(menu_open_file), main_window, -1);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
 	                         "Save Selected Track Breaks", NULL,
-	                         G_CALLBACK(menu_save), window, -1);
+	                         G_CALLBACK(menu_save), main_window, -1);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
 	                         "Quit wavbreaker", NULL,
-	                         G_CALLBACK(menu_quit), window, -1);
+	                         G_CALLBACK(menu_quit), main_window, -1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
 	icon = gtk_image_new_from_file(play_icon_filename);
@@ -1196,7 +1202,7 @@ int main(int argc, char **argv)
 	/*
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
 	                         "Add Track Break", NULL,
-	                         G_CALLBACK(menu_add_track_break), window, -1);
+	                         G_CALLBACK(menu_add_track_break), main_window, -1);
 	*/
 
 	gtk_box_pack_start(GTK_BOX(packer), toolbar, FALSE, TRUE, 0);
@@ -1255,7 +1261,7 @@ int main(int argc, char **argv)
 
 /* Finish up */
 
-	gtk_widget_show(window);
+	gtk_widget_show(main_window);
 
 	gdk_threads_enter();
 	gtk_main();
