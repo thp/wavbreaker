@@ -1,5 +1,6 @@
 AC_INIT(src/wavbreaker.c)
 AM_INIT_AUTOMAKE(wavbreaker, 0.1)
+AC_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -25,5 +26,7 @@ AC_CHECK_FUNCS(strdup strstr)
 PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 >= 2.0 gthread-2.0 >= 2.0)
 AC_SUBST(WAVBREAKER_CFLAGS)
 AC_SUBST(WAVBREAKER_LIBS)
+
+AC_DEFINE_UNQUOTED(IMAGEDIR, "${pkgdatadir}")
 
 AC_OUTPUT(Makefile src/Makefile images/Makefile)
