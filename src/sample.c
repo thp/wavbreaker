@@ -246,6 +246,11 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	if (sample_file != NULL) {
 		free(sample_file);
 	}
+    if (sample_fp != NULL) {
+        fclose(sample_fp);
+        sample_fp = NULL;
+    }
+
 	sample_file = strdup(filename);
 
 	if (strstr(sample_file, ".wav")) {
@@ -480,6 +485,7 @@ write_thread(gpointer data)
 	}
 	write_info->sync = 1;
 
+    fclose(sample_fp);
 	return NULL;
 }
 

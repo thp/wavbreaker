@@ -199,6 +199,7 @@ printf("in size compare\n");
 	}
 	/* DEBUG CODE END */
 
+    fclose(fp);
 	return 0;
 }
 
