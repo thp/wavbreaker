@@ -524,6 +524,7 @@ idle_func(gpointer data) {
 
 	cursor_marker = 0;
 	track_break_clear_list();
+	track_break_add_entry();
 
 	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
 	gtk_widget_queue_draw(scrollbar);
@@ -538,8 +539,6 @@ idle_func(gpointer data) {
 	gtk_widget_queue_draw(draw);
 	draw_summary_pixmap(draw_summary);
 	gtk_widget_queue_draw(draw_summary);
-
-	track_break_add_entry();
 
 /* --------------------------------------------------- */
 
@@ -1087,6 +1086,12 @@ void
 menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
 	track_break_add_entry();
+
+	draw_sample(draw);
+	draw_cursor_marker();
+	gtk_widget_queue_draw(draw);
+	draw_summary_pixmap(draw_summary);
+	gtk_widget_queue_draw(draw_summary);
 }
 
 static void
