@@ -122,7 +122,6 @@ char *default_etree_filename_suffix()
         g_free(etree_filename_suffix);
     }
     etree_filename_suffix = g_strdup("-");
-printf("default filename suffix\n");
     return etree_filename_suffix;
 }
 
@@ -145,7 +144,6 @@ char *default_etree_cd_length()
         g_free(etree_cd_length);
     }
     etree_cd_length = g_strdup("80");
-printf("default cd length\n");
     return etree_cd_length;
 }
 
