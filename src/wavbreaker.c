@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2003 Timothy Robinson
+ * Copyright (C) 2002-2004 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,18 +76,18 @@ static WriteInfo write_info;
 typedef struct CursorData_ CursorData;
 
 struct CursorData_ {
-	gulong marker;
-	gboolean is_equal;
-	guint index;
+    gulong marker;
+    gboolean is_equal;
+    guint index;
 };
 
 enum {
-	COLUMN_WRITE,
-	COLUMN_FILENAME,
-	COLUMN_TIME,
-	COLUMN_OFFSET,
-	COLUMN_EDITABLE,
-	NUM_COLUMNS
+    COLUMN_WRITE,
+    COLUMN_FILENAME,
+    COLUMN_TIME,
+    COLUMN_OFFSET,
+    COLUMN_EDITABLE,
+    NUM_COLUMNS
 };
 
 static GList *track_break_list = NULL;
@@ -250,39 +250,39 @@ static char *status_message = NULL;
 
 char *get_status_message()
 {
-	return status_message;
+    return status_message;
 }
 
 void set_status_message(const char *val)
 {
-	if (status_message != NULL) {
-		g_free(status_message);
-	}
-	status_message = g_strdup(val);
+    if (status_message != NULL) {
+        g_free(status_message);
+    }
+    status_message = g_strdup(val);
 }
 */
 
 void jump_to_track_break(GtkWidget *widget, gpointer data) {
-	int n = 0;
+    int n = 0;
 
-	CursorData cursor_data;
-	track_break_find_offset(&cursor_data);
+    CursorData cursor_data;
+    track_break_find_offset(&cursor_data);
 
-	if (n <= graphData.numSamples) {
-		//cursor_marker = n;
-	}
-	redraw();
+    if (n <= graphData.numSamples) {
+        //cursor_marker = n;
+    }
+    redraw();
 }
 
 void wavbreaker_autosplit(long x) {
-	long n = x;
+    long n = x;
 
-	while (n <= graphData.numSamples) {
-		cursor_marker = n;
-		track_break_add_entry();
-		n += x;
-	}
-//	redraw();
+    while (n <= graphData.numSamples) {
+        cursor_marker = n;
+        track_break_add_entry();
+        n += x;
+    }
+//    redraw();
 }
 
 /*
@@ -294,9 +294,9 @@ void wavbreaker_autosplit(long x) {
 GtkWidget *
 track_break_create_list_gui()
 {
-	GtkTreeViewColumn *column;
-	GtkCellRenderer *renderer;
-	GtkWidget *sw;
+    GtkTreeViewColumn *column;
+    GtkCellRenderer *renderer;
+    GtkWidget *sw;
 
 /* create the scrolled window for the list */
     sw = gtk_scrolled_window_new(NULL, NULL);
@@ -320,9 +320,9 @@ track_break_create_list_gui()
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
     gtk_container_add(GTK_CONTAINER(sw), treeview);
 
-	/* connect/add the right-click signal */
-	gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
-	gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
+    /* connect/add the right-click signal */
+    gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
+    gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
     g_signal_connect(G_OBJECT(treeview), "button_press_event",
                      G_CALLBACK(track_break_button_press), NULL);
 
@@ -331,343 +331,366 @@ track_break_create_list_gui()
 /* create the columns */
 
 /* Write Toggle Column */
-	renderer = gtk_cell_renderer_toggle_new();
-	g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(track_break_write_toggled), store);
-	column = gtk_tree_view_column_new_with_attributes("Write", renderer, "active", COLUMN_WRITE, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_FIXED);
-	gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    renderer = gtk_cell_renderer_toggle_new();
+    g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(track_break_write_toggled), store);
+    column = gtk_tree_view_column_new_with_attributes("Write", renderer, "active", COLUMN_WRITE, NULL);
+    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 /* File Name Column */
-	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
-	                    "text", COLUMN_FILENAME,
-						"editable", COLUMN_EDITABLE, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
-	gtk_tree_view_column_set_resizable(column, TRUE);
-	g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
+                        "text", COLUMN_FILENAME,
+                        "editable", COLUMN_EDITABLE, NULL);
+    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    gtk_tree_view_column_set_resizable(column, TRUE);
+    g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 /* File Time Column */
-	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("Time", renderer, "text", COLUMN_TIME, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
-	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Time", renderer, "text", COLUMN_TIME, NULL);
+    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    gtk_tree_view_column_set_resizable(column, TRUE);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 /* File Offset Column */
-	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("Offset", renderer, "text", COLUMN_OFFSET, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Offset", renderer, "text", COLUMN_OFFSET, NULL);
+    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-	return sw;
+    return sw;
 }
 
 gint
 track_break_sort(gconstpointer a, gconstpointer b)
 {
-	TrackBreak *x = (TrackBreak *)a;
-	TrackBreak *y = (TrackBreak *)b;
+    TrackBreak *x = (TrackBreak *)a;
+    TrackBreak *y = (TrackBreak *)b;
 
-	if (x->offset < y->offset) {
-		return -1;
-	} else if (x->offset > y->offset) {
-		return 1;
-	} else {
-		return 0;
-	}
+    if (x->offset < y->offset) {
+        return -1;
+    } else if (x->offset > y->offset) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 static gboolean
 track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-	GtkWidget *menu;
-	GtkWidget *delete_item;
-	GtkWidget *jump_item;
+    GtkWidget *menu;
+    GtkWidget *delete_item;
+    GtkWidget *jump_item;
 
-	if (event->button != 3) {
-		return FALSE;
-	}
+    if (event->button != 3) {
+        return FALSE;
+    }
 
-	menu = gtk_menu_new();
+    menu = gtk_menu_new();
 
-	delete_item = gtk_menu_item_new_with_label("Delete Selected Track Break");
-	g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
-	gtk_widget_show(delete_item);
+    delete_item = gtk_menu_item_new_with_label("Delete Selected Track Break");
+    g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
+    gtk_widget_show(delete_item);
 
-	jump_item = gtk_menu_item_new_with_label("Jump to Selected Track Break");
-	g_signal_connect(G_OBJECT(jump_item), "activate", G_CALLBACK(jump_to_track_break), NULL);
-	gtk_widget_show(jump_item);
+    jump_item = gtk_menu_item_new_with_label("Jump to Selected Track Break");
+    g_signal_connect(G_OBJECT(jump_item), "activate", G_CALLBACK(jump_to_track_break), NULL);
+    gtk_widget_show(jump_item);
 
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), delete_item);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), jump_item);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), delete_item);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), jump_item);
 
-	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
-			  event->button, event->time);
+    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
+              event->button, event->time);
 
-	return FALSE;
+    return FALSE;
 }
 
 /* DEBUG FUNCTION START */
 void track_break_print_element(gpointer data, gpointer user_data)
 {
-	TrackBreak *breakup;
+    TrackBreak *breakup;
 
-	breakup = (TrackBreak *)data;
+    breakup = (TrackBreak *)data;
 
-	printf("filename: %s", breakup->filename);
-	printf("\ttime: %s", breakup->time);
-	printf("\toffset: %d\n", breakup->offset);
+    printf("filename: %s", breakup->filename);
+    printf("\ttime: %s", breakup->time);
+    printf("\toffset: %d\n", breakup->offset);
 }
 /* DEBUG FUNCTION END */
 
 void
 track_break_free_element(gpointer data, gpointer user_data)
 {
-	TrackBreak *track_break;
+    TrackBreak *track_break;
 
-	track_break = (TrackBreak *)data;
+    track_break = (TrackBreak *)data;
 
-	g_free(track_break->filename);
-	g_free(track_break);
+    g_free(track_break->filename);
+    g_free(track_break);
 }
 
 void
 track_break_compare_cursor_marker(gpointer data, gpointer user_data)
 {
-	TrackBreak *track_break = (TrackBreak *) data;
-	CursorData *cursor_data = (CursorData *) user_data;
+    TrackBreak *track_break = (TrackBreak *) data;
+    CursorData *cursor_data = (CursorData *) user_data;
 
-	if (cursor_data->marker == track_break->offset) {
-		cursor_data->is_equal = TRUE;
-	}
+    if (cursor_data->marker == track_break->offset) {
+        cursor_data->is_equal = TRUE;
+    }
 }
 
 void
 track_break_find(gpointer data, gpointer user_data)
 {
-	TrackBreak *tb = (TrackBreak *) data;
-	CursorData *cd = (CursorData *) user_data;
+    TrackBreak *tb = (TrackBreak *) data;
+    CursorData *cd = (CursorData *) user_data;
 
-	if (cd->marker < tb->offset) {
-		cd->index = g_list_index(track_break_list, data);
-	}
+    if (cd->marker < tb->offset) {
+        cd->index = g_list_index(track_break_list, data);
+    }
 }
 
 void track_break_clear_list()
 {
-	gtk_list_store_clear(store);
-	g_list_foreach(track_break_list, track_break_free_element, NULL);
-	g_list_free(track_break_list);
-	track_break_list = NULL;
+    gtk_list_store_clear(store);
+    g_list_foreach(track_break_list, track_break_free_element, NULL);
+    g_list_free(track_break_list);
+    track_break_list = NULL;
 }
 
 void track_break_selection(gpointer data, gpointer user_data)
 {
-	GtkTreePath *path = (GtkTreePath*)data;
-	TrackBreak *track_break;
-	guint list_pos;
-	gpointer list_data;
-	gchar *path_str;
-	GtkTreeModel *model;
-	GtkTreeIter iter;
+    GtkTreePath *path = (GtkTreePath*)data;
+    TrackBreak *track_break;
+    guint list_pos;
+    gpointer list_data;
+    gchar *path_str;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
 
-	path_str = gtk_tree_path_to_string(path);
-	list_pos = atoi(path_str);
-	list_data = g_list_nth_data(track_break_list, list_pos);
-	track_break = (TrackBreak *)list_data;
-	track_break_list = g_list_remove(track_break_list, track_break);
-	track_break_free_element(track_break, NULL);
+    path_str = gtk_tree_path_to_string(path);
+    list_pos = atoi(path_str);
+    list_data = g_list_nth_data(track_break_list, list_pos);
+    track_break = (TrackBreak *)list_data;
+    track_break_list = g_list_remove(track_break_list, track_break);
+    track_break_free_element(track_break, NULL);
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
-	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+    model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
 
 /* DEBUG CODE START */
 /*
-	g_list_foreach(track_break_list, track_break_print_element, NULL);
-	g_print("\n");
+    g_list_foreach(track_break_list, track_break_print_element, NULL);
+    g_print("\n");
 */
 /* DEBUG CODE END */
 
-	g_free(path_str);
-	gtk_tree_path_free(path);
+    g_free(path_str);
+    gtk_tree_path_free(path);
 }
 
 void
 track_break_delete_entry()
 {
-	GtkTreeSelection *selection;
-	GtkTreeModel *model;
-	GList *list;
-	gchar str_tmp[1024];
-	gchar *str_ptr;
+    GtkTreeSelection *selection;
+    GtkTreeModel *model;
+    GList *list;
+    gchar str_tmp[1024];
+    gchar *str_ptr;
 
-	if (sample_filename == NULL) {
-		return;
-	}
+    if (sample_filename == NULL) {
+        return;
+    }
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+    selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 
-	list = gtk_tree_selection_get_selected_rows(selection, &model);
-	g_list_foreach(list, track_break_selection, NULL);
-	g_list_free(list);
+    list = gtk_tree_selection_get_selected_rows(selection, &model);
+    g_list_foreach(list, track_break_selection, NULL);
+    g_list_free(list);
 
-	/* setup the filename */
-	strcpy(str_tmp, sample_filename);
-	str_ptr = basename(str_tmp);
-	strcpy(str_tmp, str_ptr);
-	str_ptr = strrchr(str_tmp, '.');
-	if (str_ptr != NULL) {
-		*str_ptr = '\0';
-	}
-	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
-	gtk_list_store_clear(store);
-	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
+    /* setup the filename */
+    strcpy(str_tmp, sample_filename);
+    str_ptr = basename(str_tmp);
+    strcpy(str_tmp, str_ptr);
+    str_ptr = strrchr(str_tmp, '.');
+    if (str_ptr != NULL) {
+        *str_ptr = '\0';
+    }
+    g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
+    gtk_list_store_clear(store);
+    g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
 
-	redraw();
+    redraw();
 }
 
 void
 track_break_setup_filename(gpointer data, gpointer user_data)
 {
-	TrackBreak *track_break = (TrackBreak *)data;
-	gchar fn[128];
-	gchar buf[128];
-	int index;
+    TrackBreak *track_break = (TrackBreak *)data;
+    gchar fn[128];
+    gchar buf[128];
+    int index;
+    int disc_num;
+    static int prev_disc_num;
+    static int track_num = 1;
 
-	fn[0] = '\0';
-	strcat(fn, (gchar *)user_data);
+    fn[0] = '\0';
+    strcat(fn, (gchar *)user_data);
 
-	index = g_list_index(track_break_list, track_break);
-	index++;
-	if (index < 10) {
-		sprintf(buf, "-0%d", index);
-	} else {
-		sprintf(buf, "-%d", index);
-	}
-	strcat(fn, buf);
-	if (track_break->filename != NULL) {
-		g_free(track_break->filename);
-	}
-	track_break->filename = g_strdup(fn);
+    index = g_list_index(track_break_list, track_break);
+    index++;
+    if (get_use_etree_filename_suffix()) {
+        int cd_length = atoi(get_etree_cd_length());
+        disc_num = (track_break->offset / CD_BLOCKS_PER_SEC / 60) / cd_length;
+        disc_num++;
+        if (index == 1) {
+            prev_disc_num = 0;
+        }
+        if (prev_disc_num != disc_num) {
+            track_num = 1;
+        } else {
+            track_num++;
+        }
+        prev_disc_num = disc_num;
+        if (index < 10) {
+            sprintf(buf, "d%dt0%d", disc_num, track_num);
+        } else {
+            sprintf(buf, "d%dt%d", disc_num, track_num);
+        }
+    } else {
+        if (index < 10) {
+            sprintf(buf, "%s0%d", get_etree_filename_suffix(), index);
+        } else {
+            sprintf(buf, "%s%d", get_etree_filename_suffix(), index);
+        }
+    }
+    strcat(fn, buf);
+    if (track_break->filename != NULL) {
+        g_free(track_break->filename);
+    }
+    track_break->filename = g_strdup(fn);
 }
 
 void
 track_break_add_to_model(gpointer data, gpointer user_data)
 {
-	GtkTreeIter iter;
-	GtkTreeIter sibling;
-	GtkTreePath *path;
-	gchar path_str[8];
-	TrackBreak *track_break = (TrackBreak *)data;
-	int index = g_list_index(track_break_list, track_break);
+    GtkTreeIter iter;
+    GtkTreeIter sibling;
+    GtkTreePath *path;
+    gchar path_str[8];
+    TrackBreak *track_break = (TrackBreak *)data;
+    int index = g_list_index(track_break_list, track_break);
 
-	sprintf(path_str, "%d", index);
-	path = gtk_tree_path_new_from_string(path_str);
+    sprintf(path_str, "%d", index);
+    path = gtk_tree_path_new_from_string(path_str);
 
 /* DEBUG CODE START */
 /*
-	g_print("gtktreepath: %s\n", path_str);
-	printf("list contents:\n");
-	g_list_foreach(track_break_list, print_element, NULL);
+    g_print("gtktreepath: %s\n", path_str);
+    printf("list contents:\n");
+    g_list_foreach(track_break_list, print_element, NULL);
 */
 /* DEBUG CODE END */
 
-	gtk_list_store_append(store, &iter);
+    gtk_list_store_append(store, &iter);
 /*
-	if (gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &sibling, path)) {
-		gtk_list_store_insert_before(store, &iter, &sibling);
-	} else {
-		gtk_list_store_append(store, &iter);
-	}
+    if (gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &sibling, path)) {
+        gtk_list_store_insert_before(store, &iter, &sibling);
+    } else {
+        gtk_list_store_append(store, &iter);
+    }
 */
-	gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
-	                                 COLUMN_FILENAME, track_break->filename,
-	                                 COLUMN_TIME, track_break->time,
-	                                 COLUMN_OFFSET, track_break->offset,
-	                                 COLUMN_EDITABLE, track_break->editable,
-	                                 -1);
+    gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
+                                     COLUMN_FILENAME, track_break->filename,
+                                     COLUMN_TIME, track_break->time,
+                                     COLUMN_OFFSET, track_break->offset,
+                                     COLUMN_EDITABLE, track_break->editable,
+                                     -1);
 
-	gtk_tree_path_free(path);
+    gtk_tree_path_free(path);
 }
 
 void 
 track_break_find_offset(CursorData *cursor_data)
 {
-	GtkTreeSelection *selection;
-	GtkTreeModel *model;
-	GList *list;
-	gchar str_tmp[1024];
-	gchar *str_ptr;
+    GtkTreeSelection *selection;
+    GtkTreeModel *model;
+    GList *list;
+    gchar str_tmp[1024];
+    gchar *str_ptr;
 
-	if (sample_filename == NULL) {
-		return;
-	}
+    if (sample_filename == NULL) {
+        return;
+    }
 
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	TrackBreak *tb = (TrackBreak *) gtk_tree_selection_get_user_data(selection);
+    selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+    TrackBreak *tb = (TrackBreak *) gtk_tree_selection_get_user_data(selection);
 
-	cursor_data->is_equal = FALSE;
-	cursor_data->marker = cursor_marker;
+    cursor_data->is_equal = FALSE;
+    cursor_data->marker = cursor_marker;
 
-	printf("tb->offset: %s\n", tb->offset);
+    printf("tb->offset: %s\n", tb->offset);
 }
 
 void
 track_break_add_entry()
 {
-	gint list_pos = 0;
-	TrackBreak *track_break = NULL;
-	CursorData cursor_data;
-	gchar str_tmp[1024];
-	gchar *str_ptr;
+    gint list_pos = 0;
+    TrackBreak *track_break = NULL;
+    CursorData cursor_data;
+    gchar str_tmp[1024];
+    gchar *str_ptr;
 
-	if (sample_filename == NULL) {
-		return;
-	}
+    if (sample_filename == NULL) {
+        return;
+    }
 
-	/* check for duplicate track breaks */
-	cursor_data.is_equal = FALSE;
-	cursor_data.marker = cursor_marker;
-	g_list_foreach(track_break_list, track_break_compare_cursor_marker,
+    /* check for duplicate track breaks */
+    cursor_data.is_equal = FALSE;
+    cursor_data.marker = cursor_marker;
+    g_list_foreach(track_break_list, track_break_compare_cursor_marker,
                    &cursor_data);
-	if (cursor_data.is_equal == TRUE) {
-		return;
-	}
+    if (cursor_data.is_equal == TRUE) {
+        return;
+    }
 
-	if (! (track_break = (TrackBreak *)g_malloc(sizeof(TrackBreak)))) {
-		printf("couldn't malloc enough memory for track_break\n");
-		exit(1);
-	}
+    if (! (track_break = (TrackBreak *)g_malloc(sizeof(TrackBreak)))) {
+        printf("couldn't malloc enough memory for track_break\n");
+        exit(1);
+    }
 
-	track_break->write = 1;
-	track_break->offset = cursor_marker;
-	track_break->editable = TRUE;
-	offset_to_time(cursor_marker, track_break->time);
-	track_break->filename = NULL;
+    track_break->write = 1;
+    track_break->offset = cursor_marker;
+    track_break->editable = TRUE;
+    offset_to_time(cursor_marker, track_break->time);
+    track_break->filename = NULL;
 
-	track_break_list = g_list_insert_sorted(track_break_list, track_break,
-											track_break_sort);
+    track_break_list = g_list_insert_sorted(track_break_list, track_break,
+                                            track_break_sort);
 
-	/* setup the filename */
-	strcpy(str_tmp, sample_filename);
-	str_ptr = basename(str_tmp);
-	strcpy(str_tmp, str_ptr);
-	str_ptr = strrchr(str_tmp, '.');
-	if (str_ptr != NULL) {
-		*str_ptr = '\0';
-	}
-	g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
-	gtk_list_store_clear(store);
-	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
+    /* setup the filename */
+    strcpy(str_tmp, sample_filename);
+    str_ptr = basename(str_tmp);
+    strcpy(str_tmp, str_ptr);
+    str_ptr = strrchr(str_tmp, '.');
+    if (str_ptr != NULL) {
+        *str_ptr = '\0';
+    }
+    g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
+    gtk_list_store_clear(store);
+    g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
 
-	redraw();
+    redraw();
 /* DEBUG CODE START */
 /*
-	g_list_foreach(track_break_list, track_break_print_element, NULL);
-	g_print("\n");
+    g_list_foreach(track_break_list, track_break_print_element, NULL);
+    g_print("\n");
 */
 /* DEBUG CODE END */
 }
@@ -676,32 +699,32 @@ void track_break_write_toggled(GtkWidget *widget,
                                gchar *path_str,
                                gpointer user_data)
 {
-	GtkTreeModel *model = (GtkTreeModel *)user_data;
-	GtkTreeIter iter;
-	GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
-	TrackBreak *track_break;
-	guint list_pos;
-	gpointer list_data;
+    GtkTreeModel *model = (GtkTreeModel *)user_data;
+    GtkTreeIter iter;
+    GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
+    TrackBreak *track_break;
+    guint list_pos;
+    gpointer list_data;
 
-	list_pos = atoi(path_str);
-	list_data = g_list_nth_data(track_break_list, list_pos);
-	track_break = (TrackBreak *)list_data;
-	track_break->write = !track_break->write;
+    list_pos = atoi(path_str);
+    list_data = g_list_nth_data(track_break_list, list_pos);
+    track_break = (TrackBreak *)list_data;
+    track_break->write = !track_break->write;
 
 /* DEBUG CODE START */
 /*
-	g_print("gtktreepath: %s\n", path_str);
-	g_print("list_pos: %d\n", list_pos);
-	g_print("track_break->offset: %d\n", track_break->offset);
-	g_print("track_break->write: %d\n\n", track_break->write);
+    g_print("gtktreepath: %s\n", path_str);
+    g_print("list_pos: %d\n", list_pos);
+    g_print("track_break->offset: %d\n", track_break->offset);
+    g_print("track_break->write: %d\n\n", track_break->write);
 */
 /* DEBUG CODE END */
 
-	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_WRITE,
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_WRITE,
                        track_break->write, -1);
 
-	gtk_tree_path_free(path);
+    gtk_tree_path_free(path);
 }
 
 void track_break_filename_edited(GtkCellRendererText *cell,
@@ -709,23 +732,23 @@ void track_break_filename_edited(GtkCellRendererText *cell,
                                  const gchar *new_text,
                                  gpointer user_data)
 {
-	GtkTreeModel *model = (GtkTreeModel *)user_data;
-	GtkTreeIter iter;
-	GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
-	TrackBreak *track_break;
-	guint list_pos;
-	gpointer list_data;
+    GtkTreeModel *model = (GtkTreeModel *)user_data;
+    GtkTreeIter iter;
+    GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
+    TrackBreak *track_break;
+    guint list_pos;
+    gpointer list_data;
 
-	list_pos = atoi(path_str);
-	list_data = g_list_nth_data(track_break_list, list_pos);
-	track_break = (TrackBreak *)list_data;
-	track_break->filename = g_strdup(new_text);
+    list_pos = atoi(path_str);
+    list_data = g_list_nth_data(track_break_list, list_pos);
+    track_break = (TrackBreak *)list_data;
+    track_break->filename = g_strdup(new_text);
 
-	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
                        track_break->filename, -1);
 
-	gtk_tree_path_free(path);
+    gtk_tree_path_free(path);
 }
 
 /*
@@ -735,40 +758,40 @@ void track_break_filename_edited(GtkCellRendererText *cell,
  */
 gboolean
 file_write_progress_idle_func(gpointer data) {
-	static GtkWidget *window;
-	static GtkWidget *pbar;
-	static GtkWidget *vbox;
-	static GtkWidget *filename_label;
-	static char tmp_str[1024];
-	static char str[1024];
+    static GtkWidget *window;
+    static GtkWidget *pbar;
+    static GtkWidget *vbox;
+    static GtkWidget *filename_label;
+    static char tmp_str[1024];
+    static char str[1024];
     char *str_ptr;
-	static int cur_file_displayed = 0;
+    static int cur_file_displayed = 0;
 
-	if (window == NULL) {
-		gdk_threads_enter();
-		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-		gtk_widget_realize(window);
-		gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
-		gtk_window_set_modal(GTK_WINDOW(window), TRUE);
-		gtk_window_set_transient_for(GTK_WINDOW(window),
-				GTK_WINDOW(main_window));
-		gtk_window_set_type_hint(GTK_WINDOW(window),
-				GDK_WINDOW_TYPE_HINT_DIALOG);
-		gtk_window_set_position(GTK_WINDOW(window),
-				GTK_WIN_POS_CENTER_ON_PARENT);
-		gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+    if (window == NULL) {
+        gdk_threads_enter();
+        window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        gtk_widget_realize(window);
+        gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+        gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+        gtk_window_set_transient_for(GTK_WINDOW(window),
+                GTK_WINDOW(main_window));
+        gtk_window_set_type_hint(GTK_WINDOW(window),
+                GDK_WINDOW_TYPE_HINT_DIALOG);
+        gtk_window_set_position(GTK_WINDOW(window),
+                GTK_WIN_POS_CENTER_ON_PARENT);
+        gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
 
-		vbox = gtk_vbox_new(FALSE, 0);
-		gtk_container_add(GTK_CONTAINER(window), vbox);
-		gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-		gtk_widget_show(vbox);
+        vbox = gtk_vbox_new(FALSE, 0);
+        gtk_container_add(GTK_CONTAINER(window), vbox);
+        gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
+        gtk_widget_show(vbox);
 
-		filename_label = gtk_label_new(NULL);
-		gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
-		gtk_widget_show(filename_label);
-		str[0] = '\0';
-		tmp_str[0] = '\0';
-		strcat(str, "Writing: ");
+        filename_label = gtk_label_new(NULL);
+        gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
+        gtk_widget_show(filename_label);
+        str[0] = '\0';
+        tmp_str[0] = '\0';
+        strcat(str, "Writing: ");
 
         str_ptr = basename(write_info.cur_filename);
         if (str_ptr != NULL) {
@@ -776,84 +799,84 @@ file_write_progress_idle_func(gpointer data) {
         } else {
             strcat(str, write_info.cur_filename);
         }
-		sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
-				write_info.num_files);
-		strcat(str, tmp_str);
-		gtk_label_set_text(GTK_LABEL(filename_label), str);
+        sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
+                write_info.num_files);
+        strcat(str, tmp_str);
+        gtk_label_set_text(GTK_LABEL(filename_label), str);
 
-		pbar = gtk_progress_bar_new();
-		gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
-		gtk_widget_show(pbar);
+        pbar = gtk_progress_bar_new();
+        gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
+        gtk_widget_show(pbar);
 
-		gtk_widget_show(window);
-		gdk_threads_leave();
-	}
+        gtk_widget_show(window);
+        gdk_threads_leave();
+    }
 
-	if (write_info.sync) {
-		gdk_threads_enter();
+    if (write_info.sync) {
+        gdk_threads_enter();
 
-		write_info.sync = 0;
-		gtk_widget_destroy(window);
-		window = NULL;
+        write_info.sync = 0;
+        gtk_widget_destroy(window);
+        window = NULL;
 
-		gdk_threads_leave();
-		return FALSE;
-	}
+        gdk_threads_leave();
+        return FALSE;
+    }
 
-	if (cur_file_displayed != write_info.cur_file) {
-		gdk_threads_enter();
+    if (cur_file_displayed != write_info.cur_file) {
+        gdk_threads_enter();
 
-		str[0] = '\0';
-		tmp_str[0] = '\0';
-		strcat(str, "Writing: ");
+        str[0] = '\0';
+        tmp_str[0] = '\0';
+        strcat(str, "Writing: ");
         str_ptr = basename(write_info.cur_filename);
         if (str_ptr != NULL) {
             strcat(str, str_ptr);
         } else {
             strcat(str, write_info.cur_filename);
         }
-		sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
-				write_info.num_files);
-		strcat(str, tmp_str);
-		gtk_label_set_text(GTK_LABEL(filename_label), str);
+        sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
+                write_info.num_files);
+        strcat(str, tmp_str);
+        gtk_label_set_text(GTK_LABEL(filename_label), str);
 
-		gdk_threads_leave();
-	}
+        gdk_threads_leave();
+    }
 
-	gdk_threads_enter();
-	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
-			write_info.pct_done);
-	gdk_threads_leave();
+    gdk_threads_enter();
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
+            write_info.pct_done);
+    gdk_threads_leave();
 
-	return TRUE;
+    return TRUE;
 }
 
 gboolean
 file_play_progress_idle_func(gpointer data) {
-	gint n = play_marker + draw->allocation.width / 2;
-	gint m = graphData.numSamples;
-	gint x = play_marker - draw->allocation.width / 2;
-	gint y = play_marker - pixmap_offset;
-	gint z = draw->allocation.width / 2;
+    gint n = play_marker + draw->allocation.width / 2;
+    gint m = graphData.numSamples;
+    gint x = play_marker - draw->allocation.width / 2;
+    gint y = play_marker - pixmap_offset;
+    gint z = draw->allocation.width / 2;
 
-	if (y > z && x > 0 && n <= m) {
-		pixmap_offset = play_marker - draw->allocation.width / 2;
-		gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
-		gtk_widget_queue_draw(scrollbar);
-	} else if (pixmap_offset > play_marker) {
-		pixmap_offset = 0;
-		gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
-		gtk_widget_queue_draw(scrollbar);
-	}
+    if (y > z && x > 0 && n <= m) {
+        pixmap_offset = play_marker - draw->allocation.width / 2;
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+        gtk_widget_queue_draw(scrollbar);
+    } else if (pixmap_offset > play_marker) {
+        pixmap_offset = 0;
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+        gtk_widget_queue_draw(scrollbar);
+    }
 
-	redraw();
-	update_status();
+    redraw();
+    update_status();
 
-	if (sample_get_playing()) {
-		return TRUE;
-	} else {
-		return FALSE;
-	}
+    if (sample_get_playing()) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 /*
@@ -864,141 +887,141 @@ file_play_progress_idle_func(gpointer data) {
 
 gboolean
 file_open_progress_idle_func(gpointer data) {
-	static GtkWidget *window;
-	static GtkWidget *pbar;
-	static GtkWidget *vbox;
-	static GtkWidget *filename_label;
-	static char tmp_str[1024];
+    static GtkWidget *window;
+    static GtkWidget *pbar;
+    static GtkWidget *vbox;
+    static GtkWidget *filename_label;
+    static char tmp_str[1024];
 
-	if (window == NULL) {
-		gdk_threads_enter();
-		window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-		gtk_widget_realize(window);
-		gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
-		gtk_window_set_modal(GTK_WINDOW(window), TRUE);
-		gtk_window_set_transient_for(GTK_WINDOW(window),
-				GTK_WINDOW(main_window));
-		gtk_window_set_type_hint(GTK_WINDOW(window),
-				GDK_WINDOW_TYPE_HINT_DIALOG);
-		gtk_window_set_position(GTK_WINDOW(window),
-				GTK_WIN_POS_CENTER_ON_PARENT);
-		gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+    if (window == NULL) {
+        gdk_threads_enter();
+        window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        gtk_widget_realize(window);
+        gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+        gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+        gtk_window_set_transient_for(GTK_WINDOW(window),
+                GTK_WINDOW(main_window));
+        gtk_window_set_type_hint(GTK_WINDOW(window),
+                GDK_WINDOW_TYPE_HINT_DIALOG);
+        gtk_window_set_position(GTK_WINDOW(window),
+                GTK_WIN_POS_CENTER_ON_PARENT);
+        gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
 
-		vbox = gtk_vbox_new(FALSE, 0);
-		gtk_container_add(GTK_CONTAINER(window), vbox);
-		gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-		gtk_widget_show(vbox);
+        vbox = gtk_vbox_new(FALSE, 0);
+        gtk_container_add(GTK_CONTAINER(window), vbox);
+        gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
+        gtk_widget_show(vbox);
 
-		filename_label = gtk_label_new(NULL);
-		gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
-		gtk_widget_show(filename_label);
+        filename_label = gtk_label_new(NULL);
+        gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
+        gtk_widget_show(filename_label);
 
-		tmp_str[0] = '\0';
-		strcat(tmp_str, "Opening: ");
-		strcat(tmp_str, basename(sample_filename));
+        tmp_str[0] = '\0';
+        strcat(tmp_str, "Opening: ");
+        strcat(tmp_str, basename(sample_filename));
 
-		gtk_label_set_text(GTK_LABEL(filename_label), tmp_str);
+        gtk_label_set_text(GTK_LABEL(filename_label), tmp_str);
 
-		pbar = gtk_progress_bar_new();
-		gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
-		gtk_widget_show(pbar);
+        pbar = gtk_progress_bar_new();
+        gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
+        gtk_widget_show(pbar);
 
-		gtk_widget_show(window);
-		gdk_threads_leave();
-	}
+        gtk_widget_show(window);
+        gdk_threads_leave();
+    }
 
-	if (progress_pct >= 1.0) {
-		progress_pct = 0;
+    if (progress_pct >= 1.0) {
+        progress_pct = 0;
 
-		gdk_threads_enter();
-		gtk_widget_destroy(window);
-		window = NULL;
+        gdk_threads_enter();
+        gtk_widget_destroy(window);
+        window = NULL;
 
-	/* --------------------------------------------------- */
-	/* Reset things because we have a new file             */
-	/* --------------------------------------------------- */
+    /* --------------------------------------------------- */
+    /* Reset things because we have a new file             */
+    /* --------------------------------------------------- */
 
-	cursor_marker = 0;
-	track_break_clear_list();
-	track_break_add_entry();
+    cursor_marker = 0;
+    track_break_clear_list();
+    track_break_add_entry();
 
-	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
-	gtk_widget_queue_draw(scrollbar);
+    gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
+    gtk_widget_queue_draw(scrollbar);
 
-//	gdk_window_process_all_updates();
+//    gdk_window_process_all_updates();
 
 /* Remove FIX !!!!!!!!!!! */
-	configure_event(draw, NULL, NULL);
+    configure_event(draw, NULL, NULL);
 
-	redraw();
+    redraw();
 
 /* --------------------------------------------------- */
 
-		gdk_threads_leave();
+        gdk_threads_leave();
 
-		return FALSE;
+        return FALSE;
 
-	} else {
-		gdk_threads_enter();
-		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
-		gdk_threads_leave();
-		return TRUE;
-	}
+    } else {
+        gdk_threads_enter();
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
+        gdk_threads_leave();
+        return TRUE;
+    }
 }
 
 void
 filesel_ok_clicked(GtkWidget *widget,
                    gpointer user_data)
 {
-	GtkWidget *filesel;
+    GtkWidget *filesel;
 
-	filesel = GTK_WIDGET(user_data);
+    filesel = GTK_WIDGET(user_data);
 
-	if (sample_filename != NULL) {
-		free(sample_filename);
-	}
-	sample_filename = g_strdup((char *)gtk_file_selection_get_filename(
-	                           GTK_FILE_SELECTION(filesel)));
+    if (sample_filename != NULL) {
+        free(sample_filename);
+    }
+    sample_filename = g_strdup((char *)gtk_file_selection_get_filename(
+                               GTK_FILE_SELECTION(filesel)));
 
-	gdk_window_hide(widget->window);
+    gdk_window_hide(widget->window);
 
-	if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
-		popupmessage_show(main_window, sample_get_error_message());
-		return;
-	}
+    if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
+        popupmessage_show(main_window, sample_get_error_message());
+        return;
+    }
 
-	menu_stop(NULL, NULL);
+    menu_stop(NULL, NULL);
 
-	idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
+    idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
 }
 
 void
 filesel_cancel_clicked(GtkWidget *widget,
                        gpointer user_data)
 {
-	gdk_window_hide(widget->window);
+    gdk_window_hide(widget->window);
 }
 
 static void
 openfile()
 {
-	static GtkWidget *filesel = NULL;
+    static GtkWidget *filesel = NULL;
 
-	if (filesel == NULL) {
-		filesel = gtk_file_selection_new("open file");
-		gtk_signal_connect(GTK_OBJECT(
-			GTK_FILE_SELECTION(filesel)->ok_button),
-			"clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
+    if (filesel == NULL) {
+        filesel = gtk_file_selection_new("open file");
+        gtk_signal_connect(GTK_OBJECT(
+            GTK_FILE_SELECTION(filesel)->ok_button),
+            "clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
 
-		gtk_signal_connect(GTK_OBJECT(
-			GTK_FILE_SELECTION(filesel)->cancel_button),
-			"clicked", (GtkSignalFunc)filesel_cancel_clicked,
-			filesel);
+        gtk_signal_connect(GTK_OBJECT(
+            GTK_FILE_SELECTION(filesel)->cancel_button),
+            "clicked", (GtkSignalFunc)filesel_cancel_clicked,
+            filesel);
 
-		gtk_widget_show(filesel);
-	} else {
-		gdk_window_show(filesel->window);
-	}
+        gtk_widget_show(filesel);
+    } else {
+        gdk_window_show(filesel->window);
+    }
 }
 
 /*
@@ -1010,301 +1033,301 @@ openfile()
 static void
 redraw()
 {
-	draw_sample(draw);
-	gtk_widget_queue_draw(draw);
-	draw_summary_pixmap(draw_summary);
-	gtk_widget_queue_draw(draw_summary);
+    draw_sample(draw);
+    gtk_widget_queue_draw(draw);
+    draw_summary_pixmap(draw_summary);
+    gtk_widget_queue_draw(draw_summary);
 }
 
 static void
 draw_sample(GtkWidget *widget)
 {
-	int xaxis;
-	int width, height;
-	int y_min, y_max;
-	int scale;
-	int i;
-	GdkGC *gc;
+    int xaxis;
+    int width, height;
+    int y_min, y_max;
+    int scale;
+    int i;
+    GdkGC *gc;
 
-	int count;
-	int index;
-	GList *tbl;
-	TrackBreak *tb_cur;
+    int count;
+    int index;
+    GList *tbl;
+    TrackBreak *tb_cur;
 
-	width = widget->allocation.width;
-	height = widget->allocation.height;
+    width = widget->allocation.width;
+    height = widget->allocation.height;
 
-	if (sample_pixmap) {
-		gdk_pixmap_unref(sample_pixmap);
-	}
+    if (sample_pixmap) {
+        gdk_pixmap_unref(sample_pixmap);
+    }
 
-	sample_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
+    sample_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
 
-	if (!sample_pixmap) {
-		printf("sample_pixmap is NULL\n");
-		return;
-	}
+    if (!sample_pixmap) {
+        printf("sample_pixmap is NULL\n");
+        return;
+    }
 
-	gc = gdk_gc_new(sample_pixmap);
+    gc = gdk_gc_new(sample_pixmap);
 
-	/* clear sample_pixmap before drawing */
+    /* clear sample_pixmap before drawing */
 
-	gdk_gc_set_foreground(gc, &bg_color);
-	gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
+    gdk_gc_set_foreground(gc, &bg_color);
+    gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
-	xaxis = height / 2;
-	if (xaxis != 0) {
-		scale = graphData.maxSampleValue / xaxis;
-		if (scale == 0) {
-			scale = 1;
-		}
-	} else {
-		scale = 1;
-	}
+    xaxis = height / 2;
+    if (xaxis != 0) {
+        scale = graphData.maxSampleValue / xaxis;
+        if (scale == 0) {
+            scale = 1;
+        }
+    } else {
+        scale = 1;
+    }
 
-	if (graphData.data == NULL) {
-		/* draw axis */
+    if (graphData.data == NULL) {
+        /* draw axis */
 
-		gdk_gc_set_foreground(gc, &axis_color);
-		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
-		
-		//cleanup
-		g_object_unref(gc);
+        gdk_gc_set_foreground(gc, &axis_color);
+        gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
+        
+        //cleanup
+        g_object_unref(gc);
 
-		return;
-	}
+        return;
+    }
 
-	/* draw sample graph */
+    /* draw sample graph */
 
-	for (i = 0; i < width && i < graphData.numSamples; i++) {
-		y_min = graphData.data[i + pixmap_offset].min;
-		y_max = graphData.data[i + pixmap_offset].max;
+    for (i = 0; i < width && i < graphData.numSamples; i++) {
+        y_min = graphData.data[i + pixmap_offset].min;
+        y_max = graphData.data[i + pixmap_offset].max;
 
-		/*
-		y_max = y_min;
-		y_min = 100 * sin(i * .1);
-		*/
+        /*
+        y_max = y_min;
+        y_min = 100 * sin(i * .1);
+        */
 
-		y_min = xaxis + fabs(y_min) / scale;
-		y_max = xaxis - y_max / scale;
+        y_min = xaxis + fabs(y_min) / scale;
+        y_max = xaxis - y_max / scale;
 
-		/* DEBUG CODE START */
-		/*
-		printf("i: %d\t", i);
-		printf("y_min: %d\t", y_min);
-		printf("y_max: %d\n", y_max);
-		*/
-		/* DEBUG CODE END */
+        /* DEBUG CODE START */
+        /*
+        printf("i: %d\t", i);
+        printf("y_min: %d\t", y_min);
+        printf("y_max: %d\n", y_max);
+        */
+        /* DEBUG CODE END */
 
-		/* find the track break we are drawing now */
+        /* find the track break we are drawing now */
 
-		count = 0;
-		tb_cur = NULL;
-		for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-			index = g_list_position(track_break_list, tbl);
-			tb_cur = g_list_nth_data(track_break_list, index);
-			if (tb_cur != NULL) {
-				if (i + pixmap_offset > tb_cur->offset) {
-					count++;
-				}
-			}
-		}
+        count = 0;
+        tb_cur = NULL;
+        for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
+            index = g_list_position(track_break_list, tbl);
+            tb_cur = g_list_nth_data(track_break_list, index);
+            if (tb_cur != NULL) {
+                if (i + pixmap_offset > tb_cur->offset) {
+                    count++;
+                }
+            }
+        }
 
-		gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
-		gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
-	}
+        gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
+        gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
+    }
 
-	/* draw axis */
+    /* draw axis */
 
-	gdk_gc_set_foreground(gc, &axis_color);
+    gdk_gc_set_foreground(gc, &axis_color);
 
-	if (width > graphData.numSamples) {
-		gdk_draw_line(sample_pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
-	} else {
-		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
-	}
+    if (width > graphData.numSamples) {
+        gdk_draw_line(sample_pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
+    } else {
+        gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
+    }
 
-	//cleanup
-	g_object_unref(gc);
+    //cleanup
+    g_object_unref(gc);
 }
 
 static void
 draw_cursor_marker()
 {
-	int height;
-	GdkGC *gc;
+    int height;
+    GdkGC *gc;
 
-	height = draw->allocation.height;
+    height = draw->allocation.height;
 
-	cursor_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
+    cursor_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
 
-	if (!cursor_pixmap) {
-		printf("cursor_pixmap is NULL\n");
-		return;
-	}
+    if (!cursor_pixmap) {
+        printf("cursor_pixmap is NULL\n");
+        return;
+    }
 
-	gc = gdk_gc_new(cursor_pixmap);
-	gdk_gc_set_foreground(gc, &cursor_marker_color);
-	gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
+    gc = gdk_gc_new(cursor_pixmap);
+    gdk_gc_set_foreground(gc, &cursor_marker_color);
+    gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
 
-	//cleanup
-	g_object_unref(gc);
+    //cleanup
+    g_object_unref(gc);
 }
 
 static void
 draw_play_marker()
 {
-	int height;
-	GdkGC *gc;
+    int height;
+    GdkGC *gc;
 
-	height = draw->allocation.height;
+    height = draw->allocation.height;
 
-	play_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
+    play_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
 
-	if (!play_pixmap) {
-		printf("play_pixmap is NULL\n");
-		return;
-	}
+    if (!play_pixmap) {
+        printf("play_pixmap is NULL\n");
+        return;
+    }
 
-	gc = gdk_gc_new(play_pixmap);
-	gdk_gc_set_foreground(gc, &play_marker_color);
-	gdk_draw_line(play_pixmap, gc, 0, 0, 0, height);
+    gc = gdk_gc_new(play_pixmap);
+    gdk_gc_set_foreground(gc, &play_marker_color);
+    gdk_draw_line(play_pixmap, gc, 0, 0, 0, height);
 
-	//cleanup
-	g_object_unref(gc);
+    //cleanup
+    g_object_unref(gc);
 }
 
 static gboolean
 configure_event(GtkWidget *widget,
-				GdkEventConfigure *event,
-				gpointer data)
+                GdkEventConfigure *event,
+                gpointer data)
 {
-	int width;
-	width = widget->allocation.width;
+    int width;
+    width = widget->allocation.width;
 
-	if (graphData.numSamples == 0) {
-		pixmap_offset = 0;
-		GTK_ADJUSTMENT(adj)->page_size = 1;
-		GTK_ADJUSTMENT(adj)->upper = 1;
-		GTK_ADJUSTMENT(adj)->page_increment = 1;
-	} else if (width > graphData.numSamples) {
-		pixmap_offset = 0;
-		GTK_ADJUSTMENT(adj)->page_size = graphData.numSamples;
-		GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
-		GTK_ADJUSTMENT(adj)->page_increment = width / 2;
-	} else {
-		if (pixmap_offset + width > graphData.numSamples) {
-			pixmap_offset = graphData.numSamples - width;
-		}
-		GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
-		GTK_ADJUSTMENT(adj)->page_size = width;
-		GTK_ADJUSTMENT(adj)->page_increment = width / 2;
-	}
+    if (graphData.numSamples == 0) {
+        pixmap_offset = 0;
+        GTK_ADJUSTMENT(adj)->page_size = 1;
+        GTK_ADJUSTMENT(adj)->upper = 1;
+        GTK_ADJUSTMENT(adj)->page_increment = 1;
+    } else if (width > graphData.numSamples) {
+        pixmap_offset = 0;
+        GTK_ADJUSTMENT(adj)->page_size = graphData.numSamples;
+        GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
+        GTK_ADJUSTMENT(adj)->page_increment = width / 2;
+    } else {
+        if (pixmap_offset + width > graphData.numSamples) {
+            pixmap_offset = graphData.numSamples - width;
+        }
+        GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
+        GTK_ADJUSTMENT(adj)->page_size = width;
+        GTK_ADJUSTMENT(adj)->page_increment = width / 2;
+    }
 
-	GTK_ADJUSTMENT(adj)->step_increment = 10;
-	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+    GTK_ADJUSTMENT(adj)->step_increment = 10;
+    gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
 
-	draw_sample(widget);
-	draw_cursor_marker();
-	draw_play_marker();
+    draw_sample(widget);
+    draw_cursor_marker();
+    draw_play_marker();
 
-	return TRUE;
+    return TRUE;
 }
 
 static gboolean
 expose_event(GtkWidget *widget,
-			 GdkEventExpose *event,
-			 gpointer data)
+             GdkEventExpose *event,
+             gpointer data)
 {
-	GdkGC *gc;
+    GdkGC *gc;
 
-	gc = gdk_gc_new(sample_pixmap);
+    gc = gdk_gc_new(sample_pixmap);
 
-	gdk_draw_drawable(widget->window, gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
+    gdk_draw_drawable(widget->window, gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
 
-	if (cursor_marker >= pixmap_offset &&
-	    cursor_marker <= pixmap_offset + widget->allocation.width) {
+    if (cursor_marker >= pixmap_offset &&
+        cursor_marker <= pixmap_offset + widget->allocation.width) {
 
-		gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
-				  cursor_marker - pixmap_offset, 0, -1, -1);
-	}
+        gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
+                  cursor_marker - pixmap_offset, 0, -1, -1);
+    }
 
-	if (sample_get_playing()) {
-		gdk_draw_drawable(widget->window, gc, play_pixmap, 0, 0,
-				  play_marker - pixmap_offset, 0, -1, -1);
-	}
+    if (sample_get_playing()) {
+        gdk_draw_drawable(widget->window, gc, play_pixmap, 0, 0,
+                  play_marker - pixmap_offset, 0, -1, -1);
+    }
 
-	//cleanup
-	g_object_unref(gc);
+    //cleanup
+    g_object_unref(gc);
 
-	return FALSE;
+    return FALSE;
 }
 
 static void
 draw_summary_pixmap(GtkWidget *widget)
 {
-	int xaxis;
-	int width, height;
-	int y_min, y_max;
-	int min, max, x_scale, x_scale_leftover, x_scale_mod;
-	int scale;
-	int i, k;
-	int leftover_count, loop_end, array_offset;
+    int xaxis;
+    int width, height;
+    int y_min, y_max;
+    int min, max, x_scale, x_scale_leftover, x_scale_mod;
+    int scale;
+    int i, k;
+    int leftover_count, loop_end, array_offset;
 
-	GdkGC *gc;
-	int count;
-	int index;
-	GList *tbl;
-	TrackBreak *tb_cur;
+    GdkGC *gc;
+    int count;
+    int index;
+    GList *tbl;
+    TrackBreak *tb_cur;
 
-	width = widget->allocation.width;
-	height = widget->allocation.height; 
-	if (summary_pixmap) {
-		gdk_pixmap_unref(summary_pixmap);
-	}
+    width = widget->allocation.width;
+    height = widget->allocation.height; 
+    if (summary_pixmap) {
+        gdk_pixmap_unref(summary_pixmap);
+    }
 
-	summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
+    summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
 
-	if (!summary_pixmap) {
-		printf("summary_pixmap is NULL\n");
-		//cleanup
-		g_object_unref(gc);
-		return;
-	}
+    if (!summary_pixmap) {
+        printf("summary_pixmap is NULL\n");
+        //cleanup
+        g_object_unref(gc);
+        return;
+    }
 
-	gc = gdk_gc_new(summary_pixmap);
+    gc = gdk_gc_new(summary_pixmap);
 
-	/* clear summary_pixmap before drawing */
+    /* clear summary_pixmap before drawing */
 
-	gdk_gc_set_foreground(gc, &bg_color);
-	gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
+    gdk_gc_set_foreground(gc, &bg_color);
+    gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
 
-	xaxis = height / 2;
-	if (xaxis != 0) {
-		scale = graphData.maxSampleValue / xaxis;
-		if (scale == 0) {
-			scale = 1;
-		}
-	} else {
-		scale = 1;
-	}
+    xaxis = height / 2;
+    if (xaxis != 0) {
+        scale = graphData.maxSampleValue / xaxis;
+        if (scale == 0) {
+            scale = 1;
+        }
+    } else {
+        scale = 1;
+    }
 
-	if (graphData.data == NULL) {
-		/* draw axis */
+    if (graphData.data == NULL) {
+        /* draw axis */
 
-		gdk_gc_set_foreground(gc, &axis_color);
+        gdk_gc_set_foreground(gc, &axis_color);
 
-		//cleanup
-		g_object_unref(gc);
-		return;
-	}
+        //cleanup
+        g_object_unref(gc);
+        return;
+    }
 
-	/* draw sample graph */
+    /* draw sample graph */
 
-	x_scale = graphData.numSamples / width;
-	if (x_scale == 0) {
-		x_scale = 1;
-	}
+    x_scale = graphData.numSamples / width;
+    if (x_scale == 0) {
+        x_scale = 1;
+    }
 
 /*
 printf("x_scale: %d\n", x_scale);
@@ -1312,87 +1335,87 @@ printf("width: %d\n", width);
 printf("graphData.numSamples: %lu\n", graphData.numSamples);
 */
 
-	x_scale_leftover = graphData.numSamples % width;
+    x_scale_leftover = graphData.numSamples % width;
 //printf("x_scale_leftover: %d\n", x_scale_leftover);
-	x_scale_mod =  width / x_scale_leftover;
+    x_scale_mod =  width / x_scale_leftover;
 //printf("x_scale_leftover: %d\n", x_scale_leftover);
 
 leftover_count = 0;
 
-	for (i = 0; i < width && i < graphData.numSamples; i++) {
-		min = max = 0;
-		array_offset = i * x_scale + leftover_count;
+    for (i = 0; i < width && i < graphData.numSamples; i++) {
+        min = max = 0;
+        array_offset = i * x_scale + leftover_count;
 
-		if (x_scale != 1) {
-			loop_end = x_scale;
+        if (x_scale != 1) {
+            loop_end = x_scale;
 
-			if (i % x_scale_mod == 0 &&
-			    leftover_count < x_scale_leftover) {
+            if (i % x_scale_mod == 0 &&
+                leftover_count < x_scale_leftover) {
 
-				loop_end++;
-				leftover_count++;
-			}
+                loop_end++;
+                leftover_count++;
+            }
 
-			for (k = 0; k < loop_end; k++) {
-				if (graphData.data[array_offset + k].max > max) {
-					max = graphData.data[array_offset + k].max;
-				} else if (graphData.data[array_offset + k].min < min) {
-					min = graphData.data[array_offset + k].min;
-				}
-			}
-		} else {
-			min = graphData.data[i].min;
-			max = graphData.data[i].max;
-		}
+            for (k = 0; k < loop_end; k++) {
+                if (graphData.data[array_offset + k].max > max) {
+                    max = graphData.data[array_offset + k].max;
+                } else if (graphData.data[array_offset + k].min < min) {
+                    min = graphData.data[array_offset + k].min;
+                }
+            }
+        } else {
+            min = graphData.data[i].min;
+            max = graphData.data[i].max;
+        }
 
-		y_min = min;
-		y_max = max;
+        y_min = min;
+        y_max = max;
 
-		y_min = xaxis + fabs(y_min) / scale;
-		y_max = xaxis - y_max / scale;
+        y_min = xaxis + fabs(y_min) / scale;
+        y_max = xaxis - y_max / scale;
 
-		/* DEBUG CODE START */
-		/*
-		printf("i: %d\t", i);
-		printf("y_min: %d\t", y_min);
-		printf("y_max: %d\n", y_max);
-		*/
-		/* DEBUG CODE END */
+        /* DEBUG CODE START */
+        /*
+        printf("i: %d\t", i);
+        printf("y_min: %d\t", y_min);
+        printf("y_max: %d\n", y_max);
+        */
+        /* DEBUG CODE END */
 
-		count = 0;
-		tb_cur = NULL;
-		for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-			index = g_list_position(track_break_list, tbl);
-			tb_cur = g_list_nth_data(track_break_list, index);
-			if (tb_cur != NULL) {
-				if (array_offset > tb_cur->offset) {
-					count++;
-				}
-			}
-		}
+        count = 0;
+        tb_cur = NULL;
+        for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
+            index = g_list_position(track_break_list, tbl);
+            tb_cur = g_list_nth_data(track_break_list, index);
+            if (tb_cur != NULL) {
+                if (array_offset > tb_cur->offset) {
+                    count++;
+                }
+            }
+        }
 
-		gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
+        gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
 
-		if (i * x_scale + leftover_count >= pixmap_offset &&
-		           i * x_scale + leftover_count < pixmap_offset + width) {
+        if (i * x_scale + leftover_count >= pixmap_offset &&
+                   i * x_scale + leftover_count < pixmap_offset + width) {
 
-			/* draw reverse background */
-			gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
-			gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
+            /* draw reverse background */
+            gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
+            gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
 
-			/* draw reverse foreground */
-			gdk_gc_set_foreground(gc, &bg_color);
-			gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+            /* draw reverse foreground */
+            gdk_gc_set_foreground(gc, &bg_color);
+            gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
 
-		} else {
-			gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
-			gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
-		}
-	}
+        } else {
+            gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
+            gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+        }
+    }
 //printf("leftover_count: %d\n", leftover_count);
 
-	//cleanup
-	g_object_unref(gc);
+    //cleanup
+    g_object_unref(gc);
 }
 
 static gboolean
@@ -1400,9 +1423,9 @@ draw_summary_configure_event(GtkWidget *widget,
                              GdkEventConfigure *event,
                              gpointer user_data)
 {
-	draw_summary_pixmap(widget);
+    draw_summary_pixmap(widget);
 
-	return TRUE;
+    return TRUE;
 }
 
 static gboolean
@@ -1410,61 +1433,61 @@ draw_summary_expose_event(GtkWidget *widget,
                           GdkEventExpose *event,
                           gpointer user_data)
 {
-	GdkGC *gc;
+    GdkGC *gc;
 
-	gc = gdk_gc_new(summary_pixmap);
+    gc = gdk_gc_new(summary_pixmap);
 
-	gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
+    gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
 
-	//cleanup
-	g_object_unref(gc);
+    //cleanup
+    g_object_unref(gc);
 
-	return FALSE;
+    return FALSE;
 }
 
 static gboolean
 draw_summary_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-	int start, midpoint, width;
-	int x_scale, x_scale_leftover, x_scale_mod;
-	int leftover_count;
+    int start, midpoint, width;
+    int x_scale, x_scale_leftover, x_scale_mod;
+    int leftover_count;
 
-	if (sample_get_playing()) {
-		return TRUE;
-	}
+    if (sample_get_playing()) {
+        return TRUE;
+    }
 
-	width = widget->allocation.width;
-	x_scale = graphData.numSamples / width;
-	x_scale_leftover = graphData.numSamples % width;
-	if (x_scale_leftover > 0) {
-		x_scale_mod =  width / x_scale_leftover;
-		leftover_count = event->x / x_scale_mod;
-	} else {
-		x_scale_mod =  0;
-		leftover_count = 0;
-	}
+    width = widget->allocation.width;
+    x_scale = graphData.numSamples / width;
+    x_scale_leftover = graphData.numSamples % width;
+    if (x_scale_leftover > 0) {
+        x_scale_mod =  width / x_scale_leftover;
+        leftover_count = event->x / x_scale_mod;
+    } else {
+        x_scale_mod =  0;
+        leftover_count = 0;
+    }
 
-	midpoint = event->x * x_scale + leftover_count;
-	start = midpoint - width / 2;
+    midpoint = event->x * x_scale + leftover_count;
+    start = midpoint - width / 2;
 
-	if (graphData.numSamples == 0) {
-		pixmap_offset = 0;
-	} else if (width > graphData.numSamples) {
-		pixmap_offset = 0;
-	} else if (start + width > graphData.numSamples) {
-		pixmap_offset = graphData.numSamples - width;
-	} else if (pixmap_offset < 0) {
-		pixmap_offset = 0;
-	} else {
-		pixmap_offset = start;
-	}
+    if (graphData.numSamples == 0) {
+        pixmap_offset = 0;
+    } else if (width > graphData.numSamples) {
+        pixmap_offset = 0;
+    } else if (start + width > graphData.numSamples) {
+        pixmap_offset = graphData.numSamples - width;
+    } else if (pixmap_offset < 0) {
+        pixmap_offset = 0;
+    } else {
+        pixmap_offset = start;
+    }
 
-	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
-	gtk_widget_queue_draw(scrollbar);
+    gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+    gtk_widget_queue_draw(scrollbar);
 
-	redraw();
+    redraw();
 
-	return TRUE;
+    return TRUE;
 }
 
 /*
@@ -1477,175 +1500,175 @@ static gboolean
 adj_value_changed(GtkAdjustment *adj,
                   gpointer data)
 {
-	if (sample_get_playing()) {
-		return;
-	}
-	pixmap_offset = adj->value;
+    if (sample_get_playing()) {
+        return;
+    }
+    pixmap_offset = adj->value;
 
-	redraw();
+    redraw();
 
-	return TRUE;
+    return TRUE;
 }
 
 static gboolean
 button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	GtkWidget *menu;
-	GtkWidget *add_item;
+    GtkWidget *menu;
+    GtkWidget *add_item;
 
-	if (event->x + pixmap_offset > graphData.numSamples) {
-		return TRUE;
-	}
-	if (sample_get_playing()) {
-		return TRUE;
-	}
+    if (event->x + pixmap_offset > graphData.numSamples) {
+        return TRUE;
+    }
+    if (sample_get_playing()) {
+        return TRUE;
+    }
 
-	if (event->button == 3) {
-		menu = gtk_menu_new();
+    if (event->button == 3) {
+        menu = gtk_menu_new();
 
-		add_item = gtk_menu_item_new_with_label("Add Track Break");
-		g_signal_connect(G_OBJECT(add_item), "activate", G_CALLBACK(menu_add_track_break), NULL);
-		gtk_widget_show(add_item);
+        add_item = gtk_menu_item_new_with_label("Add Track Break");
+        g_signal_connect(G_OBJECT(add_item), "activate", G_CALLBACK(menu_add_track_break), NULL);
+        gtk_widget_show(add_item);
 
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), add_item);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), add_item);
 
-		gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
-				  event->button, event->time);
+        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
+                  event->button, event->time);
 
-		redraw();
+        redraw();
 
-		return TRUE;
-	}
+        return TRUE;
+    }
 
-	cursor_marker = pixmap_offset + event->x;
+    cursor_marker = pixmap_offset + event->x;
 
-	/* DEBUG CODE START */
-	/*
-	printf("cursor_marker: %lu\n", cursor_marker);
-	*/
-	/* DEBUG CODE END */
+    /* DEBUG CODE START */
+    /*
+    printf("cursor_marker: %lu\n", cursor_marker);
+    */
+    /* DEBUG CODE END */
 
-	update_status();
+    update_status();
 
-	redraw();
+    redraw();
 
-	return TRUE;
+    return TRUE;
 }
 
 static void
 offset_to_time(guint time, gchar *str) {
-	char buf[1024];
-	int min, sec, subsec;
+    char buf[1024];
+    int min, sec, subsec;
 
-	if (time > 0) {
-		min = time / (CD_BLOCKS_PER_SEC * 60);
-		sec = time % (CD_BLOCKS_PER_SEC * 60);
-		subsec = sec % CD_BLOCKS_PER_SEC;
-		sec = sec / CD_BLOCKS_PER_SEC;
-	} else {
-		min = sec = subsec = 0;
-	}
-	sprintf(str, "%d:%02d.%02d", min, sec, subsec);
+    if (time > 0) {
+        min = time / (CD_BLOCKS_PER_SEC * 60);
+        sec = time % (CD_BLOCKS_PER_SEC * 60);
+        subsec = sec % CD_BLOCKS_PER_SEC;
+        sec = sec / CD_BLOCKS_PER_SEC;
+    } else {
+        min = sec = subsec = 0;
+    }
+    sprintf(str, "%d:%02d.%02d", min, sec, subsec);
 }
 
 static void
 update_status() {
-	char str[1024];
-	char strbuf[1024];
+    char str[1024];
+    char strbuf[1024];
 
-	sprintf(str, "cursor_marker: ");
-	offset_to_time(cursor_marker, strbuf);
-	strcat(str, strbuf);
+    sprintf(str, "cursor_marker: ");
+    offset_to_time(cursor_marker, strbuf);
+    strcat(str, strbuf);
 
-	sprintf(strbuf, "\tplaying: ");
-	strcat(str, strbuf);
-	offset_to_time(play_marker, strbuf);
-	strcat(str, strbuf);
+    sprintf(strbuf, "\tplaying: ");
+    strcat(str, strbuf);
+    offset_to_time(play_marker, strbuf);
+    strcat(str, strbuf);
 
-	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
+    gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
 }
 
 static void
 menu_play(GtkWidget *widget, gpointer user_data)
 {
-	play_marker = cursor_marker;
-	switch (play_sample(cursor_marker, &play_marker)) {
-		case 0:
-			idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
-			break;
-		case 1:
-			printf("error in play_sample\n");
-			break;
-		case 2:
-//			printf("already playing\n");
-//			menu_stop(NULL, NULL);
-//			play_sample(cursor_marker, &play_marker);
-			break;
-		case 3:
-//			printf("must open sample file to play\n");
-			break;
-	}
+    play_marker = cursor_marker;
+    switch (play_sample(cursor_marker, &play_marker)) {
+        case 0:
+            idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
+            break;
+        case 1:
+            printf("error in play_sample\n");
+            break;
+        case 2:
+//            printf("already playing\n");
+//            menu_stop(NULL, NULL);
+//            play_sample(cursor_marker, &play_marker);
+            break;
+        case 3:
+//            printf("must open sample file to play\n");
+            break;
+    }
 }
 
 static void
 menu_stop(GtkWidget *widget, gpointer user_data)
 {
-	stop_sample();
+    stop_sample();
 }
 
 static void
 menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-	if (sample_filename == NULL) {
-		return;
-	}
+    if (sample_filename == NULL) {
+        return;
+    }
 
-	sample_write_files(sample_filename, track_break_list, &write_info);
+    sample_write_files(sample_filename, track_break_list, &write_info);
 
-	idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
+    idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
 }
 
 void
 menu_delete_track_break(GtkWidget *widget, gpointer user_data)
 {
-	track_break_delete_entry();
+    track_break_delete_entry();
 }
 
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
-	track_break_add_entry();
+    track_break_add_entry();
 }
 
 static void
 menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget)
 {
-	openfile();
+    openfile();
 }
 
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-	gtk_main_quit();
+    gtk_main_quit();
 }
 
 static void
 menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-	about_show(main_window);
+    about_show(main_window);
 }
 
 static void
 menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-	appconfig_show(main_window);
+    appconfig_show(main_window);
 }
 
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-	autosplit_show(main_window);
+    autosplit_show(main_window);
 }
 
 /*
@@ -1657,275 +1680,275 @@ menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 static gboolean
 delete_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
-	return FALSE;
+    return FALSE;
 }
 
 static gboolean
 destroy(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
-	gtk_main_quit();
-	return FALSE;
+    gtk_main_quit();
+    return FALSE;
 }
 
 int main(int argc, char **argv)
 {
-	GtkWidget *vbox;
-	GtkWidget *tbl_widget;
-	GtkWidget *menu_widget;
-	GtkWidget *toolbar;
-	GtkWidget *icon;
-	GtkAccelGroup *accel_group;      
-	GtkItemFactory *item_factory;
+    GtkWidget *vbox;
+    GtkWidget *tbl_widget;
+    GtkWidget *menu_widget;
+    GtkWidget *toolbar;
+    GtkWidget *icon;
+    GtkAccelGroup *accel_group;      
+    GtkItemFactory *item_factory;
 
-	GtkWidget *vpane1, *vpane2;
-	GtkWidget *vpane_vbox;
-	GtkWidget *list_vbox;
-	GtkWidget *frame;
+    GtkWidget *vpane1, *vpane2;
+    GtkWidget *vpane_vbox;
+    GtkWidget *list_vbox;
+    GtkWidget *frame;
 
-	g_thread_init(NULL);
-	gdk_threads_init();
-	gtk_init(&argc, &argv);
+    g_thread_init(NULL);
+    gdk_threads_init();
+    gtk_init(&argc, &argv);
 
-	main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
-	g_signal_connect(G_OBJECT(main_window), "delete_event",
-			 G_CALLBACK(delete_event), NULL);
+    g_signal_connect(G_OBJECT(main_window), "delete_event",
+             G_CALLBACK(delete_event), NULL);
 
-	g_signal_connect(G_OBJECT(main_window), "destroy",
-			 G_CALLBACK(destroy), NULL);
+    g_signal_connect(G_OBJECT(main_window), "destroy",
+             G_CALLBACK(destroy), NULL);
 
-	gtk_container_set_border_width(GTK_CONTAINER(main_window), 0);
+    gtk_container_set_border_width(GTK_CONTAINER(main_window), 0);
 
-	vbox = gtk_vbox_new(FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(main_window), vbox);
-	gtk_widget_show(vbox);
+    vbox = gtk_vbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(main_window), vbox);
+    gtk_widget_show(vbox);
 
 /* Menu Items */
-	accel_group = gtk_accel_group_new();
-	gtk_window_add_accel_group(GTK_WINDOW(main_window), accel_group);
-	g_object_unref(accel_group);
+    accel_group = gtk_accel_group_new();
+    gtk_window_add_accel_group(GTK_WINDOW(main_window), accel_group);
+    g_object_unref(accel_group);
 
-	item_factory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<main>",
-	                                    accel_group);
+    item_factory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<main>",
+                                        accel_group);
 
-	/* Set up item factory to go away with the window */
-	g_object_ref (item_factory);
-	gtk_object_sink (GTK_OBJECT (item_factory));
-	g_object_set_data_full(G_OBJECT(main_window), "<main>", item_factory,
-	                      (GDestroyNotify)g_object_unref);
+    /* Set up item factory to go away with the window */
+    g_object_ref (item_factory);
+    gtk_object_sink (GTK_OBJECT (item_factory));
+    g_object_set_data_full(G_OBJECT(main_window), "<main>", item_factory,
+                          (GDestroyNotify)g_object_unref);
 
-	/* create menu items */
-	gtk_item_factory_create_items(item_factory, G_N_ELEMENTS(menu_items),
-	                              menu_items, main_window);
+    /* create menu items */
+    gtk_item_factory_create_items(item_factory, G_N_ELEMENTS(menu_items),
+                                  menu_items, main_window);
 
-	menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
+    menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
 
-	gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
-	gtk_widget_show(menu_widget);
+    gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
+    gtk_widget_show(menu_widget);
 
 /* Button Toolbar */
-	toolbar = gtk_toolbar_new();
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
-	                         "Open New Wave File", NULL,
-	                         G_CALLBACK(menu_open_file), main_window, -1);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
-	                         "Save Track Breaks", NULL,
-	                         G_CALLBACK(menu_save), main_window, -1);
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
-	                         "Quit wavbreaker", NULL,
-	                         G_CALLBACK(menu_quit), main_window, -1);
-	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+    toolbar = gtk_toolbar_new();
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
+                             "Open New Wave File", NULL,
+                             G_CALLBACK(menu_open_file), main_window, -1);
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
+                             "Save Track Breaks", NULL,
+                             G_CALLBACK(menu_save), main_window, -1);
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
+                             "Quit wavbreaker", NULL,
+                             G_CALLBACK(menu_quit), main_window, -1);
+    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
-	icon = gtk_image_new_from_file(play_icon_filename);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
-	                         icon, G_CALLBACK(menu_play), NULL);
-	icon = gtk_image_new_from_file(stop_icon_filename);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
-	                         icon, G_CALLBACK(menu_stop), NULL);
-	icon = gtk_image_new_from_file(break_icon_filename);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Add", "Add Track Break",
-	                        NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
-	icon = gtk_image_new_from_file(del_break_icon_filename);
-	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
-							"Delete Selected Track Break", NULL, icon,
-							G_CALLBACK(menu_delete_track_break), NULL);
+    icon = gtk_image_new_from_file(play_icon_filename);
+    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
+                             icon, G_CALLBACK(menu_play), NULL);
+    icon = gtk_image_new_from_file(stop_icon_filename);
+    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
+                             icon, G_CALLBACK(menu_stop), NULL);
+    icon = gtk_image_new_from_file(break_icon_filename);
+    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Add", "Add Track Break",
+                            NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
+    icon = gtk_image_new_from_file(del_break_icon_filename);
+    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
+                            "Delete Selected Track Break", NULL, icon,
+                            G_CALLBACK(menu_delete_track_break), NULL);
 
-	/*
-	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
-	                         "Add Track Break", NULL,
-	                         G_CALLBACK(menu_add_track_break), main_window, -1);
-	*/
+    /*
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
+                             "Add Track Break", NULL,
+                             G_CALLBACK(menu_add_track_break), main_window, -1);
+    */
 
-	gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
-	gtk_widget_show(toolbar);
+    gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
+    gtk_widget_show(toolbar);
 
 /* Set default colors up */
-	bg_color.red   = 255*(65535/255);
-	bg_color.green = 255*(65535/255);
-	bg_color.blue  = 255*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &bg_color);
+    bg_color.red   = 255*(65535/255);
+    bg_color.green = 255*(65535/255);
+    bg_color.blue  = 255*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &bg_color);
 
-	axis_color.red   = 0*(65535/255);
-	axis_color.green = 0*(65535/255);
-	axis_color.blue  = 0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &axis_color);
+    axis_color.red   = 0*(65535/255);
+    axis_color.green = 0*(65535/255);
+    axis_color.blue  = 0*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &axis_color);
 
-	cursor_marker_color.red   = 255*(65535/255);
-	cursor_marker_color.green =   0*(65535/255);
-	cursor_marker_color.blue  =   0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &cursor_marker_color);
+    cursor_marker_color.red   = 255*(65535/255);
+    cursor_marker_color.green =   0*(65535/255);
+    cursor_marker_color.blue  =   0*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &cursor_marker_color);
 
-	play_marker_color.red   =   0*(65535/255);
-	play_marker_color.green = 255*(65535/255);
-	play_marker_color.blue  =   0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &play_marker_color);
+    play_marker_color.red   =   0*(65535/255);
+    play_marker_color.green = 255*(65535/255);
+    play_marker_color.blue  =   0*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &play_marker_color);
 
-	sample_colors[0].red   =  15*(65535/255);
-	sample_colors[0].green = 184*(65535/255);
-	sample_colors[0].blue  = 225*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[0]);
+    sample_colors[0].red   =  15*(65535/255);
+    sample_colors[0].green = 184*(65535/255);
+    sample_colors[0].blue  = 225*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[0]);
 
-	sample_colors[1].red   = 255*(65535/255);
-	sample_colors[1].green = 0*(65535/255);
-	sample_colors[1].blue  = 0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[1]);
+    sample_colors[1].red   = 255*(65535/255);
+    sample_colors[1].green = 0*(65535/255);
+    sample_colors[1].blue  = 0*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[1]);
 
-	sample_colors[2].red   = 0*(65535/255);
-	sample_colors[2].green = 255*(65535/255);
-	sample_colors[2].blue  = 0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[2]);
+    sample_colors[2].red   = 0*(65535/255);
+    sample_colors[2].green = 255*(65535/255);
+    sample_colors[2].blue  = 0*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[2]);
 
-	sample_colors[3].red   = 255*(65535/255);
-	sample_colors[3].green = 255*(65535/255);
-	sample_colors[3].blue  = 0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[3]);
+    sample_colors[3].red   = 255*(65535/255);
+    sample_colors[3].green = 255*(65535/255);
+    sample_colors[3].blue  = 0*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[3]);
 
-	sample_colors[4].red   = 0*(65535/255);
-	sample_colors[4].green = 255*(65535/255);
-	sample_colors[4].blue  = 255*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[4]);
+    sample_colors[4].red   = 0*(65535/255);
+    sample_colors[4].green = 255*(65535/255);
+    sample_colors[4].blue  = 255*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[4]);
 
-	sample_colors[5].red   = 255*(65535/255);
-	sample_colors[5].green = 0*(65535/255);
-	sample_colors[5].blue  = 255*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[5]);
+    sample_colors[5].red   = 255*(65535/255);
+    sample_colors[5].green = 0*(65535/255);
+    sample_colors[5].blue  = 255*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[5]);
 
-	sample_colors[6].red   = 255*(65535/255);
-	sample_colors[6].green = 128*(65535/255);
-	sample_colors[6].blue  = 128*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[6]);
+    sample_colors[6].red   = 255*(65535/255);
+    sample_colors[6].green = 128*(65535/255);
+    sample_colors[6].blue  = 128*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[6]);
 
-	sample_colors[7].red   = 128*(65535/255);
-	sample_colors[7].green = 128*(65535/255);
-	sample_colors[7].blue  = 255*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[7]);
+    sample_colors[7].red   = 128*(65535/255);
+    sample_colors[7].green = 128*(65535/255);
+    sample_colors[7].blue  = 255*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[7]);
 
-	sample_colors[8].red   = 128*(65535/255);
-	sample_colors[8].green = 255*(65535/255);
-	sample_colors[8].blue  = 128*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[8]);
+    sample_colors[8].red   = 128*(65535/255);
+    sample_colors[8].green = 255*(65535/255);
+    sample_colors[8].blue  = 128*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[8]);
 
-	sample_colors[9].red   = 128*(65535/255);
-	sample_colors[9].green = 50*(65535/255);
-	sample_colors[9].blue  = 200*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[9]);
+    sample_colors[9].red   = 128*(65535/255);
+    sample_colors[9].green = 50*(65535/255);
+    sample_colors[9].blue  = 200*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[9]);
 
 /* paned view */
-	vpane1 = gtk_vpaned_new();
-	gtk_box_pack_start(GTK_BOX(vbox), vpane1, TRUE, TRUE, 0);
-	gtk_widget_show(vpane1);
+    vpane1 = gtk_vpaned_new();
+    gtk_box_pack_start(GTK_BOX(vbox), vpane1, TRUE, TRUE, 0);
+    gtk_widget_show(vpane1);
 
 /* vbox for the vpane */
-	vpane_vbox = gtk_vbox_new(FALSE, 0);
-	gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
-	gtk_widget_show(vpane_vbox);
+    vpane_vbox = gtk_vbox_new(FALSE, 0);
+    gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
+    gtk_widget_show(vpane_vbox);
 
 /* paned view */
-	vpane2 = gtk_vpaned_new();
-	gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
-	gtk_widget_show(vpane2);
+    vpane2 = gtk_vpaned_new();
+    gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
+    gtk_widget_show(vpane2);
 
 /* The summary_pixmap drawing area */
-	draw_summary = gtk_drawing_area_new();
-	gtk_widget_set_size_request(draw_summary, 500, 75);
+    draw_summary = gtk_drawing_area_new();
+    gtk_widget_set_size_request(draw_summary, 500, 75);
 
-	g_signal_connect(G_OBJECT(draw_summary), "expose_event",
-			 G_CALLBACK(draw_summary_expose_event), NULL);
-	g_signal_connect(G_OBJECT(draw_summary), "configure_event",
-			 G_CALLBACK(draw_summary_configure_event), NULL);
-	g_signal_connect(G_OBJECT(draw_summary), "button_release_event",
-	         G_CALLBACK(draw_summary_button_release), NULL);
+    g_signal_connect(G_OBJECT(draw_summary), "expose_event",
+             G_CALLBACK(draw_summary_expose_event), NULL);
+    g_signal_connect(G_OBJECT(draw_summary), "configure_event",
+             G_CALLBACK(draw_summary_configure_event), NULL);
+    g_signal_connect(G_OBJECT(draw_summary), "button_release_event",
+             G_CALLBACK(draw_summary_button_release), NULL);
 
-	gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
-	gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
+    gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
+    gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
 
-	frame = gtk_frame_new(NULL);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
-	gtk_widget_show(frame);
+    frame = gtk_frame_new(NULL);
+    gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+    gtk_widget_show(frame);
 
-	gtk_container_add(GTK_CONTAINER(frame), draw_summary);
-	gtk_paned_add1(GTK_PANED(vpane2), frame);
-	gtk_widget_show(draw_summary);
+    gtk_container_add(GTK_CONTAINER(frame), draw_summary);
+    gtk_paned_add1(GTK_PANED(vpane2), frame);
+    gtk_widget_show(draw_summary);
 
 /* The sample_pixmap drawing area */
-	draw = gtk_drawing_area_new();
-	gtk_widget_set_size_request(draw, 500, 200);
+    draw = gtk_drawing_area_new();
+    gtk_widget_set_size_request(draw, 500, 200);
 
-	g_signal_connect(G_OBJECT(draw), "expose_event",
-			 G_CALLBACK(expose_event), NULL);
-	g_signal_connect(G_OBJECT(draw), "configure_event",
-			 G_CALLBACK(configure_event), NULL);
-	g_signal_connect(G_OBJECT(draw), "button_release_event",
-			 G_CALLBACK(button_release), NULL);
+    g_signal_connect(G_OBJECT(draw), "expose_event",
+             G_CALLBACK(expose_event), NULL);
+    g_signal_connect(G_OBJECT(draw), "configure_event",
+             G_CALLBACK(configure_event), NULL);
+    g_signal_connect(G_OBJECT(draw), "button_release_event",
+             G_CALLBACK(button_release), NULL);
 
-	gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
-	gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
+    gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
+    gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
 
-	frame = gtk_frame_new(NULL);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
-	gtk_widget_show(frame);
+    frame = gtk_frame_new(NULL);
+    gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
+    gtk_widget_show(frame);
 
-	gtk_container_add(GTK_CONTAINER(frame), draw);
-	gtk_paned_add2(GTK_PANED(vpane2), frame);
-//	gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
-	gtk_widget_show(draw);
+    gtk_container_add(GTK_CONTAINER(frame), draw);
+    gtk_paned_add2(GTK_PANED(vpane2), frame);
+//    gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
+    gtk_widget_show(draw);
 
 /* Add scrollbar */
-	adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
-	g_signal_connect(G_OBJECT(adj), "value_changed",
-			 G_CALLBACK(adj_value_changed), NULL);
+    adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
+    g_signal_connect(G_OBJECT(adj), "value_changed",
+             G_CALLBACK(adj_value_changed), NULL);
 
-	scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
-	gtk_box_pack_start(GTK_BOX(vpane_vbox), scrollbar, FALSE, TRUE, 0);
-	gtk_widget_show(scrollbar);
+    scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
+    gtk_box_pack_start(GTK_BOX(vpane_vbox), scrollbar, FALSE, TRUE, 0);
+    gtk_widget_show(scrollbar);
 
 /* vbox for the list */
-	list_vbox = gtk_vbox_new(FALSE, 0);
-	gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, FALSE, TRUE);
-	gtk_widget_show(list_vbox);
+    list_vbox = gtk_vbox_new(FALSE, 0);
+    gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, FALSE, TRUE);
+    gtk_widget_show(list_vbox);
 
 /* Track Break List */
-	tbl_widget = track_break_create_list_gui();
-	gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
-	gtk_widget_show(tbl_widget);
+    tbl_widget = track_break_create_list_gui();
+    gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
+    gtk_widget_show(tbl_widget);
 
 /* Status Bar */
-	statusbar = gtk_statusbar_new();
-	gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, TRUE, 0);
-	gtk_widget_show(statusbar);
+    statusbar = gtk_statusbar_new();
+    gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, TRUE, 0);
+    gtk_widget_show(statusbar);
 
 /* Finish up */
 
     write_info.cur_filename = NULL;
 
-	sample_init();
-	appconfig_init();
-	gtk_widget_show(main_window);
+    sample_init();
+    appconfig_init();
+    gtk_widget_show(main_window);
 
-	if (!g_thread_supported ()) g_thread_init (NULL);
-	gdk_threads_enter();
-	gtk_main();
-	gdk_threads_leave();
+    if (!g_thread_supported ()) g_thread_init (NULL);
+    gdk_threads_enter();
+    gtk_main();
+    gdk_threads_leave();
 
-	return 0;
+    return 0;
 }

@@ -22,5 +22,8 @@
 void appconfig_show(GtkWidget *);
 char *get_outputdev();
 char *get_outputdir();
+char *get_use_etree_filename_suffix();
+char *get_etree_filename_suffix();
+char *get_etree_cd_length();
 
 #endif /* APPCONFIG_H */
