@@ -112,6 +112,9 @@ static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 	gtk_window_set_transient_for(GTK_WINDOW(filesel), GTK_WINDOW(window));
 	gtk_window_set_type_hint(GTK_WINDOW(filesel), GDK_WINDOW_TYPE_HINT_DIALOG);
 
+	gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel),
+		gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
+
 	gtk_signal_connect(GTK_OBJECT( GTK_FILE_SELECTION(filesel)->ok_button),
 		"clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
 
