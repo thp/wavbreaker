@@ -18,6 +18,7 @@ static GdkPixmap *cursor_pixmap;
 static GtkWidget *scrollbar;
 static GtkObject *adj;
 static GtkWidget *draw;
+static GtkWidget *draw_summary;
 
 static GraphData graphData;
 
@@ -86,6 +87,24 @@ static gboolean
 expose_event(GtkWidget *widget,
              GdkEventExpose *event,
              gpointer data);
+
+static void
+draw_summary_pixmap(GtkWidget *widget);
+
+static gboolean
+draw_summary_configure_event(GtkWidget *widget,
+                             GdkEventConfigure *event,
+                             gpointer user_data);
+
+static gboolean
+draw_summary_expose_event(GtkWidget *widget,
+                          GdkEventExpose *event,
+                          gpointer user_data);
+
+static void
+draw_summary_button_release(GtkWidget *widget,
+                            GdkEventButton *event,
+                            gpointer user_data);
 
 /*
  *-------------------------------------------------------------------------
@@ -400,6 +419,8 @@ idle_func(gpointer data) {
 	draw_sample(draw);
 	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
+	draw_summary_pixmap(draw_summary);
+	gtk_widget_queue_draw(draw_summary);
 
 	track_break_add_entry();
 
@@ -516,8 +537,6 @@ draw_sample(GtkWidget *widget)
 	color.blue  = 225*(65535/255);
 	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
 	gdk_gc_set_foreground(gc, &color);
-
-	y_min = y_max = xaxis;
 
 	for (i = 0; i < width && i < graphData.numSamples; i++) {
 		y_min = graphData.data[i + pixmap_offset].min;
@@ -640,6 +659,171 @@ expose_event(GtkWidget *widget,
 	}
 
 	return FALSE;
+}
+
+static void
+draw_summary_pixmap(GtkWidget *widget)
+{
+	int xaxis;
+	int width, height;
+	int y_min, y_max;
+	int min, max, x_scale;
+	int scale;
+	int i, k;
+
+	GdkGC *gc;
+	GdkColor color;
+
+	width = widget->allocation.width;
+	height = widget->allocation.height;
+
+	if (summary_pixmap) {
+		gdk_pixmap_unref(summary_pixmap);
+	}
+
+	summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
+
+	if (!summary_pixmap) {
+		printf("summary_pixmap is NULL\n");
+		return;
+	}
+
+	gc = gdk_gc_new(summary_pixmap);
+
+	/* clear summary_pixmap before drawing */
+
+	color.red   = 255*(65535/255);
+	color.green = 255*(65535/255);
+	color.blue  = 255*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+	gdk_gc_set_foreground(gc, &color);
+
+	gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
+
+	xaxis = height / 2;
+	scale = graphData.maxSampleValue / xaxis;
+
+	if (scale == 0) {
+		scale = 1;
+	}
+
+	if (graphData.data == NULL) {
+		/* draw axis */
+
+		color.red   = 0*(65535/255);
+		color.green = 0*(65535/255);
+		color.blue  = 0*(65535/255);
+		gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+		gdk_gc_set_foreground(gc, &color);
+
+		return;
+	}
+
+	/* draw sample graph */
+
+	color.red   =  15*(65535/255);
+	color.green =  184*(65535/255);
+	color.blue  = 225*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+	gdk_gc_set_foreground(gc, &color);
+
+	x_scale = graphData.numSamples / width;
+	if (x_scale == 0) {
+		x_scale = 1;
+	}
+
+	for (i = 0; i < width && i < graphData.numSamples; i++) {
+		min = max = 0;
+
+		if (x_scale != 1) {
+			for (k = 0; k < x_scale; k++) {
+				if (graphData.data[i * x_scale + k].max > max) {
+					max = graphData.data[i * x_scale + k].max;
+				} else if (graphData.data[i * x_scale + k].min < min) {
+					min = graphData.data[i * x_scale + k].min;
+				}
+			}
+		} else {
+			min = graphData.data[i].min;
+			max = graphData.data[i].max;
+		}
+
+		y_min = min;
+		y_max = max;
+
+		y_min = xaxis + fabs(y_min) / scale;
+		y_max = xaxis - y_max / scale;
+
+		/* DEBUG CODE START */
+		/*
+		printf("i: %d\t", i);
+		printf("y_min: %d\t", y_min);
+		printf("y_max: %d\n", y_max);
+		*/
+		/* DEBUG CODE END */
+
+		gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+	}
+
+	/* draw axis */
+	/*
+
+	color.red   = 0*(65535/255);
+	color.green = 0*(65535/255);
+	color.blue  = 0*(65535/255);
+	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+	gdk_gc_set_foreground(gc, &color);
+
+	if (width > graphData.numSamples) {
+		gdk_draw_line(summary_pixmap, gc, 0, xaxis, graphData.numSamples,
+		              xaxis);
+	} else {
+		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
+	}
+
+	*/
+}
+
+static gboolean
+draw_summary_configure_event(GtkWidget *widget,
+                             GdkEventConfigure *event,
+                             gpointer user_data)
+{
+	draw_summary_pixmap(widget);
+
+	return TRUE;
+}
+
+static gboolean
+draw_summary_expose_event(GtkWidget *widget,
+                          GdkEventExpose *event,
+                          gpointer user_data)
+{
+	GdkGC *gc;
+
+	gc = gdk_gc_new(summary_pixmap);
+
+	gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
+
+	/*
+	if (cursor_marker >= pixmap_offset &&
+	    cursor_marker <= pixmap_offset + widget->allocation.width) {
+
+		int x = cursor_marker - pixmap_offset;
+		gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
+				  x, 0, -1, -1);
+	}
+	*/
+
+	return FALSE;
+}
+
+static void
+draw_summary_button_release(GtkWidget *widget,
+                            GdkEventButton *event,
+                            gpointer user_data)
+{
+	return;
 }
 
 /*
@@ -802,7 +986,7 @@ int main(int argc, char **argv)
 	gtk_box_pack_end(GTK_BOX(packer), box2, FALSE, FALSE, 0);
 	gtk_widget_show(box2);
 
-/* Make Open File Button*/
+/* Open File Button*/
 	button = gtk_button_new_with_label("Open File");
 
 	g_signal_connect(G_OBJECT(button), "clicked",
@@ -856,7 +1040,7 @@ int main(int argc, char **argv)
 	gtk_box_pack_end(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
 	gtk_widget_show(scrollbar);
 
-/* The drawing area */
+/* The sample_pixmap drawing area */
 	draw = gtk_drawing_area_new();
 	gtk_widget_set_size_request(draw, 500, 200);
 
@@ -872,6 +1056,23 @@ int main(int argc, char **argv)
 
 	gtk_box_pack_start(GTK_BOX(packer), draw, TRUE, TRUE, 0);
 	gtk_widget_show(draw);
+
+/* The summary_pixmap drawing area */
+	draw_summary = gtk_drawing_area_new();
+	gtk_widget_set_size_request(draw_summary, 500, 75);
+
+	g_signal_connect(G_OBJECT(draw_summary), "expose_event",
+			 G_CALLBACK(draw_summary_expose_event), NULL);
+	g_signal_connect(G_OBJECT(draw_summary), "configure_event",
+			 G_CALLBACK(draw_summary_configure_event), NULL);
+	g_signal_connect(G_OBJECT(draw_summary), "button_release_event",
+	         G_CALLBACK(draw_summary_button_release), NULL);
+
+	gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
+	gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
+
+	gtk_box_pack_start(GTK_BOX(packer), draw_summary, TRUE, TRUE, 0);
+	gtk_widget_show(draw_summary);
 
 	track_break_create_list_gui(packer);
 

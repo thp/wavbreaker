@@ -356,7 +356,7 @@ write_thread(void *data)
 				end_pos = tb_next->offset * BLOCK_SIZE;
 			}
 
-			strcpy(str_tmp, "tmp/");
+			strcpy(str_tmp, "/data/tmp/");
 			filename = strcat(str_tmp, filename);
 			if ((audio_type == WAV) && (!strstr(filename, ".wav"))) {
 				filename = strcat(str_tmp, ".wav");
