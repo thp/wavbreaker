@@ -21,7 +21,9 @@
 
 #include "wavbreaker.h"
 
+//#define BUF_SIZE 128
 #define BUF_SIZE 4096
+//#define BUF_SIZE 16384
 #define BLOCK_SIZE 2352
 
 #define CD_BLOCK_SIZE                   (2352)

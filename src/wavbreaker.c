@@ -1728,9 +1728,9 @@ menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget)
 {
 #ifdef HAVE_GTK_2_3
-    open_select_file();
-#else
     open_select_file_2();
+#else
+    open_select_file();
 #endif
 
 }

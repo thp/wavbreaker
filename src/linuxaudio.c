@@ -29,7 +29,14 @@ static int audio_fd;
 
 void audio_close_device()
 {
+//    printf("closing audio device\n");
 	close(audio_fd);
+}
+
+int audio_write(char *devbuf, int size)
+{
+//    printf("writing to audio device: %d\n", size);
+	return write(audio_fd, devbuf, size);
 }
 
 int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
@@ -45,13 +52,19 @@ int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 	speed = sampleInfo->samplesPerSec;
 	channels = sampleInfo->channels;
 
+    /*
+    printf("opening audio device...");
+    fflush(stdout);
+    */
 	/* setup dsp device */
 	if ((audio_fd = open(audio_dev, O_WRONLY)) == -1) {
 		perror("open");
 		printf("error opening %s\n", audio_dev);
 		return audio_fd;
 	}
+    //printf("done\n");
  
+    //printf("setting format of audio device\n");
 	/* set format */
 	ret = format;
 	if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &ret) == -1) {
@@ -64,6 +77,7 @@ int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 		return -1;
 	}
 
+    //printf("setting channel on audio device\n");
 	/* set channels */
 	ret = channels;
 	if (ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &ret) == -1) {
@@ -76,6 +90,7 @@ int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 		return -1;
 	}
 
+    //printf("setting speed on audio device\n");
 	/* set speed */
 	ret = speed;
 	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &ret) == -1) {
@@ -90,10 +105,5 @@ int audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 	}
 
 	return 0;
-}
-
-int audio_write(char *devbuf, int size)
-{
-	return write(audio_fd, devbuf, size);
 }
 

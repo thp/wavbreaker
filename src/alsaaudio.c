@@ -27,10 +27,13 @@
 
 static snd_pcm_t *playback_handle;
 static unsigned int channels;
+static unsigned int bytesPerFrame;
 
 void alsa_audio_close_device()
 {
+    #ifdef DEBUG
     printf("closing alsa audio device\n");
+    #endif
     snd_pcm_close(playback_handle);
 }
 
@@ -39,36 +42,22 @@ int alsa_audio_write(char *devbuf, int size)
     int err;
     char *ptr = devbuf;
 
-/*
-printf("writing to audio device: %d\n", size);
-printf("alsaaudio - buf[0]: %d\n", devbuf[0]);
-*/
+    #ifdef DEBUG
+    printf("writing to audio device: %d\n", size);
+    printf("alsaaudio - buf[0]: %d\n", devbuf[0]);
+    #endif
 
-//    while (size > 0) {
-        /*
-         * Alsa takes a short value for each sample.  Also, the size parameter
-         * is the number of frames.  So, I divide the size by the number
-         * of channels multiplied by 2.  The 2 is the difference between
-         * the size of a char and a short.
-         */
-        err = snd_pcm_writei(playback_handle, ptr, size / (channels * 2));
-        if (err < 0) {
-            if (err == -EAGAIN) {
-            } else if (err < 0) {
-            /*
-                if (xrun_recovery(playback_handle, err) < 0) {
-                    printf("Write error: %s\n", snd_strerror(err));
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            */
-                /* skip one period */
-            }
-    
-            fprintf(stderr, "write to audio interface failed (%s)\n",
-                snd_strerror(err));
-        }
-//    }
+    /*
+     * Alsa takes a short value for each sample.  Also, the size parameter
+     * is the number of frames.  So, I divide the size by the number
+     * of channels multiplied by 2.  The 2 is the difference between
+     * the size of a char and a short.
+     */
+    err = snd_pcm_writei(playback_handle, ptr, size / (channels * bytesPerFrame));
+    if (err < 0) {
+        fprintf(stderr, "write to audio interface failed (%s)\n",
+            snd_strerror(err));
+    }
 
     return err;
 }
@@ -88,16 +77,19 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
     unsigned int period_time = 100000;         /* period time in us */
 
     if (sampleInfo->bitsPerSample == 16) {
-        //format = SND_PCM_FORMAT_S16_BE;
+        bytesPerFrame = 2;
         format = SND_PCM_FORMAT_S16_LE;
     } else if (sampleInfo->bitsPerSample == 8) {
+        bytesPerFrame = 1;
         format = SND_PCM_FORMAT_U8;
     }
     rate = sampleInfo->samplesPerSec;
     channels = sampleInfo->channels;
 
+    #ifdef DEBUG
     printf("opening alsa audio device (%s)\n", audio_dev);
     fflush(stdout);
+    #endif
     /* setup dsp device */
     err = snd_pcm_open(&playback_handle, audio_dev, SND_PCM_STREAM_PLAYBACK, 0);
     if (err < 0) {
@@ -105,7 +97,9 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
             snd_strerror(err));
         return -1;
     }
+    #ifdef DEBUG
     printf("finished opening alsa audio device (%s)\n", audio_dev);
+    #endif
  
     err = snd_pcm_hw_params_malloc(&hw_params);
     if (err < 0) {
@@ -121,7 +115,9 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
         return -1;
     }
 
+    #ifdef DEBUG
     printf("setting access type %d\n", SND_PCM_ACCESS_RW_INTERLEAVED);
+    #endif
     err = snd_pcm_hw_params_set_access(playback_handle, hw_params,
         SND_PCM_ACCESS_RW_INTERLEAVED);
     if (err < 0) {
@@ -130,13 +126,14 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
     }
 
     /* set format */
+    #ifdef DEBUG
     printf("SND_PCM_FORMAT_S16_LE: %d\n", SND_PCM_FORMAT_S16_LE);
     printf("SND_PCM_FORMAT_S16: %d\n", SND_PCM_FORMAT_S16);
     printf("SND_PCM_FORMAT_U8: %d\n", SND_PCM_FORMAT_U8);
     printf("SND_PCM_FORMAT_S8: %d\n", SND_PCM_FORMAT_S8);
     printf("setting format of audio device (%d)\n", format);
-    //err = snd_pcm_hw_params_set_format(playback_handle, hw_params, format);
-    err = snd_pcm_hw_params_set_format(playback_handle, hw_params, 2);
+    #endif
+    err = snd_pcm_hw_params_set_format(playback_handle, hw_params, format);
     snd_pcm_hw_params_get_format(hw_params, &format);
     printf("format of audio device is (%d)\n", format);
     if (err < 0) {
@@ -146,7 +143,9 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
 
     /* set sample rate */
     rrate = rate;
+    #ifdef DEBUG
     printf("setting sample rate on audio device (%d)\n", rrate);
+    #endif
     err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, &rrate, 0);
     if (err < 0) {
         fprintf(stderr, "cannot set sample rate (%s)\n", snd_strerror(err));
@@ -160,9 +159,10 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
     */
 
     /* set channels */
+    #ifdef DEBUG
     printf("setting channel on audio device (%d)\n", channels);
-    //err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, channels);
-    err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, 2);
+    #endif
+    err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, channels);
     if (err < 0) {
         fprintf(stderr, "cannot set channel count (%s)\n", snd_strerror(err));
         return -1;
@@ -183,9 +183,9 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
             snd_strerror(err));
         return err;
     }
+    #ifdef DEBUG
     printf("buffer size for playback: %d\n", buffer_size);
-/*
-*/
+    #endif
 
     /* set the period time */
     err = snd_pcm_hw_params_set_period_time_near(playback_handle, hw_params,
@@ -202,7 +202,9 @@ int alsa_audio_open_device(const char *audio_dev, const SampleInfo *sampleInfo)
             snd_strerror(err));
         return err;
     }
+    #ifdef DEBUG
     printf("period size for playback: %d\n", period_size);
+    #endif
 
     /* commit parameters */
     err = snd_pcm_hw_params(playback_handle, hw_params);

@@ -31,6 +31,7 @@
 #include "winaudio.h"
 #else
 #include "linuxaudio.h"
+#include "alsaaudio.h"
 #endif
 
 #include "sample.h"
@@ -100,43 +101,52 @@ void sample_init()
 	}
 }
 
-static gpointer
-play_thread(gpointer thread_data)
+static gpointer play_thread(gpointer thread_data)
 {
-	int ret, i;
+	int read_ret, write_ret, i;
 	guint *play_marker = (guint *)thread_data;
 	unsigned char devbuf[BUF_SIZE];
 
-	if (audio_open_device(get_outputdev(), &sampleInfo) != 0) {
+    //printf("play_thread: calling open_audio_device\n");
+    //if (audio_open_device(get_outputdev(), &sampleInfo) != 0) {
+    if (alsa_audio_open_device("plughw:0,0", &sampleInfo) != 0) {
         g_mutex_lock(mutex);
-        audio_close_device();
         playing = 0;
+        //audio_close_device();
+        alsa_audio_close_device();
         g_mutex_unlock(mutex);
+        printf("play_thread: return from open_audio_device != 0\n");
 		return NULL;
 	}
+    //printf("play_thread: return from open_audio_device\n");
 
 	i = 0;
 
 	if (audio_type == CDDA) {
-		ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
+		read_ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
 			sample_start + (BUF_SIZE * i++));
 	} else if (audio_type == WAV) {
-		ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
+		read_ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
 			sample_start + (BUF_SIZE * i++));
 	}
 
-	while (ret > 0 && ret <= BUF_SIZE) {
-		if (audio_write(devbuf, ret) < 0) {
-            g_mutex_lock(mutex);
-            audio_close_device();
-            playing = 0;
-            g_mutex_unlock(mutex);
-			break;
-		}
+	while (read_ret > 0 && read_ret <= BUF_SIZE) {
+        if (read_ret < 0) {
+            printf("read_ret: %d\n", read_ret);
+        }
+        //printf("sample - buf[0]: %d\n", devbuf[0]);
+        //write_ret = audio_write(devbuf, ret);
+        write_ret = alsa_audio_write(devbuf, read_ret);
+        /*
+        if (write_ret < 0) {
+            printf("write_ret: %d\n", write_ret);
+        }
+        */
 
 		if (g_mutex_trylock(mutex)) {
 			if (kill_play_thread == TRUE) {
-				audio_close_device();
+                //audio_close_device();
+                alsa_audio_close_device();
 				playing = 0;
 				kill_play_thread = FALSE;
 				g_mutex_unlock(mutex);
@@ -146,10 +156,10 @@ play_thread(gpointer thread_data)
 		}
 
 		if (audio_type == CDDA) {
-			ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
+			read_ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
 				sample_start + (BUF_SIZE * i++));
 		} else if (audio_type == WAV) {
-			ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
+			read_ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
 				sample_start + (BUF_SIZE * i++));
 		}
 
@@ -158,7 +168,8 @@ play_thread(gpointer thread_data)
 
 	g_mutex_lock(mutex);
 
-	audio_close_device();
+    //audio_close_device();
+    alsa_audio_close_device();
 	playing = 0;
 
 	g_mutex_unlock(mutex);
@@ -186,6 +197,8 @@ int play_sample(gulong startpos, gulong *play_marker)
 
 	/* setup thread */
 
+    printf("creating the thread\n");
+    fflush(stdout);
 	thread = g_thread_create(play_thread, play_marker, FALSE, NULL);
 	if (thread == NULL) {
 		perror("Return from g_thread_create was NULL");
@@ -195,6 +208,7 @@ int play_sample(gulong startpos, gulong *play_marker)
 
 	g_mutex_unlock(mutex);
     g_thread_yield();
+    printf("finished creating the thread\n");
 	return 0;
 }               
 
@@ -211,8 +225,7 @@ void stop_sample()
 	g_mutex_unlock(mutex);
 }
 
-static gpointer
-open_thread(gpointer data)
+static gpointer open_thread(gpointer data)
 {
 	OpenThreadData *thread_data = data;
 
@@ -249,6 +262,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	open_thread_data.pct = pct;
 
 	/* start new thread stuff */
+    fflush(stdout);
 	thread = g_thread_create(open_thread, &open_thread_data, FALSE, NULL);
 	if (thread == NULL) {
 		perror("Return from g_thread_create was NULL");
