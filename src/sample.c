@@ -259,6 +259,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
 		for (k = 0; k < ret; k++) {
 			if (sampleInfo.bitsPerSample == 8) {
 				tmp = devbuf[k];
+				tmp -= 128;
 			} else if (sampleInfo.bitsPerSample == 16) {
 				tmp = (char)devbuf[k+1] << 8 | (char)devbuf[k];
 				k++;

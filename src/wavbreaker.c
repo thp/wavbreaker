@@ -501,6 +501,7 @@ draw_sample(GtkWidget *widget)
 	for (i = 0; i < width && i < graphData.numSamples; i++) {
 		y_min = graphData.data[i + pixmap_offset].min;
 		y_max = graphData.data[i + pixmap_offset].max;
+
 		/*
 		y_max = y_min;
 		y_min = 100 * sin(i * .1);
@@ -516,20 +517,6 @@ draw_sample(GtkWidget *widget)
 		printf("y_max: %d\n", y_max);
 		*/
 		/* DEBUG CODE END */
-
-		/*
-		if (y_min < 0) {
-			y_min = xaxis + fabs(y_min) / scale;
-		} else {
-			y_min = xaxis - y_min / scale;
-		}
-
-		if (y_max < 0) {
-			y_max = xaxis + fabs(y_max) / scale;
-		} else {
-			y_max = xaxis - y_max / scale;
-		}
-		*/
 
 		gdk_draw_line(pixmap, gc, i, y_min, i, y_max);
 	}
