@@ -60,6 +60,7 @@ static char *config_filename = NULL;
 /* function prototypes */
 static int appconfig_write_file();
 static int appconfig_read_file();
+static void default_all_strings();
 
 int get_use_outputdir()
 {
