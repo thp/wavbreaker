@@ -1309,8 +1309,19 @@ printf("graphData.numSamples: %lu\n", graphData.numSamples);
 
     x_scale_leftover = graphData.numSamples % width;
 //printf("x_scale_leftover: %d\n", x_scale_leftover);
-    x_scale_mod =  width / x_scale_leftover;
-//printf("x_scale_leftover: %d\n", x_scale_leftover);
+    if (x_scale_leftover > 0) {
+        x_scale_mod =  width / x_scale_leftover;
+    } else {
+        x_scale_mod = 1;
+    }
+
+    if (! (x_scale_mod > 0)) {
+        x_scale_mod = 1;
+    }
+/*
+printf("x_scale_leftover: %d\n", x_scale_leftover);
+printf("x_scale_mod: %d\n", x_scale_mod);
+*/
 
 leftover_count = 0;
 
