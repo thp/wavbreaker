@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2003 Timothy Robinson
+ * Copyright (C) 2002-2004 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 
 #include <gtk/gtk.h>
 
-#define COPYRIGHT "Copyright (C) 2002-2003 Timothy Robinson"
+#define COPYRIGHT "Copyright (C) 2002-2004 Timothy Robinson"
 #define APPNAME "<big><big><big>"PACKAGE" "VERSION"</big></big></big>"
 #define URL "http://huli.org/wavbreaker/"
 #define AUTHOR "Timothy Robinson <tdrobinson@huli.org>"
