@@ -108,7 +108,10 @@ play_thread(gpointer thread_data)
 	unsigned char devbuf[BUF_SIZE];
 
 	if (audio_open_device(get_outputdev(), &sampleInfo) != 0) {
-		playing = 0;
+        g_mutex_lock(mutex);
+        audio_close_device();
+        playing = 0;
+        g_mutex_unlock(mutex);
 		return NULL;
 	}
 
@@ -124,8 +127,10 @@ play_thread(gpointer thread_data)
 
 	while (ret > 0 && ret <= BUF_SIZE) {
 		if (audio_write(devbuf, ret) < 0) {
-			audio_close_device();
-			playing = 0;
+            g_mutex_lock(mutex);
+            audio_close_device();
+            playing = 0;
+            g_mutex_unlock(mutex);
 			break;
 		}
 
@@ -189,6 +194,7 @@ int play_sample(gulong startpos, gulong *play_marker)
 	}
 
 	g_mutex_unlock(mutex);
+    g_thread_yield();
 	return 0;
 }               
 
@@ -250,6 +256,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	}
 	/* end new thread stuff */
 
+    g_thread_yield();
 	return 0;
 }
 
