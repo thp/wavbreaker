@@ -111,9 +111,15 @@ static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 	gtk_window_set_modal(GTK_WINDOW(filesel), TRUE);
 	gtk_window_set_transient_for(GTK_WINDOW(filesel), GTK_WINDOW(window));
 	gtk_window_set_type_hint(GTK_WINDOW(filesel), GDK_WINDOW_TYPE_HINT_DIALOG);
+	gtk_window_set_resizable(GTK_WINDOW(filesel), TRUE);
 
 	gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel),
 		gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
+
+//	gtk_dialog_set_has_separator(GTK_DIALOG(filesel), TRUE);
+	gtk_widget_hide(GTK_FILE_SELECTION(filesel)->file_list->parent);
+	gtk_widget_hide(GTK_FILE_SELECTION(filesel)->file_list);
+	gtk_widget_hide(GTK_FILE_SELECTION(filesel)->selection_entry);
 
 	gtk_signal_connect(GTK_OBJECT( GTK_FILE_SELECTION(filesel)->ok_button),
 		"clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
