@@ -24,6 +24,9 @@
 #define BUF_SIZE 4096
 #define BLOCK_SIZE 2352
 
+#define CD_BLOCK_SIZE                   (2352)
+#define CD_BLOCKS_PER_SEC               (75)
+
 typedef struct SampleInfo_ SampleInfo;
 
 struct SampleInfo_ {

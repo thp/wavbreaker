@@ -1143,15 +1143,15 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	/* DEBUG CODE END */
 
 	if (cursor_marker > 0) {
-		min = cursor_marker / 3120;
-		sec = cursor_marker % 3120;
-		subsec = sec % 52;
-		sec = sec / 52;
+		min = cursor_marker / (CD_BLOCKS_PER_SEC * 60);
+		sec = cursor_marker % (CD_BLOCKS_PER_SEC * 60);
+		subsec = sec % CD_BLOCKS_PER_SEC;
+		sec = sec / CD_BLOCKS_PER_SEC;
 	} else {
 		min = sec = subsec = 0;
 	}
 
-	sprintf(strbuf, "cursor_marker: %lu\ttime: %d:%d.%d", cursor_marker, min, sec, subsec);
+	sprintf(strbuf, "cursor_marker: %lu\ttime: %d:%02d.%02d", cursor_marker, min, sec, subsec);
 	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, strbuf);
 
 	draw_sample(draw);
