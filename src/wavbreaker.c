@@ -536,6 +536,7 @@ track_break_delete_entry()
     g_list_foreach(list, track_break_selection, NULL);
     g_list_free(list);
 
+    track_break_set_durations();
     track_break_rename();
 }
 
