@@ -29,6 +29,9 @@
 #include "wavbreaker.h"
 #include "sample.h"
 
+#define play_icon_filename "images/media-play.png"
+#define stop_icon_filename "images/media-stop.png"
+
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
 static GdkPixmap *cursor_pixmap;
@@ -133,6 +136,12 @@ menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
+menu_play(GtkWidget *widget, gpointer user_data);
+
+static void
+menu_stop(GtkWidget *widget, gpointer user_data);
 
 static GtkItemFactoryEntry menu_items[] = {
   {"/_File", NULL, 0, 0, "<Branch>"},
@@ -1015,8 +1024,7 @@ button_release(GtkWidget *widget,
 }
 
 static void
-play_button_clicked(GtkWidget *widget,
-		    gpointer user_data)
+menu_play(GtkWidget *widget, gpointer user_data)
 {
 	switch (play_sample(cursor_marker)) {
 		case 0:
@@ -1034,21 +1042,9 @@ play_button_clicked(GtkWidget *widget,
 }
 
 static void
-stop_button_clicked(GtkWidget *widget,
-                    gpointer user_data)
+menu_stop(GtkWidget *widget, gpointer user_data)
 {
 	stop_sample();
-}
-
-static void
-write_button_clicked(GtkWidget *widget,
-                     gpointer user_data)
-{
-	if (sample_filename == NULL) {
-		return;
-	}
-
-	sample_write_files(sample_filename, track_break_list);
 }
 
 static void
@@ -1065,12 +1061,6 @@ void
 track_break_add_button_clicked(GtkWidget *widget, gpointer user_data)
 {
 	track_break_add_entry();
-}
-
-static void
-open_file_button_clicked(GtkWidget *widget, gpointer data)
-{
-	openfile();
 }
 
 static void
@@ -1110,6 +1100,8 @@ int main(int argc, char **argv)
 	GtkWidget *button;
 	GtkWidget *packer, *box2;
 	GtkWidget *menu_widget;
+	GtkWidget *toolbar;
+	GtkWidget *icon;
 	GtkAccelGroup *accel_group;      
 	GtkItemFactory *item_factory;
 
@@ -1158,41 +1150,28 @@ int main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(packer), menu_widget, FALSE, TRUE, 0);
 	gtk_widget_show(menu_widget);
 
-/* Open File Button*/
-	button = gtk_button_new_with_label("Open File");
+/* Button Toolbar */
+	toolbar = gtk_toolbar_new();
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
+	                         "Open New Wave File", NULL,
+	                         G_CALLBACK(menu_open_file), window, -1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
+	                         "Save Selected Track Breaks", NULL,
+	                         G_CALLBACK(menu_save), window, -1);
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
+	                         "Quit wavbreaker", NULL,
+	                         G_CALLBACK(menu_quit), window, -1);
+	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
-	g_signal_connect(G_OBJECT(button), "clicked",
-			 G_CALLBACK(open_file_button_clicked), NULL);
+	icon = gtk_image_new_from_file(play_icon_filename);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
+	                         icon, G_CALLBACK(menu_play), NULL);
+	icon = gtk_image_new_from_file(stop_icon_filename);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
+	                         icon, G_CALLBACK(menu_stop), NULL);
 
-	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
-	gtk_widget_show(button);
-
-/* play button */
-	button = gtk_button_new_with_label("Play");
-
-	g_signal_connect(G_OBJECT(button), "clicked",
-			 G_CALLBACK(play_button_clicked), NULL);
-
-	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
-	gtk_widget_show(button);
-
-/* stop button */
-	button = gtk_button_new_with_label("Stop");
-
-	g_signal_connect(G_OBJECT(button), "clicked",
-			 G_CALLBACK(stop_button_clicked), NULL);
-
-	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
-	gtk_widget_show(button);
-
-/* write button */
-	button = gtk_button_new_with_label("Write");
-
-	g_signal_connect(G_OBJECT(button), "clicked",
-			 G_CALLBACK(write_button_clicked), NULL);
-
-	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
-	gtk_widget_show(button);
+	gtk_box_pack_start(GTK_BOX(packer), toolbar, FALSE, TRUE, 0);
+	gtk_widget_show(toolbar);
 
 /* track break button */
 	button = gtk_button_new_with_label("Add Track Break");

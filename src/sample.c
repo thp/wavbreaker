@@ -116,7 +116,6 @@ play_thread(void *thread_data)
 
 	pthread_mutex_unlock(&mutex);
 
-printf("done playing\n");
 	return NULL;
 }
 
@@ -165,8 +164,6 @@ int play_sample(unsigned long startpos)
 		return 1;
 	}
 
-printf("playing\n");
-
 	return 0;
 }               
 
@@ -192,7 +189,6 @@ void stop_sample()
 	playing = 0;
 
 	pthread_mutex_unlock(&mutex);
-printf("stopping\n");
 }
 
 static void *
