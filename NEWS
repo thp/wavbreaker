@@ -1,6 +1,13 @@
+version 0.4 (2003-10-25)
+	+ Added autosplit feature
+	+ Added toggle button to use the specified outputdir or not
+	! Fixed a bug that would occur when reading a non-standard wav header
+	! Fixed a segfault error when reading mono wav files
+	! Fixed a problem with automake/autoconf for the images directory
 version 0.3 (2003-06-26)
-	+ Added right-click on a split in the list and delete it.
-	+ Added right-click in the wav display to add a break.
+	+ Added right-click menus:
+		right-click on a split in the list and delete it.
+		right-click in the wav display to add a break.
 	+ Added configuration menu, the config is saved in xml format in the
 		~/.wavbreaker file.
 version 0.2 (2003-04-04)

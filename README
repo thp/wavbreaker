@@ -31,3 +31,4 @@ Timothy
 Requirements
 ------------
 GTK+ >= 2.0
+libxml >= 2.0
