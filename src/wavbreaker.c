@@ -1062,9 +1062,13 @@ draw_summary_button_release(GtkWidget *widget,
 	width = widget->allocation.width;
 	x_scale = graphData.numSamples / width;
 	x_scale_leftover = graphData.numSamples % width;
-	x_scale_mod =  width / x_scale_leftover;
-
-	leftover_count = event->x / x_scale_mod;
+	if (x_scale_leftover > 0) {
+		x_scale_mod =  width / x_scale_leftover;
+		leftover_count = event->x / x_scale_mod;
+	} else {
+		x_scale_mod =  0;
+		leftover_count = 0;
+	}
 
 	midpoint = event->x * x_scale + leftover_count;
 	start = midpoint - width / 2;
@@ -1284,8 +1288,6 @@ int main(int argc, char **argv)
 	                         G_CALLBACK(menu_quit), main_window, -1);
 	gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
-printf("filename: %s\n", play_icon_filename);
-printf("icondir: %s\n", IMAGEDIR);
 	icon = gtk_image_new_from_file(play_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
 	                         icon, G_CALLBACK(menu_play), NULL);
