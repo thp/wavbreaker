@@ -364,7 +364,7 @@ void appconfig_show(GtkWidget *main_window)
 
     use_etree_filename_suffix_toggle = gtk_check_button_new_with_label("Use Etree Style Filename Suffix (d#t##)");
     gtk_table_attach(GTK_TABLE(table), use_etree_filename_suffix_toggle,
-        0, 2, 0, 1, GTK_FILL, 0, 5, 0);
+        0, 2, 0, 1, GTK_FILL, 0, 5, 2);
     g_signal_connect(GTK_OBJECT(use_etree_filename_suffix_toggle), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
     gtk_widget_show(use_etree_filename_suffix_toggle);
@@ -372,32 +372,32 @@ void appconfig_show(GtkWidget *main_window)
     etree_filename_suffix_label = gtk_label_new("Filename Suffix:");
     gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
-        0, 1, 1, 2, GTK_FILL, 0, 5, 0);
+        0, 1, 1, 2, GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_filename_suffix_label);
 
     etree_filename_suffix_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry,
-        1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+        1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_filename_suffix_entry);
 
     etree_cd_length_label = gtk_label_new("CD Length:");
     gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
-        0, 1, 2, 3, GTK_FILL, 0, 5, 0);
+        0, 1, 2, 3, GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_cd_length_label);
 
     etree_cd_length_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_cd_length_entry), etree_cd_length);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
-    gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry, 1, 2, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+    gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry, 1, 2, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_cd_length_entry);
 
     /* Audio Output Device */
     hseparator = gtk_hseparator_new();
     gtk_table_attach(GTK_TABLE(table), hseparator,
-        0, 2, 3, 4, GTK_FILL, 0, 5, 5);
+        0, 2, 3, 4, GTK_FILL, 0, 0, 5);
     gtk_widget_show(hseparator);
 
     outputdev_label = gtk_label_new("Audio Device:");
