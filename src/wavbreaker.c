@@ -33,6 +33,7 @@
 #define play_icon_filename IMAGEDIR"play.png"
 #define stop_icon_filename IMAGEDIR"stop.png"
 #define break_icon_filename IMAGEDIR"break2.png"
+#define del_break_icon_filename IMAGEDIR"del-break.png"
 
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
@@ -545,8 +546,12 @@ track_break_add_entry()
 	gtk_list_store_clear(store);
 	g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
 
+/* DEBUG CODE START */
+/*
 	g_list_foreach(track_break_list, track_break_print_element, NULL);
 	g_print("\n");
+*/
+/* DEBUG CODE END */
 }
 
 void track_break_write_toggled(GtkWidget *widget,
@@ -1544,7 +1549,7 @@ int main(int argc, char **argv)
 	icon = gtk_image_new_from_file(break_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Add", "Add Track Break",
 	                        NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
-	icon = gtk_image_new_from_file(break_icon_filename);
+	icon = gtk_image_new_from_file(del_break_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
 							"Delete Track Break", NULL, icon,
 							G_CALLBACK(menu_delete_track_break), NULL);
