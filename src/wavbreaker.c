@@ -439,9 +439,12 @@ void
 track_break_setup_filename(gpointer data, gpointer user_data)
 {
 	TrackBreak *track_break = (TrackBreak *)data;
-	gchar *fn = g_strdup((gchar *)user_data);
+	gchar fn[128];
 	gchar buf[128];
 	int index;
+
+	fn[0] = '\0';
+	strcat(fn, (gchar *)user_data);
 
 	index = g_list_index(track_break_list, track_break);
 	index++;
@@ -455,8 +458,6 @@ track_break_setup_filename(gpointer data, gpointer user_data)
 		g_free(track_break->filename);
 	}
 	track_break->filename = g_strdup(fn);
-
-	g_free(fn);
 }
 
 void
@@ -825,6 +826,9 @@ filesel_ok_clicked(GtkWidget *widget,
 
 	filesel = GTK_WIDGET(user_data);
 
+	if (sample_filename != NULL) {
+		free(sample_filename);
+	}
 	sample_filename = g_strdup((char *)gtk_file_selection_get_filename(
 	                           GTK_FILE_SELECTION(filesel)));
 

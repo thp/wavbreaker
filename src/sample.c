@@ -69,17 +69,17 @@ static void sample_max_min(GraphData *graphData, double *pct);
 
 void sample_set_audio_dev(char *str)
 {
-	audio_dev = strdup(str);
+	audio_dev = str;
 }
 
 char * sample_get_audio_dev()
 {
-	return strdup(audio_dev);
+	return audio_dev;
 }
 
 char * sample_get_sample_file()
 {
-	return strdup(sample_file);
+	return sample_file;
 }
 
 gint sample_get_playing()
@@ -218,7 +218,9 @@ open_thread(void *data)
 
 void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
-
+	if (sample_file != NULL) {
+		free(sample_file);
+	}
 	sample_file = strdup(filename);
 
 	if (strstr(sample_file, ".wav")) {
@@ -425,6 +427,9 @@ write_thread(void *data)
 				strcat(filename, ".dat");
 			}
 			write_info->cur_file++;
+			if (write_info->cur_filename != NULL) {
+				free(write_info->cur_filename);
+			}
 			write_info->cur_filename = strdup(filename);
 
 			if (audio_type == CDDA) {
@@ -453,6 +458,9 @@ void sample_write_files(const char *filename, GList *tbl, WriteInfo *write_info)
 	wtd.tbl = tbl;
 	wtd.write_info = write_info;
 
+	if (sample_file != NULL) {
+		free(sample_file);
+	}
 	sample_file = strdup(filename);
 
 	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
