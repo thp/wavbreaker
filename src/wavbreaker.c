@@ -667,9 +667,10 @@ draw_summary_pixmap(GtkWidget *widget)
 	int xaxis;
 	int width, height;
 	int y_min, y_max;
-	int min, max, x_scale;
+	int min, max, x_scale, x_scale_leftover, x_scale_mod;
 	int scale;
 	int i, k;
+	int leftover_count, loop_end, array_offset;
 
 	GdkGC *gc;
 	GdkColor color;
@@ -732,15 +733,38 @@ draw_summary_pixmap(GtkWidget *widget)
 		x_scale = 1;
 	}
 
+/*
+printf("x_scale: %d\n", x_scale);
+printf("width: %d\n", width);
+printf("graphData.numSamples: %lu\n", graphData.numSamples);
+*/
+
+	x_scale_leftover = graphData.numSamples % width;
+//printf("x_scale_leftover: %d\n", x_scale_leftover);
+	x_scale_mod =  width / x_scale_leftover;
+//printf("x_scale_leftover: %d\n", x_scale_leftover);
+
+leftover_count = 0;
+
 	for (i = 0; i < width && i < graphData.numSamples; i++) {
 		min = max = 0;
+		array_offset = i * x_scale + leftover_count;
 
 		if (x_scale != 1) {
-			for (k = 0; k < x_scale; k++) {
-				if (graphData.data[i * x_scale + k].max > max) {
-					max = graphData.data[i * x_scale + k].max;
-				} else if (graphData.data[i * x_scale + k].min < min) {
-					min = graphData.data[i * x_scale + k].min;
+			loop_end = x_scale;
+
+			if (i % x_scale_mod == 0 &&
+			    leftover_count < x_scale_leftover) {
+
+				loop_end++;
+				leftover_count++;
+			}
+
+			for (k = 0; k < loop_end; k++) {
+				if (graphData.data[array_offset + k].max > max) {
+					max = graphData.data[array_offset + k].max;
+				} else if (graphData.data[array_offset + k].min < min) {
+					min = graphData.data[array_offset + k].min;
 				}
 			}
 		} else {
@@ -762,26 +786,39 @@ draw_summary_pixmap(GtkWidget *widget)
 		*/
 		/* DEBUG CODE END */
 
-		gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+		/* setup colors for graph */
+		if (i * x_scale + leftover_count >= pixmap_offset &&
+		           i * x_scale + leftover_count < pixmap_offset + width) {
+
+			/* draw reverse background */
+			color.red   =  15*(65535/255);
+			color.green =  184*(65535/255);
+			color.blue  = 225*(65535/255);
+			gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+			gdk_gc_set_foreground(gc, &color);
+
+			gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
+
+			/* draw reverse foreground */
+			color.red   =  255*(65535/255);
+			color.green =  255*(65535/255);
+			color.blue  = 225*(65535/255);
+			gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+			gdk_gc_set_foreground(gc, &color);
+
+			gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+
+		} else {
+			color.red   =  15*(65535/255);
+			color.green =  184*(65535/255);
+			color.blue  = 225*(65535/255);
+			gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
+			gdk_gc_set_foreground(gc, &color);
+
+			gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+		}
 	}
-
-	/* draw axis */
-	/*
-
-	color.red   = 0*(65535/255);
-	color.green = 0*(65535/255);
-	color.blue  = 0*(65535/255);
-	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
-	gdk_gc_set_foreground(gc, &color);
-
-	if (width > graphData.numSamples) {
-		gdk_draw_line(summary_pixmap, gc, 0, xaxis, graphData.numSamples,
-		              xaxis);
-	} else {
-		gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
-	}
-
-	*/
+//printf("leftover_count: %d\n", leftover_count);
 }
 
 static gboolean
@@ -805,16 +842,6 @@ draw_summary_expose_event(GtkWidget *widget,
 
 	gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
 
-	/*
-	if (cursor_marker >= pixmap_offset &&
-	    cursor_marker <= pixmap_offset + widget->allocation.width) {
-
-		int x = cursor_marker - pixmap_offset;
-		gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
-				  x, 0, -1, -1);
-	}
-	*/
-
 	return FALSE;
 }
 
@@ -830,24 +857,26 @@ draw_summary_button_release(GtkWidget *widget,
 	midpoint = event->x * x_scale;
 	start = midpoint - width / 2;
 
-	pixmap_offset = start;
-
 	if (graphData.numSamples == 0) {
 		pixmap_offset = 0;
 	} else if (width > graphData.numSamples) {
 		pixmap_offset = 0;
-	} else if (pixmap_offset + width > graphData.numSamples) {
+	} else if (start + width > graphData.numSamples) {
 		pixmap_offset = graphData.numSamples - width;
 	} else if (pixmap_offset < 0) {
 		pixmap_offset = 0;
+	} else {
+		pixmap_offset = start;
 	}
 
-	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), start);
+	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
 	gtk_widget_queue_draw(scrollbar);
 
 	draw_sample(draw);
 	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
+	draw_summary_pixmap(draw_summary);
+	gtk_widget_queue_draw(draw_summary);
 
 	return;
 }
@@ -867,6 +896,8 @@ adj_value_changed(GtkAdjustment *adj,
 	draw_sample(draw);
 	draw_cursor_marker();
 	gtk_widget_queue_draw(draw);
+	draw_summary_pixmap(draw_summary);
+	gtk_widget_queue_draw(draw_summary);
 
 	return TRUE;
 }
