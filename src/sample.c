@@ -407,8 +407,13 @@ write_thread(gpointer data)
 			}
 
 			/* add output directory to filename */
-			strcpy(filename, get_outputdir());
-			strcat(filename, "/");
+            if (get_use_outputdir()) {
+    			strcpy(filename, get_outputdir());
+			    strcat(filename, "/");
+            } else {
+                strcpy(filename, "./");
+            }
+
 			strcat(filename, tb_cur->filename);
 
 			/* add file number to filename */
