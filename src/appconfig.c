@@ -246,7 +246,7 @@ static void filesel_ok_clicked(GtkWidget *widget, gpointer user_data)
 
     gtk_entry_set_text(GTK_ENTRY(outputdir_entry), gtk_file_selection_get_filename(filesel));
 
-    printf("file: %s\n", gtk_file_selection_get_filename(filesel));
+    //printf("file: %s\n", gtk_file_selection_get_filename(filesel));
 
     gtk_widget_destroy(user_data);
 }
