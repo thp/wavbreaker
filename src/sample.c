@@ -244,19 +244,17 @@ static void sample_max_min(GraphData *graphData, double *pct)
 	unsigned char devbuf[BLOCK_SIZE];
 	Points *graph_data;
 
-	tmp_sample_calc = sampleInfo.numBytes / (sampleInfo.bitsPerSample / 8);
+	tmp_sample_calc = sampleInfo.numBytes;
 	tmp_sample_calc = tmp_sample_calc / BLOCK_SIZE;
-//	tmp_sample_calc = tmp_sample_calc * sampleInfo.channels * 2;
-	tmp_sample_calc = tmp_sample_calc * 2;  //for min and max
 	numSampleBlocks = (int) (tmp_sample_calc + 1);
 
 	/* DEBUG CODE START */
-	/*
 	printf("\nsampleInfo.numBytes: %lu\n", sampleInfo.numBytes);
 	printf("sampleInfo.bitsPerSample: %d\n", sampleInfo.bitsPerSample);
 	printf("BLOCK_SIZE: %d\n", BLOCK_SIZE);
 	printf("sampleInfo.channels: %d\n", sampleInfo.channels);
 	printf("numSampleBlocks: %d\n\n", numSampleBlocks);
+	/*
 	*/
 	/* DEBUG CODE END */
 
@@ -329,10 +327,10 @@ static void sample_max_min(GraphData *graphData, double *pct)
 	}
 
 	/* DEBUG CODE START */
-	/*
 	printf("\ni: %d\n", i);
 	printf("graphData->numSamples: %ld\n", graphData->numSamples);
 	printf("graphData->maxSampleValue: %ld\n\n", graphData->maxSampleValue);
+	/*
 	*/
 	/* DEBUG CODE END */
 }
