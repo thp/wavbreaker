@@ -79,35 +79,48 @@ cdda_write_file(FILE *fp,
 	}
 
 	cur_pos = start_pos;
-	
+
 	if (fseek(fp, cur_pos, SEEK_SET)) {
+		fclose(new_fp);
 		return -1;
 	}
 
 	if (cur_pos > file_size) {
+		fclose(new_fp);
 		return -1;
 	}
 
-printf("start_pos: %lu\n", start_pos);
-printf("end_pos: %lu\n", end_pos);
-printf("cur_pos: %lu\n", cur_pos);
+	/* DEBUG CODE START */
+	/*
+	printf("start_pos: %lu\n", start_pos);
+	printf("end_pos: %lu\n", end_pos);
+	printf("cur_pos: %lu\n", cur_pos);
+	*/
+	/* DEBUG CODE END */
 
-	while ((ret = fread(buf, 1, buf_size, fp)) == buf_size &&
+	while ((ret = fread(buf, 1, buf_size, fp)) > 0 &&
 				(cur_pos < end_pos || end_pos == 0)) {
 
 		if (cur_pos + buf_size > end_pos && end_pos != 0) {
 			buf_size = end_pos - cur_pos;
 		}
-		if ((fwrite(buf, 1, buf_size, new_fp)) < buf_size) {
+		if ((fwrite(buf, 1, ret, new_fp)) < ret) {
 			printf("error writing to file %s\n", filename);
+			fclose(new_fp);
 			return -1;
 		}
-		cur_pos += buf_size;
+		cur_pos += ret;
 	}
 
-printf("start_pos: %lu\n", start_pos);
-printf("end_pos: %lu\n", end_pos);
-printf("cur_pos: %lu\n", cur_pos);
-printf("done writing - %s\n", filename);
+	/* DEBUG CODE START */
+	/*
+	printf("start_pos: %lu\n", start_pos);
+	printf("end_pos: %lu\n", end_pos);
+	printf("cur_pos: %lu\n", cur_pos);
+	printf("done writing - %s\n\n", filename);
+	*/
+	/* DEBUG CODE END */
+
+	fclose(new_fp);
 	return ret;
 }

@@ -14,9 +14,6 @@
 #include "wav.h"
 #include "cdda.h"
 
-#define BUF_SIZE 4096
-#define BLOCK_SIZE 2352
-
 #define CDDA 1
 #define WAV  2 
 
@@ -186,7 +183,7 @@ open_thread(void *data)
 	OpenThreadType *thread_data = data;
 
 	sample_max_min(thread_data->graphData,
-		       thread_data->pct);
+	               thread_data->pct);
 
 	return NULL;
 }
@@ -238,7 +235,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
 
 	numSampleBlocks = 
 		(((sampleInfo.numBytes / (sampleInfo.bitsPerSample / 8))
-		/ BLOCK_SIZE) + 1) * 2;
+		/ BLOCK_SIZE)) * sampleInfo.channels + 1;
 
 	graph_data = (Points *)malloc(numSampleBlocks * sizeof(Points));
 
@@ -257,9 +254,8 @@ static void sample_max_min(GraphData *graphData, double *pct)
 			BLOCK_SIZE * i);
 	}
 
-	while (ret > 0 && ret <= BLOCK_SIZE) {
+	while (ret == BLOCK_SIZE) {
 		min = max = 0;
-		i++;
 		for (k = 0; k < ret; k++) {
 			if (sampleInfo.bitsPerSample == 8) {
 				tmp = devbuf[k];
@@ -280,13 +276,14 @@ static void sample_max_min(GraphData *graphData, double *pct)
 
 		if (audio_type == CDDA) {
 			ret = cdda_read_sample(sample_fp, devbuf, BLOCK_SIZE,
-				BLOCK_SIZE * i);
+					BLOCK_SIZE * i);
 		} else if (audio_type == WAV) {
 			ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
-				BLOCK_SIZE * i);
+					BLOCK_SIZE * i);
 		}
 
 		*pct = (double) i / numSampleBlocks;
+		i++;
 	}
 
 	*pct = 1.0;
@@ -345,14 +342,16 @@ write_thread(void *data)
 
 			strcpy(str_tmp, "tmp/");
 			filename = strcat(str_tmp, filename);
-printf("writing %s\n", filename);
+			if ((audio_type == WAV) && (!strstr(filename, ".wav"))) {
+				filename = strcat(str_tmp, ".wav");
+			}
+
 			if (audio_type == CDDA) {
 				ret = cdda_write_file(sample_fp, filename, BUF_SIZE,
-				                      start_pos, end_pos);
+							start_pos, end_pos);
 			} else if (audio_type == WAV) {
-				printf("can't write wav data yet\n");
-			//	ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
-			//				BLOCK_SIZE * i);
+				ret = wav_write_file(sample_fp, filename, BLOCK_SIZE,
+							&sampleInfo, start_pos, end_pos);
 			}
 		}
 

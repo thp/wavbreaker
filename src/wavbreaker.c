@@ -49,22 +49,24 @@ GtkListStore *store = NULL;
  *-------------------------------------------------------------------------
  */
 
-void track_break_write_toggled(GtkWidget *widget,
+void
+track_break_write_toggled(GtkWidget *widget,
                                gchar *path_str,
                                gpointer data);
 
-void track_break_filename_edited(GtkCellRendererText *cell,
+void
+track_break_filename_edited(GtkCellRendererText *cell,
                                  const gchar *path_str,
                                  const gchar *new_text,
                                  gpointer user_data);
 
 void
 filesel_ok_clicked(GtkWidget *widget,
-		   gpointer data);
+                   gpointer data);
 
 void
 filesel_cancel_clicked(GtkWidget *widget,
-		       gpointer data);
+                       gpointer data);
 
 static void
 draw_sample(GtkWidget *widget);
@@ -74,13 +76,13 @@ draw_cursor_marker();
 
 static gboolean
 configure_event(GtkWidget *widget,
-		GdkEventConfigure *event,
-		gpointer data);
+                GdkEventConfigure *event,
+                gpointer data);
 
 static gboolean
 expose_event(GtkWidget *widget,
-	     GdkEventExpose *event,
-	     gpointer data);
+             GdkEventExpose *event,
+             gpointer data);
 
 /*
  *-------------------------------------------------------------------------
@@ -489,8 +491,8 @@ draw_sample(GtkWidget *widget)
 	/* draw sample graph */
 
 	color.red   =  15*(65535/255);
-	color.green =  15*(65535/255);
-	color.blue  = 255*(65535/255);
+	color.green =  184*(65535/255);
+	color.blue  = 225*(65535/255);
 	gdk_color_alloc(gtk_widget_get_colormap(widget), &color);
 	gdk_gc_set_foreground(gc, &color);
 
@@ -499,22 +501,23 @@ draw_sample(GtkWidget *widget)
 	for (i = 0; i < width && i < graphData.numSamples; i++) {
 		y_min = graphData.data[i + pixmap_offset].min;
 		y_max = graphData.data[i + pixmap_offset].max;
-/*
+		/*
 		y_max = y_min;
 		y_min = 100 * sin(i * .1);
-*/
+		*/
 
 		y_min = xaxis + fabs(y_min) / scale;
 		y_max = xaxis - y_max / scale;
 
-/* DEBUG CODE START */
-/*
-	printf("y_min: %d\n", y_min);
-        printf("y_max: %d\n", y_max);
-*/
-/* DEBUG CODE END */
+		/* DEBUG CODE START */
+		/*
+		printf("i: %d\t", i);
+		printf("y_min: %d\t", y_min);
+		printf("y_max: %d\n", y_max);
+		*/
+		/* DEBUG CODE END */
 
-/*
+		/*
 		if (y_min < 0) {
 			y_min = xaxis + fabs(y_min) / scale;
 		} else {
@@ -526,7 +529,7 @@ draw_sample(GtkWidget *widget)
 		} else {
 			y_max = xaxis - y_max / scale;
 		}
-*/
+		*/
 
 		gdk_draw_line(pixmap, gc, i, y_min, i, y_max);
 	}
@@ -657,6 +660,12 @@ button_release(GtkWidget *widget,
 	}
 
 	cursor_marker = pixmap_offset + event->x;
+
+	/* DEBUG CODE START */
+	
+	printf("cursor_marker: %lu\n", cursor_marker);
+	
+	/* DEBUG CODE END */
 
 	draw_sample(draw);
 	draw_cursor_marker();
