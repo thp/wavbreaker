@@ -19,9 +19,10 @@ int main(int argc, char *argv[])
 	}
 
 	for (i = 1; i < argc; i++) {
+		SampleInfo sampleInfo;
+
 		printf("Header info for: %s\n", argv[i]);
 
-		SampleInfo sampleInfo;
 		if (wav_read_header(argv[i], &sampleInfo, 1) != 0) {
 			printf(wav_get_error_message());
 		}

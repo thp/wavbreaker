@@ -112,6 +112,9 @@ track_break_filename_edited(GtkCellRendererText *cell,
                                  const gchar *new_text,
                                  gpointer user_data);
 
+void 
+track_break_find_offset(CursorData *cursor_data);
+
 void
 track_break_delete_entry();
 
@@ -259,6 +262,18 @@ void set_status_message(const char *val)
 }
 */
 
+void jump_to_track_break(GtkWidget *widget, gpointer data) {
+	int n = 0;
+
+	CursorData cursor_data;
+	track_break_find_offset(&cursor_data);
+
+	if (n <= graphData.numSamples) {
+		//cursor_marker = n;
+	}
+	redraw();
+}
+
 void wavbreaker_autosplit(long x) {
 	long n = x;
 
@@ -369,6 +384,7 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 {
 	GtkWidget *menu;
 	GtkWidget *delete_item;
+	GtkWidget *jump_item;
 
 	if (event->button != 3) {
 		return FALSE;
@@ -380,7 +396,12 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 	g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
 	gtk_widget_show(delete_item);
 
+	jump_item = gtk_menu_item_new_with_label("Jump to Selected Track Break");
+	g_signal_connect(G_OBJECT(jump_item), "activate", G_CALLBACK(jump_to_track_break), NULL);
+	gtk_widget_show(jump_item);
+
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), delete_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), jump_item);
 
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
 			  event->button, event->time);
@@ -570,6 +591,28 @@ track_break_add_to_model(gpointer data, gpointer user_data)
 	                                 -1);
 
 	gtk_tree_path_free(path);
+}
+
+void 
+track_break_find_offset(CursorData *cursor_data)
+{
+	GtkTreeSelection *selection;
+	GtkTreeModel *model;
+	GList *list;
+	gchar str_tmp[1024];
+	gchar *str_ptr;
+
+	if (sample_filename == NULL) {
+		return;
+	}
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+	TrackBreak *tb = (TrackBreak *) gtk_tree_selection_get_user_data(selection);
+
+	cursor_data->is_equal = FALSE;
+	cursor_data->marker = cursor_marker;
+
+	printf("tb->offset: %s\n", tb->offset);
 }
 
 void
