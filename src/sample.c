@@ -135,7 +135,7 @@ play_thread(gpointer thread_data)
 				sample_start + (BUF_SIZE * i++));
 		}
 
-		*play_marker = ((BUF_SIZE * i) + sample_start) / CD_BLOCK_SIZE;
+		*play_marker = ((BUF_SIZE * i) + sample_start) / BLOCK_SIZE;
 	}
 
 	g_mutex_lock(mutex);
@@ -211,7 +211,7 @@ void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 	sample_file = strdup(filename);
 
 	if (strstr(sample_file, ".wav")) {
-		wav_read_header(sample_file, &sampleInfo);
+		wav_read_header(sample_file, &sampleInfo, 0);
 		audio_type = WAV;
 	} else {
 		cdda_read_header(sample_file, &sampleInfo);
@@ -246,15 +246,17 @@ static void sample_max_min(GraphData *graphData, double *pct)
 
 	tmp_sample_calc = sampleInfo.numBytes / (sampleInfo.bitsPerSample / 8);
 	tmp_sample_calc = tmp_sample_calc / BLOCK_SIZE;
-	tmp_sample_calc = tmp_sample_calc * sampleInfo.channels;
-	numSampleBlocks = (int) (tmp_sample_calc +  1);
+//	tmp_sample_calc = tmp_sample_calc * sampleInfo.channels * 2;
+	tmp_sample_calc = tmp_sample_calc * 2;  //for min and max
+	numSampleBlocks = (int) (tmp_sample_calc + 1);
 
 	/* DEBUG CODE START */
 	/*
 	printf("\nsampleInfo.numBytes: %lu\n", sampleInfo.numBytes);
 	printf("sampleInfo.bitsPerSample: %d\n", sampleInfo.bitsPerSample);
 	printf("BLOCK_SIZE: %d\n", BLOCK_SIZE);
-	printf("sampleInfo.channels: %d\n\n", sampleInfo.channels);
+	printf("sampleInfo.channels: %d\n", sampleInfo.channels);
+	printf("numSampleBlocks: %d\n\n", numSampleBlocks);
 	*/
 	/* DEBUG CODE END */
 
@@ -291,6 +293,9 @@ static void sample_max_min(GraphData *graphData, double *pct)
 			} else if (tmp < min) {
 				min = tmp;
 			}
+
+			// skip over any extra channels
+			k += (sampleInfo.channels - 1) * (sampleInfo.bitsPerSample / 8);
 		}
 
 		graph_data[i].min = min;

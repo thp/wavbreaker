@@ -24,7 +24,7 @@ unsigned long wavDataPtr;
 unsigned long wavDataSize;
 long x;
 
-int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
+int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 {
 	WaveHeader wavHdr;
 	ChunkHeader chunkHdr;
@@ -33,11 +33,11 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 	FILE *fp;
 
 	/* DEBUG CODE START */
-	/*
-	printf("WaveHeader Size:\t%u\n", sizeof(WaveHeader));
-	printf("ChunkHeader Size:\t%u\n", sizeof(ChunkHeader));
-	printf("FormatChunk Size:\t%u\n", sizeof(FormatChunk));
-	*/
+	if (debug) {
+		printf("WaveHeader Size:\t%u\n", sizeof(WaveHeader));
+		printf("ChunkHeader Size:\t%u\n", sizeof(ChunkHeader));
+		printf("FormatChunk Size:\t%u\n", sizeof(FormatChunk));
+	}
 	/* DEBUG CODE END */
 
     if ((fp = fopen(sample_file, "rb")) == NULL) {
@@ -56,23 +56,23 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 	if (memcmp(wavHdr.riffID, RiffID, 4) &&
 		memcmp(wavHdr.wavID, WaveID, 4)) {
 
-		printf("?? is not a wave file\n");
+		printf("%s is not a wave file\n", sample_file);
 		fclose(fp);
 		return 1;
 	}
 
 	/* DEBUG CODE START */
-	/*
-	memcpy(str, wavHdr.riffID, 4);
-	memcpy(str+4, "\0", 1);
-	printf("RIFF ID:\t%s\n", str);
-
-	printf("Total Size:\t%lu\n", wavHdr.totSize);
-
-	memcpy(str, wavHdr.wavID, 4);
-	memcpy(str+4, "\0", 1);
-	printf("Wave ID:\t%s\n", str);
-	*/
+	if (debug) {
+		memcpy(str, wavHdr.riffID, 4);
+		memcpy(str+4, "\0", 1);
+		printf("RIFF ID:\t%s\n", str);
+	
+		printf("Total Size:\t%lu\n", wavHdr.totSize);
+	
+		memcpy(str, wavHdr.wavID, 4);
+		memcpy(str+4, "\0", 1);
+		printf("Wave ID:\t%s\n", str);
+	}
 	/* DEBUG CODE END */
 
 	/* read in format chunk header */
@@ -83,13 +83,20 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 	}
 
 	while (memcmp(chunkHdr.chunkID, FormatID, 4)) {
+		if (debug) {
+			memcpy(str, chunkHdr.chunkID, 4);
+			memcpy(str+4, "\0", 1);
+
+			printf("Chunk ID:\t%s\n", str);
+			printf("Chunk Size:\t%lu\n", chunkHdr.chunkSize);
+		}
+
 		memcpy(str, chunkHdr.chunkID, 4);
 		memcpy(str+4, "\0", 1);
 		printf("Chunk %s is not a Format Chunk\n", str);
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-			printf("error seeking to %lu in file",
-				chunkHdr.chunkSize);
+			printf("error seeking to %lu in file", chunkHdr.chunkSize);
 			return 1;
 		}
 
@@ -98,6 +105,15 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 			return 1;
 		}
 	}
+
+	if (debug) {
+		memcpy(str, chunkHdr.chunkID, 4);
+		memcpy(str+4, "\0", 1);
+
+		printf("Chunk ID:\t%s\n", str);
+		printf("Chunk Size:\t%lu\n", chunkHdr.chunkSize);
+	}
+
 
 	/* read in format chunk data */
 
@@ -108,23 +124,20 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 
 	if (fmtChunk.wFormatTag != 1) {
 		printf("Compressed wave data not supported\n");
+		if (debug) {
+			printf("Compression format is of type: %d\n", fmtChunk.wFormatTag);
+		}
 		return 1;
 	}
 
 	/* DEBUG CODE START */
-	/*
-	memcpy(str, chunkHdr.chunkID, 4);
-	memcpy(str+4, "\0", 1);
-
-	printf("Chunk ID:\t%s\n", str);
-	printf("Chunk Size:\t%lu\n", chunkHdr.chunkSize);
-
-	printf("Channels:\t%d\n", fmtChunk.wChannels);
-	printf("Sample Rate:\t%lu\n", fmtChunk.dwSamplesPerSec);
-	printf("Bytes / Sec:\t%lu\n", fmtChunk.dwAvgBytesPerSec);
-	printf("wBlockAlign:\t%u\n", fmtChunk.wBlockAlign);
-	printf("Bits Per Sample Point:\t%u\n", fmtChunk.wBitsPerSample);
-	*/
+	if (debug) {
+		printf("Channels:\t%d\n", fmtChunk.wChannels);
+		printf("Sample Rate:\t%lu\n", fmtChunk.dwSamplesPerSec);
+		printf("Bytes / Sec:\t%lu\n", fmtChunk.dwAvgBytesPerSec);
+		printf("wBlockAlign:\t%u\n", fmtChunk.wBlockAlign);
+		printf("Bits Per Sample Point:\t%u\n", fmtChunk.wBitsPerSample);
+	}
 	/* DEBUG CODE END */
 
 	sampleInfo->channels		= fmtChunk.wChannels;
@@ -139,6 +152,17 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 		printf("error reading chunk\n");
 		return 1;
 	}
+
+/*
+	if (chunkHdr.chunkSize > sizeof(ChunkHeader)) {
+printf("in size compare\n");
+		if (fseek(fp, chunkHdr.chunkSize - sizeof(ChunkHeader), SEEK_CUR)) {
+			printf("error seeking to %lu in file", chunkHdr.chunkSize);
+			return 1;
+		}
+	}
+*/
+
 
 	while (memcmp(chunkHdr.chunkID, WaveDataID, 4)) {
 		memcpy(str, chunkHdr.chunkID, 4);
@@ -165,10 +189,10 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo)
 	sampleInfo->numBytes = chunkHdr.chunkSize;
 
 	/* DEBUG CODE START */
-	/*
-	printf("wavDataPtr: %lu\n", wavDataPtr);
-	printf("wavDataSize: %lu\n", wavDataSize);
-	*/
+	if (debug) {
+		printf("wavDataPtr: %lu\n", wavDataPtr);
+		printf("wavDataSize: %lu\n", wavDataSize);
+	}
 	/* DEBUG CODE END */
 
 	return 0;
@@ -370,7 +394,7 @@ wav_merge_files(char *filename,
 	unsigned char buf[buf_size];
 
 	for (i = 0; i < num_files; i++) {
-		wav_read_header(filenames[i], &sample_info[i]);
+		wav_read_header(filenames[i], &sample_info[i], 0);
 		data_ptr[i] = wavDataPtr;
 	}
 

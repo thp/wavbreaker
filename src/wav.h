@@ -46,9 +46,10 @@ typedef struct {
 	unsigned long   dwAvgBytesPerSec;
 	unsigned short  wBlockAlign;
 	unsigned short  wBitsPerSample;
+//	unsigned short  extraNonPcm;
 } FormatChunk;
 
-int wav_read_header(char *, SampleInfo *);
+int wav_read_header(char *, SampleInfo *, int);
 int wav_read_sample(FILE *, unsigned char *, int, unsigned long);
 
 int
