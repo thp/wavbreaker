@@ -17,32 +17,14 @@ static GtkWidget *draw;
 
 static void readdata()
 {
-	FILE *infile;
-	struct stat statBuf;
 	int filesize;
 	int i, j;
 	char buf[BLOCK_SIZE];
 	char *filename = sample_get_sample_file();
 
-	if (stat(filename, &statBuf)) {
-		printf("error stat'ing %s\n", filename);
-		exit(1);
-	}
-
-	filesize = statBuf.st_size;
-
 	nsamples = filesize / 4; /* 4 is size of left and right channel
 					in bytes*/
 	nsample_blocks = filesize / BLOCK_SIZE;
-
-	printf("file size: %d\n", filesize);
-	printf("nsamples: %d\n", nsamples);
-	printf("nsample_blocks: %d\n", nsample_blocks);
-
-	if ((infile = fopen(filename, "r")) == NULL) {
-		printf("error opening %s\n", filename);
-		exit(1);
-	}
 
 	i = 0;
 
@@ -350,8 +332,6 @@ static void play_button_clicked(GtkWidget *widget)
 
 static void stop_button_clicked(GtkWidget *widget)
 {
-	printf("Stop!!\n");
-
 	stop_sample();
 }
 

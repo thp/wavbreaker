@@ -8,6 +8,8 @@
 
 #include "linuxaudio.h"
 
+#define LEN 50000
+
 static char *play_audio_dev = "/dev/dsp";
 static char *play_filename = "cddata.dat";
 
@@ -72,70 +74,9 @@ static int open_device(int *audio_fd)
 
 static void * play_thread(void *thread_data)
 {
-	int i, p;
-	int nwritten = 0, len = 500000;
-	int left[len], right[len];
-	unsigned char devbuf[len * 2];
-	unsigned char buf[256];
-	int audio_fd;
-	FILE *infile;
-
-printf("start of thread\n");
-
-	if (open_device(&audio_fd)) {
-		return NULL;
+	while(1) {
+		printf("thread\n");
 	}
-
-	if ((infile = fopen(play_filename, "r")) == NULL) {
-	        printf("error opening %s\n", play_filename);
-	        return NULL;
-	}
-
-	/* read in and play sample */
-	fseek(infile, sample_start, SEEK_SET);
-
-	i = 0;
-
-	while (fread(buf, 1, 4, infile) && i++ < len) {
-	        unsigned char tmp;
-	        
-	        tmp = buf[0];
-	        buf[0] = buf[1];
-	        buf[1] = tmp;
-
-	        tmp = buf[2];
-	        buf[2] = buf[3];
-	        buf[3] = tmp;
-	
-	        left[i] = buf[1] << 8 | buf[0];
-	        right[i] = buf[3] << 8 | buf[2];
-	}
-
-printf("middle of thread\n");
-	p = 0;
-	for (i = 0; i < len; i++) {
-	        devbuf[p++] = (unsigned char) (left[i] & 0xff);
-	        devbuf[p++] = (unsigned char) ((left[i] >> 8) & 0xff);
- 
-	        devbuf[p++] = (unsigned char) (right[i] & 0xff);
-	        devbuf[p++] = (unsigned char) ((right[i] >> 8) & 0xff);
-	}       
-
-	nwritten = 0; 
-	while (len > 0) {
-	        int ret; 
-
-	        ret = write(audio_fd, devbuf + nwritten, len);
-
-	printf("ret was: %d\n", ret);
-	
-	        nwritten += ret; 
-	        len -= ret;
-	}
-
-	fclose(infile);
-	close(audio_fd);
-printf("end of thread\n");
 
 	return NULL;
 }
@@ -143,14 +84,20 @@ printf("end of thread\n");
 int play_sample(int start)
 {       
 	int ret;
+
+	int i, p;
+	int nwritten = 0, len = 500000;
+	int left[LEN], right[LEN];
+	unsigned char devbuf[LEN * 2];
+	unsigned char buf[256];
 	int audio_fd;
+	FILE *infile;
 
 	printf("play!!\n");
 
 	sample_start = start;
 
 	/* setup thread */
-/*
 	if ((ret = pthread_attr_init(&thread_attr)) != 0) {
 		perror("Return from pthread_attr_init");
 		printf("Error #%d\n", ret);
@@ -172,9 +119,65 @@ int play_sample(int start)
 		printf("Error #%d\n", ret);
 		return 1;
 	}
-*/
 
-	play_thread(NULL);
+
+printf("start of thread\n");
+
+	if (open_device(&audio_fd)) {
+		return 1;
+	}
+
+	if ((infile = fopen(play_filename, "r")) == NULL) {
+	        printf("error opening %s\n", play_filename);
+	        return 1;
+	}
+
+	/* read in and play sample */
+	fseek(infile, sample_start, SEEK_SET);
+
+	i = 0;
+
+	while (fread(buf, 1, 4, infile) && i++ < LEN) {
+	        unsigned char tmp;
+	        
+	        tmp = buf[0];
+	        buf[0] = buf[1];
+	        buf[1] = tmp;
+
+	        tmp = buf[2];
+	        buf[2] = buf[3];
+	        buf[3] = tmp;
+	
+	        left[i] = buf[1] << 8 | buf[0];
+	        right[i] = buf[3] << 8 | buf[2];
+	}
+
+printf("middle of thread\n");
+	p = 0;
+	for (i = 0; i < LEN; i++) {
+	        devbuf[p++] = (unsigned char) (left[i] & 0xff);
+	        devbuf[p++] = (unsigned char) ((left[i] >> 8) & 0xff);
+ 
+	        devbuf[p++] = (unsigned char) (right[i] & 0xff);
+	        devbuf[p++] = (unsigned char) ((right[i] >> 8) & 0xff);
+	}       
+
+	nwritten = 0; 
+	len = LEN;
+	while (len > 0) {
+	        int ret; 
+
+	        ret = write(audio_fd, devbuf + nwritten, len);
+
+	printf("ret was: %d\n", ret);
+	
+	        nwritten += ret; 
+	        len -= ret;
+	}
+
+	fclose(infile);
+	close(audio_fd);
+printf("end of thread\n");
 
 	printf("done playing\n");
 

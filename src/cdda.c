@@ -26,19 +26,13 @@ cdda_read_header(const char *filename,
 }
 
 int
-cdda_read_sample(const char	*filename,
+cdda_read_sample(FILE		*fp,
 		 unsigned char	*buf,
 		 int		buf_size,
 		 unsigned long	start_pos)
 {
-	FILE *fp;
 	int i = 0;
 	int ret;
-
-	if ((fp = fopen(filename, "r")) == NULL) {
-		printf("error opening %s\n", filename);
-		return -1;
-	}
 
 	if (fseek(fp, start_pos, SEEK_SET)) {
 		return -1;
@@ -64,6 +58,5 @@ cdda_read_sample(const char	*filename,
 		buf[i*4+3] = tmp;
 	}
 
-	fclose(fp);
 	return ret;
 }

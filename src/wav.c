@@ -33,19 +33,12 @@ unsigned long wavDataPtr;
 unsigned long wavDataSize;
 long x;
 
-int wav_read_header(const char *filename, SampleInfo *sampleInfo)
+int wav_read_header(FILE *fp, SampleInfo *sampleInfo)
 {
-	FILE *fp;
-
 	WaveHeader wavHdr;
 	ChunkHeader chunkHdr;
 	FormatChunk fmtChunk;
 	char str[128];
-
-	if ((fp = fopen(filename, "r")) == NULL) {
-		printf("error opening %s\n", filename);
-		return 1;
-	}
 
 	/* read in file header */
 
@@ -58,7 +51,7 @@ int wav_read_header(const char *filename, SampleInfo *sampleInfo)
 	if (memcmp(wavHdr.riffID, RiffID, 4) &&
 		memcmp(wavHdr.wavID, WaveID, 4)) {
 
-		printf("%s is not a wave file\n", filename);
+		printf("?? is not a wave file\n");
 		fclose(fp);
 		return 1;
 	}
@@ -76,8 +69,8 @@ int wav_read_header(const char *filename, SampleInfo *sampleInfo)
 		printf("Chunk %s is not a Format Chunk\n", str);
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-			printf("error seeking to %lu in file %s",
-				chunkHdr.chunkSize, filename);
+			printf("error seeking to %lu in file",
+				chunkHdr.chunkSize);
 			return 1;
 		}
 
@@ -101,6 +94,8 @@ int wav_read_header(const char *filename, SampleInfo *sampleInfo)
 
 	memcpy(str, chunkHdr.chunkID, 4);
 	memcpy(str+4, "\0", 1);
+
+/*
 	printf("Chunk ID:\t%s\n", str);
 	printf("Chunk Size:\t%lu\n", chunkHdr.chunkSize);
 
@@ -113,6 +108,7 @@ int wav_read_header(const char *filename, SampleInfo *sampleInfo)
 	printf("wBlockAlign calculated:\t%u\n", fmtChunk.wChannels *
 		fmtChunk.wBitsPerSample / 8);
 	printf("Bits Per Sample Point:\t%u\n", fmtChunk.wBitsPerSample);
+*/
 
 	sampleInfo->channels		= fmtChunk.wChannels;
 	sampleInfo->samplesPerSec	= fmtChunk.dwSamplesPerSec;
@@ -133,8 +129,8 @@ int wav_read_header(const char *filename, SampleInfo *sampleInfo)
 		printf("Chunk %s is not a Format Chunk\n", str);
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-			printf("error seeking to %lu in file %s",
-				chunkHdr.chunkSize, filename);
+			printf("error seeking to %lu in file",
+				chunkHdr.chunkSize);
 			return 1;
 		}
 
@@ -151,27 +147,21 @@ int wav_read_header(const char *filename, SampleInfo *sampleInfo)
 
 	sampleInfo->numBytes = chunkHdr.chunkSize;
 
+/*
 	printf("wavDataPtr: %lu\n", wavDataPtr);
 	printf("wavDataSize: %lu\n", wavDataSize);
-
-	fclose(fp);
+*/
 
 	return 0;
 }
 
 int
-wav_read_sample(const char	*filename,
+wav_read_sample(FILE		*fp,
 		unsigned char	*buf,
 		int		buf_size,
 		unsigned long	start_pos)
 {
-	FILE *fp;
 	int ret;
-
-	if ((fp = fopen(filename, "r")) == NULL) {
-		printf("error opening %s\n", filename);
-		return 1;
-	}
 
 	if (fseek(fp, start_pos + wavDataPtr, SEEK_SET)) {
 		return -1;
@@ -185,8 +175,6 @@ wav_read_sample(const char	*filename,
 	} else {
 		ret = fread(buf, 1, buf_size, fp);
 	}
-
-	fclose(fp);
 
 	return ret;
 }

@@ -27,12 +27,23 @@ static int audio_fd;
 
 static char *audio_dev = "/dev/dsp";
 static char *sample_file = NULL;
+static FILE *sample_fp = NULL;
 
 static pthread_t thread;
 static pthread_attr_t thread_attr;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void sample_max_min(GraphData *graphData, double *pct);
+/* typedef and struct stuff for new thread open junk */
+
+typedef struct {
+	GraphData *graphData;
+	double *pct;
+} OpenThreadType;
+
+OpenThreadType o;
+OpenThreadType *open_thread_data = &o;
+
+static void sample_max_min(GraphData *graphData, double *pct);
 
 void sample_set_audio_dev(char *str)
 {
@@ -63,10 +74,10 @@ play_thread(void *thread_data)
 	i = 0;
 
 	if (audio_type == CDDA) {
-		ret = cdda_read_sample(sample_file, devbuf, BUF_SIZE,
+		ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
 			sample_start + (BUF_SIZE * i++));
 	} else if (audio_type == WAV) {
-		ret = wav_read_sample(sample_file, devbuf, BUF_SIZE,
+		ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
 			sample_start + (BUF_SIZE * i++));
 	}
 
@@ -74,10 +85,10 @@ play_thread(void *thread_data)
 	        write(audio_fd, devbuf, ret);
 
 		if (audio_type == CDDA) {
-			ret = cdda_read_sample(sample_file, devbuf, BUF_SIZE,
+			ret = cdda_read_sample(sample_fp, devbuf, BUF_SIZE,
 				sample_start + (BUF_SIZE * i++));
 		} else if (audio_type == WAV) {
-			ret = wav_read_sample(sample_file, devbuf, BUF_SIZE,
+			ret = wav_read_sample(sample_fp, devbuf, BUF_SIZE,
 				sample_start + (BUF_SIZE * i++));
 		}
 	}
@@ -89,6 +100,7 @@ play_thread(void *thread_data)
 
 	pthread_mutex_unlock(&mutex);
 
+printf("done playing\n");
 	return NULL;
 }
 
@@ -137,6 +149,8 @@ int play_sample(unsigned long startpos)
 		return 1;
 	}
 
+printf("playing\n");
+
 	return 0;
 }               
 
@@ -162,26 +176,58 @@ void stop_sample()
 	playing = 0;
 
 	pthread_mutex_unlock(&mutex);
+printf("stopping\n");
+}
+
+static void *
+open_thread(void *data)
+{
+	OpenThreadType *thread_data = data;
+
+	sample_max_min(thread_data->graphData,
+		       thread_data->pct);
+
+	return NULL;
 }
 
 void sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
 	sample_file = strdup(filename);
 
+	if ((sample_fp = fopen(sample_file, "r")) == NULL) {
+		printf("error opening %s\n", sample_file);
+		return;
+	}
+
 	if (strstr(sample_file, ".wav")) {
-		wav_read_header(sample_file, &sampleInfo);
+		wav_read_header(sample_fp, &sampleInfo);
 		audio_type = WAV;
-	printf("opening wav\n");
 	} else {
 		cdda_read_header(sample_file, &sampleInfo);
 		audio_type = CDDA;
-	printf("opening cdda\n");
 	}
 
-	sample_max_min(graphData, pct);
+	open_thread_data->graphData = graphData;
+	open_thread_data->pct = pct;
+
+/* start new thread stuff */
+	if (pthread_attr_init(&thread_attr) != 0) {
+		perror("return from pthread_attr_init");
+	}
+
+	if (pthread_attr_setdetachstate(&thread_attr,
+			PTHREAD_CREATE_DETACHED) != 0) {
+		perror("return from pthread_attr_setdetachstate");
+	}
+
+	if (pthread_create(&thread, &thread_attr, open_thread, 
+			   open_thread_data) != 0) {
+		perror("Return from pthread_create");
+	}
+/* end new thread stuff */
 }
 
-void sample_max_min(GraphData *graphData, double *pct)
+static void sample_max_min(GraphData *graphData, double *pct)
 {
 	int tmp, min, max;
 	int i, k, ret;
@@ -203,14 +249,12 @@ void sample_max_min(GraphData *graphData, double *pct)
 	i = 0;
 
 	if (audio_type == CDDA) {
-		ret = cdda_read_sample(sample_file, devbuf, BLOCK_SIZE,
+		ret = cdda_read_sample(sample_fp, devbuf, BLOCK_SIZE,
 			BLOCK_SIZE * i);
 	} else if (audio_type == WAV) {
-		ret = wav_read_sample(sample_file, devbuf, BLOCK_SIZE,
+		ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
 			BLOCK_SIZE * i);
 	}
-
-	printf("BLOCK_SIZE: %d\n", BLOCK_SIZE);
 
 	while (ret > 0 && ret <= BLOCK_SIZE) {
 		min = max = 0;
@@ -234,23 +278,23 @@ void sample_max_min(GraphData *graphData, double *pct)
 		graph_data[i].max = max;
 
 		if (audio_type == CDDA) {
-			ret = cdda_read_sample(sample_file, devbuf, BLOCK_SIZE,
+			ret = cdda_read_sample(sample_fp, devbuf, BLOCK_SIZE,
 				BLOCK_SIZE * i);
 		} else if (audio_type == WAV) {
-			ret = wav_read_sample(sample_file, devbuf, BLOCK_SIZE,
+			ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
 				BLOCK_SIZE * i);
 		}
 
 		*pct = (double) i / numSampleBlocks;
-//		if (((int) (pct * 1000) % 10) == 0) {
-//	printf("mod: %d\n", ((int) (pct * 1000) % 10));
-			printf("pct done: %f\n", *pct);
-//		}
 	}
 
 	*pct = 1.0;
 
 	graphData->numSamples = numSampleBlocks;
+
+	if (graphData->data != NULL) {
+		free(graphData->data);
+	}
 	graphData->data = graph_data;
 
 	if (sampleInfo.bitsPerSample == 8) {
@@ -258,4 +302,8 @@ void sample_max_min(GraphData *graphData, double *pct)
 	} else if (sampleInfo.bitsPerSample == 16) {
 		graphData->maxSampleValue = SHRT_MAX;
 	}
+
+	printf("\ni: %d\n", i);
+	printf("graphData->numSamples: %ld\n", graphData->numSamples);
+	printf("graphData->maxSampleValue: %ld\n\n", graphData->maxSampleValue);
 }
