@@ -385,7 +385,7 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
 			  event->button, event->time);
 
-	return TRUE;
+	return FALSE;
 }
 
 /* DEBUG FUNCTION START */
