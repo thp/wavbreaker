@@ -1,7 +1,9 @@
 Movable Boundaries in wav display
-Start, End and Duration in list
 fix highlight on summary display
-!jump to on right-click in list (gtktreeview)
 alsa and jack drivers
 sound card format issues
+use new gtk 2.6 file selection
 
+!fix dir selection in config menu
+!Start, End and Duration in list
+!jump to on right-click in list (gtktreeview)

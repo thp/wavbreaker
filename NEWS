@@ -1,3 +1,14 @@
+version 0.5 (2004-07-??)
+    + Added duration to the list
+    + Added automatic etree style filenaming
+    + Added a right-click option to the sample display to jump to the cursor
+    + Added a right-click option to the list to jump to the selected track break
+    ! Fixed a floating point exception bug that would crash when the sample
+        summary was proportional to the window width
+    ! Fixed compile error when using gcc 2.95 (bad c syntax)
+    ! Fixed problem with autoconf/automake when not giving ./configure a prefix
+        directory
+    ! Fixed the directory selection.  It would append the dir name twice.
 version 0.4 (2003-10-25)
 	+ Added autosplit feature
 	+ Added toggle button to use the specified outputdir or not
