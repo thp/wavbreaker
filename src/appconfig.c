@@ -20,9 +20,12 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+
+#ifndef _WIN32
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#endif
 
 #define APPCONFIG_FILENAME "/.wavbreaker"
 
@@ -208,6 +211,7 @@ void appconfig_show(GtkWidget *main_window)
 }
 
 static int appconfig_read_file() {
+#ifndef _WIN32
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 
@@ -249,9 +253,11 @@ static int appconfig_read_file() {
     }
 
     return 0;
+#endif
 }
 
 static int appconfig_write_file() {
+#ifndef _WIN32
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlNodePtr cur;
@@ -311,10 +317,12 @@ static int appconfig_write_file() {
 	xmlFreeDoc(doc);
 
 	return 0;
+#endif
 }
 
 void appconfig_init()
 {
+#ifndef _WIN32
 	char str[1024];
 
 	str[0] = '\0';
@@ -329,5 +337,9 @@ void appconfig_init()
 	}
 
 	appconfig_read_file();
+#else
+	outputdir = g_strdup("c:\\MyFiles");
+	outputdev = g_strdup("/dev/dsp");
+#endif
 }
 

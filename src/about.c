@@ -18,6 +18,8 @@
 
 #ifdef _WIN32
 #  define IMAGEDIR "../images/"
+#  define PACKAGE "wavbreaker"
+#  define VERSION "0.2"
 #else
 #  ifdef HAVE_CONFIG_H
 #    include <config.h>
