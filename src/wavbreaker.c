@@ -85,6 +85,7 @@ enum {
     COLUMN_WRITE,
     COLUMN_FILENAME,
     COLUMN_TIME,
+    COLUMN_DURATION,
     COLUMN_OFFSET,
     COLUMN_EDITABLE,
     NUM_COLUMNS
@@ -113,6 +114,8 @@ void track_break_setup_filename(gpointer data, gpointer user_data);
 void track_break_rename();
 void track_break_add_to_model(gpointer data, gpointer user_data);
 void track_break_add_entry();
+void track_break_set_durations();
+void track_break_set_duration(gpointer data, gpointer user_data);
 
 void filesel_ok_clicked(GtkWidget *widget, gpointer data);
 void filesel_cancel_clicked(GtkWidget *widget, gpointer data);
@@ -180,6 +183,9 @@ menu_stop(GtkWidget *widget, gpointer user_data);
 
 static void
 offset_to_time(guint, gchar *);
+
+static void
+offset_to_duration(guint, guint, gchar *);
 
 static void
 update_status();
@@ -291,6 +297,7 @@ track_break_create_list_gui()
                                G_TYPE_BOOLEAN,
                                G_TYPE_STRING,
                                G_TYPE_STRING,
+                               G_TYPE_STRING,
                                G_TYPE_UINT,
                                G_TYPE_BOOLEAN);
 
@@ -325,9 +332,16 @@ track_break_create_list_gui()
     g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-    /* File Time Column */
+    /* File Time Start Column */
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_column_new_with_attributes("Time", renderer, "text", COLUMN_TIME, NULL);
+    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    gtk_tree_view_column_set_resizable(column, TRUE);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+
+    /* File Duration Column */
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Duration", renderer, "text", COLUMN_DURATION, NULL);
     gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
@@ -395,6 +409,7 @@ void track_break_print_element(gpointer data, gpointer user_data)
 
     printf("filename: %s", breakup->filename);
     printf("\ttime: %s", breakup->time);
+    printf("\tduration: %s", breakup->duration);
     printf("\toffset: %d\n", breakup->offset);
 }
 /* DEBUG FUNCTION END */
@@ -413,11 +428,39 @@ track_break_free_element(gpointer data, gpointer user_data)
 void track_break_compare_cursor_marker(gpointer data, gpointer user_data)
 {
     TrackBreak *track_break = (TrackBreak *) data;
-    CursorData *cursor_data = (CursorData *) user_data;
+    CursorData *cd = (CursorData *) user_data;
 
-    if (cursor_data->marker == track_break->offset) {
-        cursor_data->is_equal = TRUE;
+    if (cd->marker == track_break->offset) {
+        cd->is_equal = TRUE;
     }
+}
+
+void track_break_set_duration(gpointer data, gpointer user_data)
+{
+    TrackBreak *track_break = (TrackBreak *) data;
+    TrackBreak *next_track_break;
+    guint index;
+
+    index = g_list_index(track_break_list, track_break);
+    index++;
+    /*
+    printf("index: %d\n", index);
+    printf("cursor_marker: %d\n", cursor_marker);
+    printf("numSamples: %d\n", graphData.numSamples);
+    */
+    next_track_break = (TrackBreak *) g_list_nth_data(track_break_list, index);
+
+    if (next_track_break != NULL) {
+        // Take the offset of the next track as the end of the duration.
+        offset_to_duration(track_break->offset, next_track_break->offset - 1,
+            track_break->duration);
+    } else {
+        // There is no next track.
+        // Take the end of the sample as the end of the duration.
+        offset_to_duration(track_break->offset, graphData.numSamples,
+            track_break->duration);
+    }
+//printf("\n");
 }
 
 void track_break_find(gpointer data, gpointer user_data)
@@ -572,6 +615,7 @@ track_break_add_to_model(gpointer data, gpointer user_data)
     gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
                                      COLUMN_FILENAME, track_break->filename,
                                      COLUMN_TIME, track_break->time,
+                                     COLUMN_DURATION, track_break->duration,
                                      COLUMN_OFFSET, track_break->offset,
                                      COLUMN_EDITABLE, track_break->editable,
                                      -1);
@@ -586,6 +630,7 @@ guint track_break_find_offset()
     GtkTreeModel *model;
     guint offset;
     gchar *time;
+    gchar *duration;
     gchar *filename;
 
     if (sample_filename == NULL) {
@@ -594,9 +639,13 @@ guint track_break_find_offset()
 
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        gtk_tree_model_get(model, &iter, COLUMN_FILENAME, &filename,
-            COLUMN_TIME, &time, COLUMN_OFFSET, &offset, -1);
+        gtk_tree_model_get(model, &iter,
+            COLUMN_FILENAME, &filename,
+            COLUMN_TIME, &time,
+            COLUMN_DURATION, &duration,
+            COLUMN_OFFSET, &offset, -1);
         g_free(time);
+        g_free(duration);
         g_free(filename);
     }
 
@@ -623,7 +672,7 @@ void track_break_add_entry()
         return;
     }
 
-    /* check for duplicate track breaks */
+    // check for duplicate track breaks
     cursor_data.is_equal = FALSE;
     cursor_data.marker = cursor_marker;
     g_list_foreach(track_break_list, track_break_compare_cursor_marker,
@@ -646,7 +695,14 @@ void track_break_add_entry()
     track_break_list = g_list_insert_sorted(track_break_list, track_break,
                                             track_break_sort);
 
+    track_break_set_durations();
     track_break_rename();
+}
+
+void track_break_set_durations() {
+    g_list_foreach(track_break_list, track_break_set_duration, NULL);
+    gtk_list_store_clear(store);
+    g_list_foreach(track_break_list, track_break_add_to_model, NULL);
 }
 
 void track_break_rename() {
@@ -667,7 +723,7 @@ void track_break_rename() {
     }
     g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
     gtk_list_store_clear(store);
-    g_list_foreach(track_break_list, track_break_add_to_model, str_tmp);
+    g_list_foreach(track_break_list, track_break_add_to_model, NULL);
 
     redraw();
 
@@ -1546,6 +1602,15 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     redraw();
 
     return TRUE;
+}
+
+static void offset_to_duration(guint start_time, guint end_time, gchar *str) {
+    guint duration = end_time - start_time;
+/*
+printf("start time: %d\n", start_time);
+printf("end time: %d\n", end_time);
+*/
+    offset_to_time(duration, str);
 }
 
 static void offset_to_time(guint time, gchar *str) {
