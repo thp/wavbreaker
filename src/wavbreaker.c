@@ -33,6 +33,13 @@ struct TrackBreak_ {
 	gchar     *filename;
 };
 
+typedef struct CursorData_ CursorData;
+
+struct CursorData_ {
+	unsigned long marker;
+	gboolean is_equal;
+};
+
 enum {
 	COLUMN_WRITE,
 	COLUMN_FILENAME,
@@ -171,7 +178,8 @@ void print_element(gpointer data, gpointer user_data)
 }
 /* DEBUG FUNCTION END */
 
-void track_break_free_element(gpointer data, gpointer user_data)
+void
+track_break_free_element(gpointer data, gpointer user_data)
 {
 	TrackBreak *track_break;
 
@@ -182,18 +190,17 @@ void track_break_free_element(gpointer data, gpointer user_data)
 	free(track_break);
 }
 
-gint track_break_compare_cursor_marker(gpointer data, gpointer user_data)
+void
+track_break_compare_cursor_marker(gpointer data, gpointer user_data)
 {
-	TrackBreak *track_break = (TrackBreak *)data;
-	unsigned long cursor_marker = (unsigned long *) user_data;
+	TrackBreak *track_break = (TrackBreak *) data;
+	CursorData *cursor_data = (CursorData *) user_data;
 
-	if (cursor_marker == track_break->offset) {
-		return 0;
-	} else if (cursor_marker < track_break->offset) {
-		return -1;
-	} else {
-		return 1;
+	if (cursor_data->marker == track_break->offset) {
+		cursor_data->is_equal = TRUE;
 	}
+
+	g_print("cursor_data->marker: %ld\n", cursor_data->marker);
 }
 
 void track_break_clear_list()
@@ -206,23 +213,29 @@ void track_break_clear_list()
 
 void
 track_break_add_button_clicked(GtkWidget *widget,
-			       gpointer user_data)
+                               gpointer user_data)
 {
 	GtkTreeIter iter;
 	GtkTreeIter sibling;
-        GtkTreePath *path;
+	GtkTreePath *path;
 	gchar path_str[256];
 	gint list_pos = 0;
 	TrackBreak *track_break = NULL;
+	CursorData cursor_data;
+
+	cursor_data.is_equal = FALSE;
+	cursor_data.marker = cursor_marker;
+	g_list_foreach(track_break_list, track_break_compare_cursor_marker,
+                   &cursor_data);
+	if (cursor_data.is_equal == TRUE) {
+		printf("cursor is equal\n");
+		return;
+	}
 
 	if (! (track_break = (TrackBreak *)malloc(sizeof(TrackBreak)))) {
 		printf("couldn't malloc enough memory for track_break\n");
 		exit(1);
 	}
-
-//	if (g_list_foreach(track_break_list, track_break_compare_cursor_marker,
-//			cursor_marker)) {
-//	}
 
 	track_break->write = 1;
 	track_break->filename = "phish - stash.ogg";
@@ -252,9 +265,9 @@ track_break_add_button_clicked(GtkWidget *widget,
                            COLUMN_WRITE, track_break->write,
                            COLUMN_FILENAME, track_break->filename,
                            COLUMN_OFFSET, track_break->offset,
-			   -1);
+                           -1);
 
-        gtk_tree_path_free(path);
+	gtk_tree_path_free(path);
 }
 
 void track_break_write_toggled(GtkWidget *widget,
@@ -530,8 +543,8 @@ draw_cursor_marker()
 
 static gboolean
 configure_event(GtkWidget *widget,
-		GdkEventConfigure *event,
-		gpointer data)
+				GdkEventConfigure *event,
+				gpointer data)
 {
 	int width;
 	width = widget->allocation.width;
@@ -541,7 +554,7 @@ configure_event(GtkWidget *widget,
 		GTK_ADJUSTMENT(adj)->page_size = 1;
 		GTK_ADJUSTMENT(adj)->upper = 1;
 		GTK_ADJUSTMENT(adj)->page_increment = 1;
-	} else  if (width > graphData.numSamples) {
+	} else if (width > graphData.numSamples) {
 		pixmap_offset = 0;
 		GTK_ADJUSTMENT(adj)->page_size = graphData.numSamples;
 		GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
@@ -566,8 +579,8 @@ configure_event(GtkWidget *widget,
 
 static gboolean
 expose_event(GtkWidget *widget,
-	     GdkEventExpose *event,
-	     gpointer data)
+			 GdkEventExpose *event,
+			 gpointer data)
 {
 	GdkGC *gc;
 
@@ -595,6 +608,7 @@ static gboolean
 adj_value_changed(GtkAdjustment *adj,
 		  gpointer data)
 {
+printf("cursor_marker: %ld\n", cursor_marker);
 	pixmap_offset = adj->value;
 
 	draw_sample(draw);
@@ -606,15 +620,18 @@ adj_value_changed(GtkAdjustment *adj,
 
 static void
 button_release(GtkWidget *widget,
-	       GdkEventButton *event,
-	       gpointer data)
+			   GdkEventButton *event,
+			   gpointer data)
 {
 
+printf("cursor_marker: %ld\n", cursor_marker);
 	if (event->x + pixmap_offset > graphData.numSamples) {
 		return;
 	}
 
 	cursor_marker = pixmap_offset + event->x;
+
+printf("cursor_marker: %ld\n", cursor_marker);
 
 	draw_sample(draw);
 	draw_cursor_marker();
@@ -642,7 +659,7 @@ play_button_clicked(GtkWidget *widget,
 
 static void
 stop_button_clicked(GtkWidget *widget,
-		    gpointer data)
+                    gpointer data)
 {
 	stop_sample();
 }
@@ -672,8 +689,8 @@ open_file_button_clicked(GtkWidget *widget,
 
 static gboolean
 delete_event(GtkWidget *widget,
-	     GdkEventAny *event,
-	     gpointer data)
+             GdkEventAny *event,
+             gpointer data)
 {
 	g_print("delete event occurred\n");
 	return FALSE;
@@ -773,6 +790,7 @@ int main(int argc, char **argv)
 			 G_CALLBACK(button_release), NULL);
 
 	gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
+	gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
 
 	gtk_box_pack_start(GTK_BOX(packer), draw, TRUE, TRUE, 0);
 	gtk_widget_show(draw);
