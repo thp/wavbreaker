@@ -283,7 +283,7 @@ static void open_select_outputdir_2() {
         char *filename;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        printf("filename: %s\n", filename);
+//        printf("filename: %s\n", filename);
         gtk_entry_set_text(GTK_ENTRY(outputdir_entry), filename);
         g_free(filename);
     }

@@ -1014,21 +1014,6 @@ file_open_progress_idle_func(gpointer data) {
     }
 }
 
-void
-filesel_ok_clicked(GtkWidget *widget,
-                   gpointer user_data)
-{
-    GtkWidget *filesel;
-
-    filesel = GTK_WIDGET(user_data);
-
-    set_sample_filename((char *)gtk_file_selection_get_filename(
-        GTK_FILE_SELECTION(filesel)));
-
-    gdk_window_hide(widget->window);
-    open_file();
-}
-
 static void open_file() {
     if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
         popupmessage_show(main_window, sample_get_error_message());
@@ -1040,30 +1025,38 @@ static void open_file() {
     idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
 }
 
-void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
-{
-    gdk_window_hide(widget->window);
+void filesel_ok_clicked(GtkWidget *widget, gpointer user_data) {
+    GtkWidget *filesel;
+
+    filesel = GTK_WIDGET(user_data);
+
+    set_sample_filename((char *)gtk_file_selection_get_filename(
+        GTK_FILE_SELECTION(filesel)));
+
+    gtk_widget_destroy(user_data);
+    open_file();
+}
+
+void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data) {
+    gtk_widget_destroy(user_data);
 }
 
 static void open_select_file()
 {
-    static GtkWidget *filesel = NULL;
+    GtkWidget *filesel = gtk_file_selection_new("open file");
+    gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
+        "clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
 
-    if (filesel == NULL) {
-        filesel = gtk_file_selection_new("open file");
-        gtk_signal_connect(GTK_OBJECT(
-            GTK_FILE_SELECTION(filesel)->ok_button),
-            "clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
+    gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button),
+        "clicked", (GtkSignalFunc)filesel_cancel_clicked, filesel);
 
-        gtk_signal_connect(GTK_OBJECT(
-            GTK_FILE_SELECTION(filesel)->cancel_button),
-            "clicked", (GtkSignalFunc)filesel_cancel_clicked,
-            filesel);
-
-        gtk_widget_show(filesel);
-    } else {
-        gdk_window_show(filesel->window);
+    if (sample_filename != NULL) {
+        char filename[4096];
+        strcpy(filename, dirname(sample_filename));
+        strcat(filename, "/");
+        gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel), filename);
     }
+    gtk_widget_show(filesel);
 }
 
 static void open_select_file_2() {
@@ -1072,12 +1065,16 @@ static void open_select_file_2() {
     dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+    if (sample_filename != NULL) {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
+            dirname(sample_filename));
+    }
 
     if (gtk_dialog_run(GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        printf("filename: \"%s\"\n", filename);
+//        printf("filename: \"%s\"\n", filename);
         set_sample_filename(filename);
         g_free(filename);
         open_file();
@@ -1731,9 +1728,9 @@ menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget)
 {
 #ifdef HAVE_GTK_2_3
-    open_select_file_2();
-#else
     open_select_file();
+#else
+    open_select_file_2();
 #endif
 
 }

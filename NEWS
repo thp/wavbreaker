@@ -1,3 +1,6 @@
+    + Use the new gtk file dialogs if using gtk+-2.3 or greater.
+    ! Fixed a small bug that when deleting a track break, the durations are
+        not updated in the list display.
 version 0.5 (2004-07-??)
     + Added duration to the list
     + Added automatic etree style filenaming
