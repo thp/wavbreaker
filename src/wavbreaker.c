@@ -474,7 +474,7 @@ file_write_progress_idle_func(gpointer data) {
 	static GtkWidget *filename_label;
 	static char tmp_str[1024];
 	static char str[1024];
-	static int last_file_flag = 0;
+	static int cur_file_displayed = 0;
 
 	if (window == NULL) {
 		gdk_threads_enter();
@@ -516,26 +516,18 @@ file_write_progress_idle_func(gpointer data) {
 		gdk_threads_leave();
 	}
 
-	if (write_info.pct_done >= 1.0) {
-		write_info.pct_done = 0;
+	if (write_info.sync) {
+		gdk_threads_enter();
 
-		if (last_file_flag) {
-			last_file_flag = 0; 
+		write_info.sync = 0;
+		gtk_widget_destroy(window);
+		window = NULL;
 
-			gdk_threads_enter();
-			gtk_widget_destroy(window);
-			window = NULL;
+		gdk_threads_leave();
+		return FALSE;
+	}
 
-			gdk_threads_leave();
-			return FALSE;
-		}
-
-		return TRUE;
-	} else {
-		if (write_info.num_files == write_info.cur_file) {
-			last_file_flag = 1;
-		}
-
+	if (cur_file_displayed != write_info.cur_file) {
 		gdk_threads_enter();
 
 		str[0] = '\0';
@@ -547,12 +539,15 @@ file_write_progress_idle_func(gpointer data) {
 		strcat(str, tmp_str);
 		gtk_label_set_text(GTK_LABEL(filename_label), str);
 
-		gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
-				write_info.pct_done);
 		gdk_threads_leave();
-
-		return TRUE;
 	}
+
+	gdk_threads_enter();
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
+			write_info.pct_done);
+	gdk_threads_leave();
+
+	return TRUE;
 }
 
 /*

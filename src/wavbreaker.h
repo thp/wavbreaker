@@ -43,10 +43,11 @@ struct TrackBreak_ {
 
 typedef struct WriteInfo_ WriteInfo;
 struct WriteInfo_ {
-    guint num_files;
-    guint cur_file;
-    char *cur_filename;
-    double pct_done;
+	guint num_files;
+	guint cur_file;
+	char *cur_filename;
+	double pct_done;
+	guint sync;
 };
 
 #endif /* WAVBREAKER_H */

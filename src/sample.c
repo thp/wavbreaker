@@ -362,6 +362,7 @@ write_thread(void *data)
 
 	write_info->num_files = 0;
 	write_info->cur_file = 0;
+	write_info->sync = 0;
 
 	i = 1;
 	tbl_cur = tbl_head;
@@ -430,6 +431,7 @@ write_thread(void *data)
 		tbl_cur = g_list_next(tbl_cur);
 		tbl_next = g_list_next(tbl_next);
 	}
+	write_info->sync = 1;
 
 	return NULL;
 }
