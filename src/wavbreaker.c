@@ -17,9 +17,11 @@
  */
 
 #ifdef _WIN32
-#define IMAGEDIR "../images/"
+#  define IMAGEDIR "../images/"
 #else
-#include <config.h>
+#  ifdef HAVE_CONFIG_H
+#    include <config.h>
+#  endif
 #endif
 
 #include <stdlib.h>
@@ -32,6 +34,8 @@
 
 #include "wavbreaker.h"
 #include "sample.h"
+#include "about.h"
+#include "appconfig.h"
 
 #define play_icon_filename IMAGEDIR"play.png"
 #define stop_icon_filename IMAGEDIR"stop.png"
@@ -43,7 +47,7 @@ static GdkPixmap *summary_pixmap;
 static GdkPixmap *cursor_pixmap;
 static GdkPixmap *play_pixmap;
 
-GtkWidget *main_window;
+static GtkWidget *main_window;
 static GtkWidget *scrollbar;
 static GtkObject *adj;
 static GtkWidget *draw;
@@ -94,10 +98,11 @@ GtkWidget *treeview;
  *-------------------------------------------------------------------------
  */
 
+static gboolean
+track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+
 void
-track_break_write_toggled(GtkWidget *widget,
-                               gchar *path_str,
-                               gpointer data);
+track_break_write_toggled(GtkWidget *widget, gchar *path_str, gpointer data);
 
 void
 track_break_filename_edited(GtkCellRendererText *cell,
@@ -160,7 +165,7 @@ draw_summary_expose_event(GtkWidget *widget,
                           GdkEventExpose *event,
                           gpointer user_data);
 
-static void
+static gboolean
 draw_summary_button_release(GtkWidget *widget,
                             GdkEventButton *event,
                             gpointer user_data);
@@ -168,12 +173,20 @@ draw_summary_button_release(GtkWidget *widget,
 static void
 menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget);
+static void
+menu_delete_track_break(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
+menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
+menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_play(GtkWidget *widget, gpointer user_data);
@@ -208,35 +221,17 @@ char *basename(const char *str)
 }
 
 static GtkItemFactoryEntry menu_items[] = {
-  {"/_File", NULL, 0, 0, "<Branch>"},
-//  {"/File/_New", "<control>N", menuitem_cb, 0, "<StockItem>", GTK_STOCK_NEW},
-  {"/File/_Open", "<control>O", menu_open_file, 0, "<StockItem>",
-      GTK_STOCK_OPEN},
-  {"/File/_Save", "<control>S", menu_save, 0, "<StockItem>", GTK_STOCK_SAVE},
-/*
-  {"/File/Save _As...", "<control>A", menuitem_cb, 0, "<StockItem>",
-      GTK_STOCK_SAVE},
-*/
-  {"/File/sep1", NULL, NULL, 0, "<Separator>"},
-  {"/File/_Quit", "<control>Q", menu_quit, 0, "<StockItem>", GTK_STOCK_QUIT},
+  { "/_File",      NULL,         0,              0, "<Branch>"},
+  { "/File/_Open", "<control>O", menu_open_file, 0, "<StockItem>", GTK_STOCK_OPEN},
+  { "/File/_Save", "<control>S", menu_save,      0, "<StockItem>", GTK_STOCK_SAVE},
+  { "/File/sep1",  NULL,         NULL,           0, "<Separator>"},
+  { "/File/_Quit", "<control>Q", menu_quit,      0, "<StockItem>", GTK_STOCK_QUIT},
 
-/*
-  {"/_Preferences", NULL, 0,               0, "<Branch>" },
-  {"/_Preferences/_Color", NULL, 0,               0, "<Branch>" },
-  {"/_Preferences/Color/_Red", NULL, menuitem_cb, 0, "<RadioItem>" },
-  {"/_Preferences/Color/_Green", NULL, menuitem_cb, 0,
-      "/Preferences/Color/Red" },
-  {"/_Preferences/Color/_Blue", NULL, menuitem_cb, 0, "/Preferences/Color/Red"},
-  {"/_Preferences/_Shape", NULL, 0,               0, "<Branch>" },
-  {"/_Preferences/Shape/_Square", NULL, menuitem_cb, 0, "<RadioItem>" },
-  {"/_Preferences/Shape/_Rectangle", NULL, menuitem_cb, 0,
-      "/Preferences/Shape/Square" },
-  {"/_Preferences/Shape/_Oval", NULL, menuitem_cb, 0,
-      "/Preferences/Shape/Rectangle"},
-*/
+  { "/_Edit",             NULL, 0,           0, "<Branch>" },
+  { "/Edit/_Preferences", NULL, menu_config, 0, "" },
 
-  { "/_Help",            NULL,         0,                 0, "<Branch>" },
-  { "/Help/_About",      NULL,         NULL,       0 },
+  { "/_Help",       NULL, 0,          0, "<Branch>" },
+  { "/Help/_About", NULL, menu_about, 0, "" },
 };
 
 /*
@@ -253,40 +248,42 @@ track_break_create_list_gui()
 	GtkWidget *sw;
 
 /* create the scrolled window for the list */
-        sw = gtk_scrolled_window_new(NULL, NULL);
-        gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(sw),
-                                            GTK_SHADOW_ETCHED_IN);
-        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw),
-                                        GTK_POLICY_AUTOMATIC,
-                                        GTK_POLICY_AUTOMATIC);
-        gtk_widget_set_size_request(sw, 350, 75);
+    sw = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(sw), GTK_SHADOW_ETCHED_IN);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw),
+                                    GTK_POLICY_AUTOMATIC,
+                                    GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_size_request(sw, 350, 100);
 
 /* create the data store */
 
-        store = gtk_list_store_new(NUM_COLUMNS,
-                                   G_TYPE_BOOLEAN,
-                                   G_TYPE_STRING,
-                                   G_TYPE_STRING,
-                                   G_TYPE_UINT,
-                                   G_TYPE_BOOLEAN);
+    store = gtk_list_store_new(NUM_COLUMNS,
+                               G_TYPE_BOOLEAN,
+                               G_TYPE_STRING,
+                               G_TYPE_STRING,
+                               G_TYPE_UINT,
+                               G_TYPE_BOOLEAN);
 
 /* create the treeview */
 
-        treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
-//      gtk_box_pack_start(GTK_BOX(container), treeview, FALSE, FALSE, 0);
-        gtk_container_add(GTK_CONTAINER(sw), treeview);
-        gtk_widget_show(treeview);
+    treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+    gtk_container_add(GTK_CONTAINER(sw), treeview);
+
+	/* connect/add the right-click signal */
+	gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
+	gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
+    g_signal_connect(G_OBJECT(treeview), "button_press_event",
+                     G_CALLBACK(track_break_button_press), NULL);
+
+    gtk_widget_show(treeview);
 
 /* create the columns */
 
 /* Write Toggle Column */
 	renderer = gtk_cell_renderer_toggle_new();
-	g_signal_connect(G_OBJECT(renderer), "toggled",
-	                 G_CALLBACK(track_break_write_toggled), store);
-	column = gtk_tree_view_column_new_with_attributes("Write", renderer,
-	                    "active", COLUMN_WRITE, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-	                                GTK_TREE_VIEW_COLUMN_FIXED);
+	g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(track_break_write_toggled), store);
+	column = gtk_tree_view_column_new_with_attributes("Write", renderer, "active", COLUMN_WRITE, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
@@ -295,29 +292,22 @@ track_break_create_list_gui()
 	column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
 	                    "text", COLUMN_FILENAME,
 						"editable", COLUMN_EDITABLE, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_column_set_resizable(column, TRUE);
-	g_signal_connect(G_OBJECT(renderer), "edited",
-	                 G_CALLBACK(track_break_filename_edited), store);
-//	GTK_CELL_RENDERER_TEXT(renderer)->editable = TRUE;
+	g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 /* File Time Column */
 	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("Time",
-	                    renderer, "text", COLUMN_TIME, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+	column = gtk_tree_view_column_new_with_attributes("Time", renderer, "text", COLUMN_TIME, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_column_set_resizable(column, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 /* File Offset Column */
 	renderer = gtk_cell_renderer_text_new();
-	column = gtk_tree_view_column_new_with_attributes("Offset",
-	                    renderer, "text", COLUMN_OFFSET, NULL);
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
-	                                GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+	column = gtk_tree_view_column_new_with_attributes("Offset", renderer, "text", COLUMN_OFFSET, NULL);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 	return sw;
@@ -336,6 +326,30 @@ track_break_sort(gconstpointer a, gconstpointer b)
 	} else {
 		return 0;
 	}
+}
+
+static gboolean
+track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+	GtkWidget *menu;
+	GtkWidget *delete_item;
+
+	if (event->button != 3) {
+		return FALSE;
+	}
+
+	menu = gtk_menu_new();
+
+	delete_item = gtk_menu_item_new_with_label("Delete Selected Track Break");
+	g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
+	gtk_widget_show(delete_item);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), delete_item);
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
+			  event->button, event->time);
+
+	return TRUE;
 }
 
 /* DEBUG FUNCTION START */
@@ -1323,17 +1337,15 @@ draw_summary_expose_event(GtkWidget *widget,
 	return FALSE;
 }
 
-static void
-draw_summary_button_release(GtkWidget *widget,
-                            GdkEventButton *event,
-                            gpointer user_data)
+static gboolean
+draw_summary_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	int start, midpoint, width;
 	int x_scale, x_scale_leftover, x_scale_mod;
 	int leftover_count;
 
 	if (sample_get_playing()) {
-		return;
+		return TRUE;
 	}
 
 	width = widget->allocation.width;
@@ -1367,7 +1379,7 @@ draw_summary_button_release(GtkWidget *widget,
 
 	redraw();
 
-	return;
+	return TRUE;
 }
 
 /*
@@ -1390,14 +1402,34 @@ adj_value_changed(GtkAdjustment *adj,
 	return TRUE;
 }
 
-static void
+static gboolean
 button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
+	GtkWidget *menu;
+	GtkWidget *add_item;
+
 	if (event->x + pixmap_offset > graphData.numSamples) {
-		return;
+		return TRUE;
 	}
 	if (sample_get_playing()) {
-		return;
+		return TRUE;
+	}
+
+	if (event->button == 3) {
+		menu = gtk_menu_new();
+
+		add_item = gtk_menu_item_new_with_label("Add Track Break");
+		g_signal_connect(G_OBJECT(add_item), "activate", G_CALLBACK(menu_add_track_break), NULL);
+		gtk_widget_show(add_item);
+
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), add_item);
+
+		gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
+				  event->button, event->time);
+
+		redraw();
+
+		return TRUE;
 	}
 
 	cursor_marker = pixmap_offset + event->x;
@@ -1411,6 +1443,8 @@ button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	update_status();
 
 	redraw();
+
+	return TRUE;
 }
 
 static void
@@ -1513,6 +1547,18 @@ menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 	gtk_main_quit();
 }
 
+static void
+menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+	about_show(main_window);
+}
+
+static void
+menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+	appconfig_show(main_window);
+}
+
 /*
  *-------------------------------------------------------------------------
  * Main Window Events
@@ -1594,7 +1640,7 @@ int main(int argc, char **argv)
 	                         "Open New Wave File", NULL,
 	                         G_CALLBACK(menu_open_file), main_window, -1);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
-	                         "Save Selected Track Breaks", NULL,
+	                         "Save Track Breaks", NULL,
 	                         G_CALLBACK(menu_save), main_window, -1);
 	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
 	                         "Quit wavbreaker", NULL,
@@ -1612,7 +1658,7 @@ int main(int argc, char **argv)
 	                        NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
 	icon = gtk_image_new_from_file(del_break_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
-							"Delete Track Break", NULL, icon,
+							"Delete Selected Track Break", NULL, icon,
 							G_CALLBACK(menu_delete_track_break), NULL);
 
 	/*
@@ -1784,6 +1830,7 @@ int main(int argc, char **argv)
     write_info.cur_filename = NULL;
 
 	sample_init();
+	appconfig_init();
 	gtk_widget_show(main_window);
 
 	if (!g_thread_supported ()) g_thread_init (NULL);
