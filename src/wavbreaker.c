@@ -1253,6 +1253,7 @@ int main(int argc, char **argv)
 
 	GtkWidget *vpane1, *vpane2;
 	GtkWidget *vpane_vbox;
+	GtkWidget *list_vbox;
 	GtkWidget *frame;
 
 	g_thread_init(NULL);
@@ -1400,7 +1401,7 @@ int main(int argc, char **argv)
 
 /* vbox for the vpane */
 	vpane_vbox = gtk_vbox_new(FALSE, 0);
-	gtk_paned_add1(GTK_PANED(vpane1), vpane_vbox);
+	gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
 	gtk_widget_show(vpane_vbox);
 
 /* paned view */
@@ -1462,10 +1463,14 @@ int main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(vpane_vbox), scrollbar, FALSE, TRUE, 0);
 	gtk_widget_show(scrollbar);
 
+/* vbox for the list */
+	list_vbox = gtk_vbox_new(FALSE, 0);
+	gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, FALSE, TRUE);
+	gtk_widget_show(list_vbox);
+
 /* Track Break List */
 	tbl_widget = track_break_create_list_gui();
-	gtk_paned_add2(GTK_PANED(vpane1), tbl_widget);
-//	gtk_box_pack_start(GTK_BOX(vbox), tbl_widget, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
 	gtk_widget_show(tbl_widget);
 
 /* Status Bar */
