@@ -40,6 +40,7 @@ static GtkWidget *scrollbar;
 static GtkObject *adj;
 static GtkWidget *draw;
 static GtkWidget *draw_summary;
+static GtkWidget *statusbar;
 
 static GraphData graphData;
 
@@ -142,6 +143,9 @@ menu_play(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_stop(GtkWidget *widget, gpointer user_data);
+
+void
+menu_add_track_break(GtkWidget *widget, gpointer user_data);
 
 static GtkItemFactoryEntry menu_items[] = {
   {"/_File", NULL, 0, 0, "<Branch>"},
@@ -323,6 +327,7 @@ track_break_add_entry()
 		return;
 	}
 
+	/* check for duplicate track breaks */
 	cursor_data.is_equal = FALSE;
 	cursor_data.marker = cursor_marker;
 	g_list_foreach(track_break_list, track_break_compare_cursor_marker,
@@ -348,7 +353,8 @@ track_break_add_entry()
 	if (str_ptr != NULL) {
 		*str_ptr = '\0';
 	}
-	track_break->filename = strdup(strcat(str_tmp, "00"));
+//	track_break->filename = strdup(strcat(str_tmp, "00"));
+	track_break->filename = strdup(str_tmp);
 
 	track_break_list = g_list_insert_sorted(track_break_list, track_break,
 											track_break_sort);
@@ -370,12 +376,11 @@ track_break_add_entry()
 	} else {
 		gtk_list_store_append(store, &iter);
 	}
-	gtk_list_store_set(store, &iter,
-                           COLUMN_WRITE, track_break->write,
-                           COLUMN_FILENAME, track_break->filename,
-                           COLUMN_OFFSET, track_break->offset,
-						   COLUMN_EDITABLE, track_break->editable,
-                           -1);
+	gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
+	                                 COLUMN_FILENAME, track_break->filename,
+	                                 COLUMN_OFFSET, track_break->offset,
+	                                 COLUMN_EDITABLE, track_break->editable,
+	                                 -1);
 
 	gtk_tree_path_free(path);
 }
@@ -1001,10 +1006,9 @@ adj_value_changed(GtkAdjustment *adj,
 }
 
 static void
-button_release(GtkWidget *widget,
-			   GdkEventButton *event,
-			   gpointer data)
+button_release(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
+	char strbuf[1024];
 
 	if (event->x + pixmap_offset > graphData.numSamples) {
 		return;
@@ -1013,10 +1017,13 @@ button_release(GtkWidget *widget,
 	cursor_marker = pixmap_offset + event->x;
 
 	/* DEBUG CODE START */
-	
+	/*
 	printf("cursor_marker: %lu\n", cursor_marker);
-	
+	*/
 	/* DEBUG CODE END */
+
+	sprintf(strbuf, "cursor_marker: %lu", cursor_marker);
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, strbuf);
 
 	draw_sample(draw);
 	draw_cursor_marker();
@@ -1058,7 +1065,7 @@ menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 }
 
 void
-track_break_add_button_clicked(GtkWidget *widget, gpointer user_data)
+menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
 	track_break_add_entry();
 }
@@ -1069,6 +1076,7 @@ menu_open_file(gpointer callback_data, guint callback_action,
 {
 	openfile();
 }
+
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
@@ -1097,8 +1105,7 @@ destroy(GtkWidget *widget, GdkEventAny *event, gpointer data)
 int main(int argc, char **argv)
 {
 	GtkWidget *window;
-	GtkWidget *button;
-	GtkWidget *packer, *box2;
+	GtkWidget *packer;
 	GtkWidget *menu_widget;
 	GtkWidget *toolbar;
 	GtkWidget *icon;
@@ -1122,10 +1129,6 @@ int main(int argc, char **argv)
 	packer = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(window), packer);
 	gtk_widget_show(packer);
-
-	box2 = gtk_hbox_new(FALSE, 10);
-	gtk_box_pack_end(GTK_BOX(packer), box2, FALSE, FALSE, 0);
-	gtk_widget_show(box2);
 
 /* Menu Items */
 	accel_group = gtk_accel_group_new();
@@ -1169,18 +1172,17 @@ int main(int argc, char **argv)
 	icon = gtk_image_new_from_file(stop_icon_filename);
 	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
 	                         icon, G_CALLBACK(menu_stop), NULL);
+	//icon = gtk_image_new_from_file(break_icon_filename);
+	gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Break", "Add Track Break",
+	                        NULL, NULL, G_CALLBACK(menu_add_track_break), NULL);
+	/*
+	gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
+	                         "Add Track Break", NULL,
+	                         G_CALLBACK(menu_add_track_break), window, -1);
+	*/
 
 	gtk_box_pack_start(GTK_BOX(packer), toolbar, FALSE, TRUE, 0);
 	gtk_widget_show(toolbar);
-
-/* track break button */
-	button = gtk_button_new_with_label("Add Track Break");
-
-	g_signal_connect(G_OBJECT(button), "clicked",
-			 G_CALLBACK(track_break_add_button_clicked), NULL);
-
-	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
-	gtk_widget_show(button);
 
 /* The summary_pixmap drawing area */
 	draw_summary = gtk_drawing_area_new();
@@ -1225,8 +1227,15 @@ int main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
 	gtk_widget_show(scrollbar);
 
-/* Finish up */
+/* Track Break List */
 	track_break_create_list_gui(packer);
+
+/* Status Bar */
+	statusbar = gtk_statusbar_new();
+	gtk_box_pack_start(GTK_BOX(packer), statusbar, FALSE, TRUE, 0);
+	gtk_widget_show(statusbar);
+
+/* Finish up */
 
 	gtk_widget_show(window);
 

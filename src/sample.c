@@ -350,7 +350,6 @@ write_thread(void *data)
 	char str_tmp[1024];
 
 	i = 0;
-
 	tbl_cur = tbl_head;
 	tbl_next = g_list_next(tbl_cur);
 
@@ -370,10 +369,24 @@ write_thread(void *data)
 				end_pos = tb_next->offset * BLOCK_SIZE;
 			}
 
+			/* add output directory to filename */
 			strcpy(str_tmp, "/data/tmp/");
-			filename = strcat(str_tmp, filename);
+			filename = strdup(strcat(str_tmp, filename));
+			printf("%s\n", filename);
+
+			/* add file number to filename */
+			if (i < 10) {
+				sprintf(str_tmp, "0%d", i);
+			} else {
+				sprintf(str_tmp, "%d", i);
+			}
+			filename = strcat(filename, str_tmp);
+
+			/* add file extension to filename */
 			if ((audio_type == WAV) && (!strstr(filename, ".wav"))) {
-				filename = strcat(str_tmp, ".wav");
+				filename = strcat(filename, ".wav");
+			} else if ((audio_type == CDDA) && (!strstr(filename, ".dat"))) {
+				filename = strcat(filename, ".dat");
 			}
 
 			if (audio_type == CDDA) {
@@ -383,6 +396,7 @@ write_thread(void *data)
 				ret = wav_write_file(sample_fp, filename, BLOCK_SIZE,
 							&sampleInfo, start_pos, end_pos);
 			}
+			i++;
 		}
 
 		tbl_cur = g_list_next(tbl_cur);
