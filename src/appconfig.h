@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2003 Timothy Robinson
+ * Copyright (C) 2002-2004 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,23 @@
 #ifndef APPCONFIG_H
 #define APPCONFIG_H
 
+#include "sample.h"
+
+typedef struct AudioFunctionPointers_ AudioFunctionPointers;
+
+struct AudioFunctionPointers_ {
+    void (*audio_close_device)();
+    int (*audio_open_device)(const char *, SampleInfo *);
+    int (*audio_write)(char *, int);
+};
+
 void appconfig_show(GtkWidget *);
 char *get_outputdev();
 char *get_outputdir();
-char *get_use_etree_filename_suffix();
+AudioFunctionPointers *get_audio_function_pointers();
+int get_use_etree_filename_suffix();
 char *get_etree_filename_suffix();
 char *get_etree_cd_length();
 
 #endif /* APPCONFIG_H */
+

@@ -16,6 +16,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "appconfig.h"
+#include "sample.h"
+#include "alsaaudio.h"
+#include "linuxaudio.h"
+
 #include <gtk/gtk.h>
 
 #include <stdlib.h>
@@ -31,6 +36,9 @@
 #define APPCONFIG_FILENAME "/.wavbreaker"
 
 static GtkWidget *window;
+
+/* Function pointers to the currently selected audio driver. */
+static AudioFunctionPointers audio_function_pointers;
 
 /* Output directory for wave files. */
 static int use_outputdir = 0;
@@ -66,6 +74,26 @@ static int appconfig_read_file();
 static void default_all_strings();
 static void open_select_outputdir_2();
 static void open_select_outputdir();
+
+AudioFunctionPointers *get_audio_function_pointers()
+{
+    return &audio_function_pointers;
+}
+
+void set_audio_close_device(void (*f))
+{
+    audio_function_pointers.audio_close_device = f;
+}
+
+void set_audio_open_device(void (*f))
+{
+    audio_function_pointers.audio_open_device = f;
+}
+
+void set_audio_write(void (*f))
+{
+    audio_function_pointers.audio_write = f;
+}
 
 int get_use_outputdir()
 {
@@ -733,5 +761,15 @@ void default_all_strings() {
     if (get_etree_cd_length() == NULL) {
         default_etree_cd_length();
     }
+
+    /*
+    set_audio_close_device(alsa_audio_close_device);
+    set_audio_open_device(alsa_audio_open_device);
+    set_audio_write(alsa_audio_write);
+    */
+
+    set_audio_close_device(oss_audio_close_device);
+    set_audio_open_device(oss_audio_open_device);
+    set_audio_write(oss_audio_write);
 }
 

@@ -27,19 +27,19 @@
 
 static int audio_fd;
 
-void audio_close_device()
+void oss_audio_close_device()
 {
 //    printf("closing audio device\n");
 	close(audio_fd);
 }
 
-int audio_write(char *devbuf, int size)
+int oss_audio_write(char *devbuf, int size)
 {
 //    printf("writing to audio device: %d\n", size);
 	return write(audio_fd, devbuf, size);
 }
 
-int audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
+int oss_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
 {
 	int format, speed, channels;
 	int ret;

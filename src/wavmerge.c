@@ -39,6 +39,12 @@ int main(int argc, char *argv[])
 	}
 
 	if (ret != 0) {
+        fprintf(stderr,
+"ERROR: The files are not of the same format.\n\n"
+"This means that the sample rate, bits per sample, etc. are different.\n"
+"Please use a tool, like sox, to convert the files to the same format and\n"
+"try again.\n"
+);
 		return 1;
 	}
 

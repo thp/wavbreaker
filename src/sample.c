@@ -43,6 +43,7 @@
 #define WAV  2 
 
 static SampleInfo sampleInfo;
+static AudioFunctionPointers *audio_function_pointers;
 static unsigned long sample_start = 0;
 static int playing = 0;
 static gboolean kill_play_thread = FALSE;
@@ -107,13 +108,14 @@ static gpointer play_thread(gpointer thread_data)
     guint *play_marker = (guint *)thread_data;
     unsigned char *devbuf;
 
+    audio_function_pointers = get_audio_function_pointers();
+
     //printf("play_thread: calling open_audio_device\n");
-    //if (audio_open_device(get_outputdev(), &sampleInfo) != 0) {
-    if (alsa_audio_open_device("plughw:0,0", &sampleInfo) != 0) {
+    if (oss_audio_open_device(get_outputdev(), &sampleInfo) != 0) {
+    //if (alsa_audio_open_device("plughw:0,0", &sampleInfo) != 0) {
         g_mutex_lock(mutex);
         playing = 0;
-        //audio_close_device();
-        alsa_audio_close_device();
+        audio_function_pointers->audio_close_device();
         g_mutex_unlock(mutex);
         printf("play_thread: return from open_audio_device != 0\n");
 		return NULL;
@@ -126,8 +128,7 @@ static gpointer play_thread(gpointer thread_data)
     if (devbuf == NULL) {
         g_mutex_lock(mutex);
         playing = 0;
-        //audio_close_device();
-        alsa_audio_close_device();
+        audio_function_pointers->audio_close_device();
         g_mutex_unlock(mutex);
         printf("play_thread: out of memory\n");
 		return NULL;
@@ -145,19 +146,12 @@ static gpointer play_thread(gpointer thread_data)
         if (read_ret < 0) {
             printf("read_ret: %d\n", read_ret);
         }
-        //printf("sample - buf[0]: %d\n", devbuf[0]);
-        //write_ret = audio_write(devbuf, ret);
-        write_ret = alsa_audio_write(devbuf, read_ret);
-        /*
-        if (write_ret < 0) {
-            printf("write_ret: %d\n", write_ret);
-        }
-        */
+
+        write_ret = audio_function_pointers->audio_write(devbuf, read_ret);
 
 		if (g_mutex_trylock(mutex)) {
 			if (kill_play_thread == TRUE) {
-                //audio_close_device();
-                alsa_audio_close_device();
+                audio_function_pointers->audio_close_device();
 				playing = 0;
 				kill_play_thread = FALSE;
 				g_mutex_unlock(mutex);
@@ -181,8 +175,7 @@ static gpointer play_thread(gpointer thread_data)
 
 	g_mutex_lock(mutex);
 
-    //audio_close_device();
-    alsa_audio_close_device();
+    audio_function_pointers->audio_close_device();
 	playing = 0;
 
 	g_mutex_unlock(mutex);

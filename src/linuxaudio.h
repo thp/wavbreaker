@@ -21,8 +21,9 @@
 
 #include "sample.h"
 
-void audio_close_device();
-int audio_open_device(const char *, SampleInfo *);
-int audio_write(char *, int);
+void oss_audio_close_device();
+int oss_audio_open_device(const char *, SampleInfo *);
+int oss_audio_write(char *, int);
 
 #endif /* LINUXAUDIO_H */
+
