@@ -932,11 +932,18 @@ draw_summary_button_release(GtkWidget *widget,
                             GdkEventButton *event,
                             gpointer user_data)
 {
-	int x_scale, start, midpoint, width;
+	int start, midpoint, width;
+	int x_scale, x_scale_leftover, x_scale_mod;
+	int leftover_count;
 
 	width = widget->allocation.width;
 	x_scale = graphData.numSamples / width;
-	midpoint = event->x * x_scale;
+	x_scale_leftover = graphData.numSamples % width;
+	x_scale_mod =  width / x_scale_leftover;
+
+	leftover_count = event->x / x_scale_mod;
+
+	midpoint = event->x * x_scale + leftover_count;
 	start = midpoint - width / 2;
 
 	if (graphData.numSamples == 0) {
