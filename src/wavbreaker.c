@@ -823,6 +823,32 @@ draw_summary_button_release(GtkWidget *widget,
                             GdkEventButton *event,
                             gpointer user_data)
 {
+	int x_scale, start, midpoint, width;
+
+	width = widget->allocation.width;
+	x_scale = graphData.numSamples / width;
+	midpoint = event->x * x_scale;
+	start = midpoint - width / 2;
+
+	pixmap_offset = start;
+
+	if (graphData.numSamples == 0) {
+		pixmap_offset = 0;
+	} else if (width > graphData.numSamples) {
+		pixmap_offset = 0;
+	} else if (pixmap_offset + width > graphData.numSamples) {
+		pixmap_offset = graphData.numSamples - width;
+	} else if (pixmap_offset < 0) {
+		pixmap_offset = 0;
+	}
+
+	gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), start);
+	gtk_widget_queue_draw(scrollbar);
+
+	draw_sample(draw);
+	draw_cursor_marker();
+	gtk_widget_queue_draw(draw);
+
 	return;
 }
 
@@ -1031,15 +1057,6 @@ int main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
 	gtk_widget_show(button);
 
-/* Add scrollbar */
-	adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
-	g_signal_connect(G_OBJECT(adj), "value_changed",
-			 G_CALLBACK(adj_value_changed), NULL);
-
-	scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
-	gtk_box_pack_end(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
-	gtk_widget_show(scrollbar);
-
 /* The sample_pixmap drawing area */
 	draw = gtk_drawing_area_new();
 	gtk_widget_set_size_request(draw, 500, 200);
@@ -1056,6 +1073,15 @@ int main(int argc, char **argv)
 
 	gtk_box_pack_start(GTK_BOX(packer), draw, TRUE, TRUE, 0);
 	gtk_widget_show(draw);
+
+/* Add scrollbar */
+	adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
+	g_signal_connect(G_OBJECT(adj), "value_changed",
+			 G_CALLBACK(adj_value_changed), NULL);
+
+	scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
+	gtk_box_pack_start(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
+	gtk_widget_show(scrollbar);
 
 /* The summary_pixmap drawing area */
 	draw_summary = gtk_drawing_area_new();
