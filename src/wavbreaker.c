@@ -620,6 +620,7 @@ draw_sample(GtkWidget *widget)
 	GdkGC *gc;
 
 	int count;
+	int index;
 	GList *tbl;
 	TrackBreak *tb_cur;
 
@@ -687,9 +688,8 @@ draw_sample(GtkWidget *widget)
 		count = 0;
 		tb_cur = NULL;
 		for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-//			index = g_list_position(track_break_list, tbl);
-//			tb_cur = g_list_nth_data(tbl, index);
-			tb_cur = tbl->data;
+			index = g_list_position(track_break_list, tbl);
+			tb_cur = g_list_nth_data(track_break_list, index);
 			if (tb_cur != NULL) {
 				if (i + pixmap_offset > tb_cur->offset) {
 					count++;
@@ -803,6 +803,7 @@ draw_summary_pixmap(GtkWidget *widget)
 
 	GdkGC *gc;
 	int count;
+	int index;
 	GList *tbl;
 	TrackBreak *tb_cur;
 
@@ -904,9 +905,8 @@ leftover_count = 0;
 		count = 0;
 		tb_cur = NULL;
 		for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-//			index = g_list_position(track_break_list, tbl);
-//			tb_cur = g_list_nth_data(tbl, index);
-			tb_cur = tbl->data;
+			index = g_list_position(track_break_list, tbl);
+			tb_cur = g_list_nth_data(track_break_list, index);
 			if (tb_cur != NULL) {
 				if (array_offset > tb_cur->offset) {
 					count++;
