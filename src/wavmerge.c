@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
 	if (argc < 3) {
 		printf("Must pass filenames of wave files to merge.\n");
-		printf("Usage: wavmerge [-o outfile] mergefiles...");
+		printf("Usage: wavmerge [-o outfile] mergefiles...\n");
 		return 1;
 	}
 

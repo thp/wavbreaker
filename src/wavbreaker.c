@@ -62,8 +62,8 @@ enum {
 	NUM_COLUMNS
 };
 
-GList *track_break_list = NULL;
-GtkListStore *store = NULL;
+static GList *track_break_list = NULL;
+static GtkListStore *store = NULL;
 
 /*
  *-------------------------------------------------------------------------
@@ -123,6 +123,48 @@ static void
 draw_summary_button_release(GtkWidget *widget,
                             GdkEventButton *event,
                             gpointer user_data);
+
+static void
+menu_open_file(gpointer callback_data, guint callback_action,
+               GtkWidget *widget);
+
+static void
+menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
+menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static GtkItemFactoryEntry menu_items[] = {
+  {"/_File", NULL, 0, 0, "<Branch>"},
+//  {"/File/_New", "<control>N", menuitem_cb, 0, "<StockItem>", GTK_STOCK_NEW},
+  {"/File/_Open", "<control>O", menu_open_file, 0, "<StockItem>",
+      GTK_STOCK_OPEN},
+  {"/File/_Save", "<control>S", menu_save, 0, "<StockItem>", GTK_STOCK_SAVE},
+/*
+  {"/File/Save _As...", "<control>A", menuitem_cb, 0, "<StockItem>",
+      GTK_STOCK_SAVE},
+*/
+  {"/File/sep1", NULL, NULL, 0, "<Separator>"},
+  {"/File/_Quit", "<control>Q", menu_quit, 0, "<StockItem>", GTK_STOCK_QUIT},
+
+/*
+  {"/_Preferences", NULL, 0,               0, "<Branch>" },
+  {"/_Preferences/_Color", NULL, 0,               0, "<Branch>" },
+  {"/_Preferences/Color/_Red", NULL, menuitem_cb, 0, "<RadioItem>" },
+  {"/_Preferences/Color/_Green", NULL, menuitem_cb, 0,
+      "/Preferences/Color/Red" },
+  {"/_Preferences/Color/_Blue", NULL, menuitem_cb, 0, "/Preferences/Color/Red"},
+  {"/_Preferences/_Shape", NULL, 0,               0, "<Branch>" },
+  {"/_Preferences/Shape/_Square", NULL, menuitem_cb, 0, "<RadioItem>" },
+  {"/_Preferences/Shape/_Rectangle", NULL, menuitem_cb, 0,
+      "/Preferences/Shape/Square" },
+  {"/_Preferences/Shape/_Oval", NULL, menuitem_cb, 0,
+      "/Preferences/Shape/Rectangle"},
+*/
+
+  { "/_Help",            NULL,         0,                 0, "<Branch>" },
+  { "/Help/_About",      NULL,         NULL,       0 },
+};
 
 /*
  *-------------------------------------------------------------------------
@@ -481,6 +523,28 @@ filesel_cancel_clicked(GtkWidget *widget,
                        gpointer user_data)
 {
 	gdk_window_hide(widget->window);
+}
+
+static void
+openfile()
+{
+	static GtkWidget *filesel = NULL;
+
+	if (!filesel) {
+		filesel = gtk_file_selection_new("open file");
+		gtk_signal_connect(GTK_OBJECT(
+			GTK_FILE_SELECTION(filesel)->ok_button),
+			"clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
+
+		gtk_signal_connect(GTK_OBJECT(
+			GTK_FILE_SELECTION(filesel)->cancel_button),
+			"clicked", (GtkSignalFunc)filesel_cancel_clicked,
+			filesel);
+
+		gtk_widget_show(filesel);
+	} else {
+		gdk_window_show(filesel->window);
+	}
 }
 
 /*
@@ -980,34 +1044,38 @@ write_button_clicked(GtkWidget *widget,
 	sample_write_files(sample_filename, track_break_list);
 }
 
+static void
+menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+	if (sample_filename == NULL) {
+		return;
+	}
+
+	sample_write_files(sample_filename, track_break_list);
+}
+
 void
-track_break_add_button_clicked(GtkWidget *widget,
-                               gpointer user_data)
+track_break_add_button_clicked(GtkWidget *widget, gpointer user_data)
 {
 	track_break_add_entry();
 }
 
 static void
-open_file_button_clicked(GtkWidget *widget,
-			 gpointer data)
+open_file_button_clicked(GtkWidget *widget, gpointer data)
 {
-	static GtkWidget *filesel = NULL;
+	openfile();
+}
 
-	if (!filesel) {
-		filesel = gtk_file_selection_new("open file");
-		gtk_signal_connect(GTK_OBJECT(
-			GTK_FILE_SELECTION(filesel)->ok_button),
-			"clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
-
-		gtk_signal_connect(GTK_OBJECT(
-			GTK_FILE_SELECTION(filesel)->cancel_button),
-			"clicked", (GtkSignalFunc)filesel_cancel_clicked,
-			filesel);
-
-		gtk_widget_show(filesel);
-	} else {
-		gdk_window_show(filesel->window);
-	}
+static void
+menu_open_file(gpointer callback_data, guint callback_action,
+               GtkWidget *widget)
+{
+	openfile();
+}
+static void
+menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+	gtk_main_quit();
 }
 
 /*
@@ -1017,17 +1085,13 @@ open_file_button_clicked(GtkWidget *widget,
  */
 
 static gboolean
-delete_event(GtkWidget *widget,
-             GdkEventAny *event,
-             gpointer data)
+delete_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
 	return FALSE;
 }
 
 static gboolean
-destroy(GtkWidget *widget,
-	GdkEventAny *event,
-	gpointer data)
+destroy(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
 	gtk_main_quit();
 	return FALSE;
@@ -1038,6 +1102,9 @@ int main(int argc, char **argv)
 	GtkWidget *window;
 	GtkWidget *button;
 	GtkWidget *packer, *box2;
+	GtkWidget *menu_widget;
+	GtkAccelGroup *accel_group;      
+	GtkItemFactory *item_factory;
 
 	g_thread_init(NULL);
 	gdk_threads_init();
@@ -1051,15 +1118,38 @@ int main(int argc, char **argv)
 	g_signal_connect(G_OBJECT(window), "destroy",
 			 G_CALLBACK(destroy), NULL);
 
-	gtk_container_set_border_width(GTK_CONTAINER(window), 5);
+	gtk_container_set_border_width(GTK_CONTAINER(window), 0);
 
-	packer = gtk_vbox_new(FALSE, 10);
+	packer = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(window), packer);
 	gtk_widget_show(packer);
 
 	box2 = gtk_hbox_new(FALSE, 10);
 	gtk_box_pack_end(GTK_BOX(packer), box2, FALSE, FALSE, 0);
 	gtk_widget_show(box2);
+
+/* Menu Items */
+	accel_group = gtk_accel_group_new();
+	gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
+	g_object_unref(accel_group);
+
+	item_factory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<main>",
+	                                    accel_group);
+
+	/* Set up item factory to go away with the window */
+	g_object_ref (item_factory);
+	gtk_object_sink (GTK_OBJECT (item_factory));
+	g_object_set_data_full(G_OBJECT(window), "<main>", item_factory,
+	                      (GDestroyNotify)g_object_unref);
+
+	/* create menu items */
+	gtk_item_factory_create_items(item_factory, G_N_ELEMENTS(menu_items),
+	                              menu_items, window);
+
+	menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
+
+	gtk_box_pack_start(GTK_BOX(packer), menu_widget, FALSE, TRUE, 0);
+	gtk_widget_show(menu_widget);
 
 /* Open File Button*/
 	button = gtk_button_new_with_label("Open File");
@@ -1106,32 +1196,6 @@ int main(int argc, char **argv)
 	gtk_box_pack_start(GTK_BOX(box2), button, FALSE, FALSE, 0);
 	gtk_widget_show(button);
 
-/* The sample_pixmap drawing area */
-	draw = gtk_drawing_area_new();
-	gtk_widget_set_size_request(draw, 500, 200);
-
-	g_signal_connect(G_OBJECT(draw), "expose_event",
-			 G_CALLBACK(expose_event), NULL);
-	g_signal_connect(G_OBJECT(draw), "configure_event",
-			 G_CALLBACK(configure_event), NULL);
-	g_signal_connect(G_OBJECT(draw), "button_release_event",
-			 G_CALLBACK(button_release), NULL);
-
-	gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
-	gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
-
-	gtk_box_pack_start(GTK_BOX(packer), draw, TRUE, TRUE, 0);
-	gtk_widget_show(draw);
-
-/* Add scrollbar */
-	adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
-	g_signal_connect(G_OBJECT(adj), "value_changed",
-			 G_CALLBACK(adj_value_changed), NULL);
-
-	scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
-	gtk_box_pack_start(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
-	gtk_widget_show(scrollbar);
-
 /* The summary_pixmap drawing area */
 	draw_summary = gtk_drawing_area_new();
 	gtk_widget_set_size_request(draw_summary, 500, 75);
@@ -1146,12 +1210,38 @@ int main(int argc, char **argv)
 	gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
 	gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
 
-	gtk_box_pack_start(GTK_BOX(packer), draw_summary, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(packer), draw_summary, FALSE, TRUE, 5);
 	gtk_widget_show(draw_summary);
 
-	track_break_create_list_gui(packer);
+/* The sample_pixmap drawing area */
+	draw = gtk_drawing_area_new();
+	gtk_widget_set_size_request(draw, 500, 200);
+
+	g_signal_connect(G_OBJECT(draw), "expose_event",
+			 G_CALLBACK(expose_event), NULL);
+	g_signal_connect(G_OBJECT(draw), "configure_event",
+			 G_CALLBACK(configure_event), NULL);
+	g_signal_connect(G_OBJECT(draw), "button_release_event",
+			 G_CALLBACK(button_release), NULL);
+
+	gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
+	gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
+
+	gtk_box_pack_start(GTK_BOX(packer), draw, TRUE, TRUE, 5);
+	gtk_widget_show(draw);
+
+/* Add scrollbar */
+	adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
+	g_signal_connect(G_OBJECT(adj), "value_changed",
+			 G_CALLBACK(adj_value_changed), NULL);
+
+	scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
+	gtk_box_pack_start(GTK_BOX(packer), scrollbar, FALSE, TRUE, 0);
+	gtk_widget_show(scrollbar);
 
 /* Finish up */
+	track_break_create_list_gui(packer);
+
 	gtk_widget_show(window);
 
 	gdk_threads_enter();
