@@ -1,5 +1,9 @@
+--------------------------------------------------
 wavbreaker
-----------
+--------------------------------------------------
+
+Summary
+-------
 
 This application's purpose in life is to take a wave file and break it up into
 multiple wave files.  It makes a clean break at the correct position to burn the
@@ -14,12 +18,16 @@ button is clicked.  When a break is made, another entry will be added to the
 bottom portion of the display.  This is where you may change file names and
 select/unselect tracks that will be written when you click save.
 
-There is also a command line tool to merge wave files together.  So, if you
-download a show and don't like how it was tracked, you can merge them together
-with wavmerge and then break them back up with wavbreaker.  This tool will
-only work on files that are alike.  For example, 44100 khz sample rate, 16-bit
-sample size, etc.  I would suggest a tool named sox to do any conversion you
-may need.
+There is also a command line tool to merge wave files together, wavmerge.  So,
+if you download a show and don't like how it was tracked, you can merge them
+together with wavmerge and then break them back up with wavbreaker.  This tool
+will only work on files that are alike.  For example, 44100 khz sample rate,
+16-bit sample size, etc.  I would suggest a tool named sox to do any conversion
+you may need.
 
 Enjoy,
 Timothy
+
+Requirements
+------------
+GTK+ >= 2.0
