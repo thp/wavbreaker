@@ -90,6 +90,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 
 	if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
 		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk\n");
+		fclose(fp);
 		return 1;
 	}
 
@@ -108,11 +109,13 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
 			snprintf(error_message, ERROR_MESSAGE_SIZE, "error seeking to %lu in file", chunkHdr.chunkSize);
+		    fclose(fp);
 			return 1;
 		}
 
 		if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
 			snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk\n");
+		    fclose(fp);
 			return 1;
 		}
 	}
@@ -129,6 +132,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 
 	if (fread(&fmtChunk, sizeof(FormatChunk), 1, fp) < 1) {
 		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading format chunk\n");
+        fclose(fp);
 		return 1;
 	}
 
@@ -144,6 +148,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 
 	if (fmtChunk.wFormatTag != 1) {
 		snprintf(error_message, ERROR_MESSAGE_SIZE, "Compressed wave data not supported\n");
+        fclose(fp);
 		return 1;
 	}
 	sampleInfo->channels		= fmtChunk.wChannels;
@@ -157,6 +162,7 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 printf("in size compare\n");
 		if (fseek(fp, chunkHdr.chunkSize - sizeof(FormatChunk), SEEK_CUR)) {
 			snprintf(error_message, ERROR_MESSAGE_SIZE, "error seeking to %lu in file", chunkHdr.chunkSize);
+            fclose(fp);
 			return 1;
 		}
 	}
@@ -166,6 +172,7 @@ printf("in size compare\n");
 
 	if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
 		snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk");
+        fclose(fp);
 		return 1;
 	}
 
@@ -176,11 +183,13 @@ printf("in size compare\n");
 
 		if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
 			snprintf(error_message, ERROR_MESSAGE_SIZE, "error seeking to %lu in file", chunkHdr.chunkSize);
+            fclose(fp);
 			return 1;
 		}
 
 		if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
 			snprintf(error_message, ERROR_MESSAGE_SIZE, "error reading chunk");
+            fclose(fp);
 			return 1;
 		}
 	}
@@ -356,6 +365,7 @@ wav_write_file(FILE *fp,
 
 		if ((fwrite(buf, 1, ret, new_fp)) < ret) {
 			printf("error writing to file %s\n", filename);
+		    fclose(new_fp);
 			return -1;
 		}
 		cur_pos += ret;
@@ -378,7 +388,7 @@ wav_write_file(FILE *fp,
 	*/
 	/* DEBUG CODE END */
 
-	fclose(new_fp);
+    fclose(new_fp);
 
 	*pct_done = 1.0;
 
@@ -437,6 +447,8 @@ wav_merge_files(char *filename,
 	for (i = 0; i < num_files; i++) {
 		if ((read_fp = fopen(filenames[i], "rb")) == NULL) {
 			printf("error opening %s for writing\n", filenames[i]);
+		    fclose(new_fp);
+			fclose(read_fp);
 			return -1;
 		}
 
@@ -455,6 +467,8 @@ wav_merge_files(char *filename,
 
 			if ((fwrite(buf, 1, ret, new_fp)) < ret) {
 				printf("error writing to file %s\n", filename);
+                fclose(new_fp);
+                fclose(read_fp);
 				return -1;
 			}
 			cur_pos += ret;

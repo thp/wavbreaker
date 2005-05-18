@@ -1086,6 +1086,7 @@ static void open_select_file_2() {
 void set_sample_filename(const char *f) {
     if (sample_filename != NULL) {
         g_free(sample_filename);
+        sample_close_file();
     }
     sample_filename = g_strdup(f);
 }
@@ -1706,7 +1707,7 @@ menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
         return;
     }
 
-    sample_write_files(sample_filename, track_break_list, &write_info);
+    sample_write_files(track_break_list, &write_info);
 
     idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
 }

@@ -52,6 +52,7 @@ static int audio_fd;
 
 static char *sample_file = NULL;
 static FILE *sample_fp = NULL;
+static FILE *write_sample_fp = NULL;
 
 static GThread *thread;
 static GMutex *mutex = NULL;
@@ -245,10 +246,10 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
 	if (sample_file != NULL) {
 		free(sample_file);
+        sample_file = NULL;
 	}
     if (sample_fp != NULL) {
-        fclose(sample_fp);
-        sample_fp = NULL;
+        sample_close_file();
     }
 
 	sample_file = strdup(filename);
@@ -284,6 +285,15 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     g_thread_yield();
 	return 0;
 }
+
+void sample_close_file()
+{
+    fclose(sample_fp);
+    sample_fp = NULL;
+
+    free(sample_file);
+    sample_file = NULL;
+} 
 
 static void sample_max_min(GraphData *graphData, double *pct)
 {
@@ -471,10 +481,10 @@ write_thread(gpointer data)
 			write_info->cur_filename = strdup(filename);
 
 			if (audio_type == CDDA) {
-				ret = cdda_write_file(sample_fp, filename,
+				ret = cdda_write_file(write_sample_fp, filename,
                     sampleInfo.bufferSize, start_pos, end_pos);
 			} else if (audio_type == WAV) {
-				ret = wav_write_file(sample_fp, filename, BLOCK_SIZE,
+				ret = wav_write_file(write_sample_fp, filename, BLOCK_SIZE,
                     &sampleInfo, start_pos, end_pos, &write_info->pct_done);
 			}
 			i++;
@@ -485,23 +495,24 @@ write_thread(gpointer data)
 	}
 	write_info->sync = 1;
 
-    fclose(sample_fp);
+    fclose(write_sample_fp);
+
 	return NULL;
 }
 
-void sample_write_files(const char *filename, GList *tbl, WriteInfo *write_info)
+void sample_write_files(GList *tbl, WriteInfo *write_info)
 {
 //	WriteThreadData wtd;
 
 	wtd.tbl = tbl;
 	wtd.write_info = write_info;
 
-	if (sample_file != NULL) {
-		free(sample_file);
-	}
-	sample_file = strdup(filename);
+    if (sample_file == NULL) {
+        perror("Must open file first\n");
+        return;
+    }
 
-	if ((sample_fp = fopen(sample_file, "rb")) == NULL) {
+	if ((write_sample_fp = fopen(sample_file, "rb")) == NULL) {
 		printf("error opening %s\n", sample_file);
 		return;
 	}
@@ -514,3 +525,4 @@ void sample_write_files(const char *filename, GList *tbl, WriteInfo *write_info)
 	}
 	/* end new thread stuff */
 }
+
