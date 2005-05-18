@@ -8,6 +8,7 @@ alsa and jack drivers
         - make sure not playing when changing audio interfaces
 sound card format issues
 fix the calculation of the time (error when sample is not 16-bit 44100)
+pause function
 
 !use new gtk 2.4 file selection
 !fix dir selection in config menu
