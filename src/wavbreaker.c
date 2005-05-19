@@ -1711,7 +1711,11 @@ static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *
         return;
     }
 
-    sample_write_files(track_break_list, &write_info);
+    if (get_use_outputdir()) {
+        wavbreaker_write_files(get_outputdir());
+    } else {
+        wavbreaker_write_files(".");
+    }
 
     idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
 }
