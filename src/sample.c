@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002 Timothy Robinson
+ * Copyright (C) 2002-2005 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ static int audio_type;
 static int audio_fd;
 
 static char *sample_file = NULL;
-static FILE *sample_fp = NULL;
+static FILE *read_sample_fp = NULL;
 static FILE *write_sample_fp = NULL;
 
 static GThread *thread;
@@ -63,6 +63,7 @@ typedef struct WriteThreadData_ WriteThreadData;
 struct WriteThreadData_ {
 	GList *tbl;
 	WriteInfo *write_info;
+    char *outputdir;
 };
 WriteThreadData wtd;
 
@@ -110,7 +111,8 @@ static gpointer play_thread(gpointer thread_data)
 
     audio_function_pointers = get_audio_function_pointers();
 
-    //printf("play_thread: calling open_audio_device\n");
+    printf("play_thread: calling open_audio_device\n");
+    printf("devault outputdev: %s\n", audio_function_pointers->get_outputdev());
     if (audio_function_pointers->audio_open_device(
         audio_function_pointers->get_outputdev(), &sampleInfo) != 0) {
 
@@ -121,7 +123,7 @@ static gpointer play_thread(gpointer thread_data)
         printf("play_thread: return from open_audio_device != 0\n");
 		return NULL;
 	}
-    //printf("play_thread: return from open_audio_device\n");
+    printf("play_thread: return from open_audio_device\n");
 
 	i = 0;
 
@@ -136,10 +138,10 @@ static gpointer play_thread(gpointer thread_data)
     }
 
 	if (audio_type == CDDA) {
-		read_ret = cdda_read_sample(sample_fp, devbuf, sampleInfo.bufferSize,
+		read_ret = cdda_read_sample(read_sample_fp, devbuf, sampleInfo.bufferSize,
 			sample_start + (sampleInfo.bufferSize * i++));
 	} else if (audio_type == WAV) {
-		read_ret = wav_read_sample(sample_fp, devbuf, sampleInfo.bufferSize,
+		read_ret = wav_read_sample(read_sample_fp, devbuf, sampleInfo.bufferSize,
 			sample_start + (sampleInfo.bufferSize * i++));
 	}
 
@@ -162,11 +164,11 @@ static gpointer play_thread(gpointer thread_data)
 		}
 
 		if (audio_type == CDDA) {
-			read_ret = cdda_read_sample(sample_fp, devbuf,
+			read_ret = cdda_read_sample(read_sample_fp, devbuf,
                 sampleInfo.bufferSize,
                 sample_start + (sampleInfo.bufferSize * i++));
 		} else if (audio_type == WAV) {
-			read_ret = wav_read_sample(sample_fp, devbuf,
+			read_ret = wav_read_sample(read_sample_fp, devbuf,
                 sampleInfo.bufferSize,
                 sample_start + (sampleInfo.bufferSize * i++));
 		}
@@ -248,7 +250,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 		free(sample_file);
         sample_file = NULL;
 	}
-    if (sample_fp != NULL) {
+    if (read_sample_fp != NULL) {
         sample_close_file();
     }
 
@@ -265,7 +267,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 		audio_type = CDDA;
 	}
 
-	if ((sample_fp = fopen(sample_file, "rb")) == NULL) {
+	if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
 		snprintf(error_message, ERROR_MESSAGE_SIZE, "error opening %s\n", sample_file);
 		return 2;
 	}
@@ -288,8 +290,8 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
 void sample_close_file()
 {
-    fclose(sample_fp);
-    sample_fp = NULL;
+    fclose(read_sample_fp);
+    read_sample_fp = NULL;
 
     free(sample_file);
     sample_file = NULL;
@@ -328,10 +330,10 @@ static void sample_max_min(GraphData *graphData, double *pct)
 	i = 0;
 
 	if (audio_type == CDDA) {
-		ret = cdda_read_sample(sample_fp, devbuf, BLOCK_SIZE,
+		ret = cdda_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
 			BLOCK_SIZE * i);
 	} else if (audio_type == WAV) {
-		ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
+		ret = wav_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
 			BLOCK_SIZE * i);
 	}
 
@@ -360,10 +362,10 @@ static void sample_max_min(GraphData *graphData, double *pct)
 		graph_data[i].max = max;
 
 		if (audio_type == CDDA) {
-			ret = cdda_read_sample(sample_fp, devbuf, BLOCK_SIZE,
+			ret = cdda_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
 					BLOCK_SIZE * i);
 		} else if (audio_type == WAV) {
-			ret = wav_read_sample(sample_fp, devbuf, BLOCK_SIZE,
+			ret = wav_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
 					BLOCK_SIZE * i);
 		}
 
@@ -402,6 +404,7 @@ write_thread(gpointer data)
 
 	GList *tbl_head = thread_data->tbl;
 	GList *tbl_cur, *tbl_next;
+	char *outputdir = thread_data->outputdir;
 	TrackBreak *tb_cur, *tb_next;
 	WriteInfo *write_info = thread_data->write_info;
 
@@ -449,12 +452,8 @@ write_thread(gpointer data)
 			}
 
 			/* add output directory to filename */
-            if (get_use_outputdir()) {
-    			strcpy(filename, get_outputdir());
-			    strcat(filename, "/");
-            } else {
-                strcpy(filename, "./");
-            }
+			strcpy(filename, outputdir);
+            strcat(filename, "/");
 
 			strcat(filename, tb_cur->filename);
 
@@ -500,12 +499,13 @@ write_thread(gpointer data)
 	return NULL;
 }
 
-void sample_write_files(GList *tbl, WriteInfo *write_info)
+void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
 {
 //	WriteThreadData wtd;
 
 	wtd.tbl = tbl;
 	wtd.write_info = write_info;
+	wtd.outputdir = outputdir;
 
     if (sample_file == NULL) {
         perror("Must open file first\n");

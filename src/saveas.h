@@ -16,28 +16,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef APPCONFIG_H
-#define APPCONFIG_H
+#ifndef SAVEAS_H
+#define SAVEAS_H
 
-#include "sample.h"
+void saveas_show(GtkWidget *);
+char *saveas_get_dirname();
+void saveas_set_dirname(const char *);
+void saveas_set_dirname_entry(const char *);
 
-typedef struct AudioFunctionPointers_ AudioFunctionPointers;
-
-struct AudioFunctionPointers_ {
-    void (*audio_close_device)();
-    int (*audio_open_device)(const char *, SampleInfo *);
-    int (*audio_write)(char *, int);
-    char *(*get_outputdev)();
-};
-
-void appconfig_show(GtkWidget *);
-char *get_outputdir();
-AudioFunctionPointers *get_audio_function_pointers();
-char *get_audio_oss_options_output_device();
-char *get_audio_alsa_options_output_device();
-int get_use_etree_filename_suffix();
-char *get_etree_filename_suffix();
-char *get_etree_cd_length();
-
-#endif /* APPCONFIG_H */
-
+#endif /* SAVEAS_H */

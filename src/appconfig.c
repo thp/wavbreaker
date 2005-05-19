@@ -38,7 +38,7 @@
 static GtkWidget *window;
 
 /* Function pointers to the currently selected audio driver. */
-static int audio_driver_type;
+static int audio_driver_type = -1;
 static AudioFunctionPointers audio_function_pointers;
 static GtkWidget *combo_box = NULL;
 
@@ -50,7 +50,8 @@ static GtkWidget *oss_output_device_entry = NULL;
 static char *alsa_output_device = NULL;
 static GtkWidget *alsa_output_device_entry = NULL;
 
-/* jack audio driver options */
+/* default audio driver options */
+static GtkWidget *output_device_entry = NULL;
 
 /* Output directory for wave files. */
 static int use_outputdir = 0;
@@ -75,7 +76,6 @@ static GtkWidget *etree_cd_length_entry = NULL;
 
 /* Device file for audio output. */
 static char *outputdev = NULL;
-static GtkWidget *outputdev_entry = NULL;
 
 /* Config Filename */
 static char *config_filename = NULL;
@@ -122,7 +122,8 @@ void set_audio_get_outputdev(void (*f))
     audio_function_pointers.get_outputdev = f;
 }
 
-void set_audio_function_pointers(int index) {
+void set_audio_function_pointers_with_index(int index)
+{
     set_audio_driver_type(index);
 
     switch (index) {
@@ -146,6 +147,17 @@ void set_audio_function_pointers(int index) {
             break;
             */
     }
+}
+
+void set_audio_function_pointers()
+{
+    set_audio_function_pointers_with_index(gtk_combo_box_get_active(
+                GTK_COMBO_BOX(combo_box)));
+}
+
+void default_audio_function_pointers()
+{
+    set_audio_function_pointers_with_index(0);
 }
 
 /* oss audio driver options */
@@ -188,15 +200,26 @@ void audio_options_window_cancel_clicked(GtkWidget *widget, gpointer user_data)
     gtk_widget_destroy(main_window);
 }
 
+/* generic audio driver functions */
+
+char *audio_options_get_output_device()
+{
+    if (get_audio_driver_type() == 0) {
+        return get_audio_oss_options_output_device();
+    } else if (get_audio_driver_type()  == 1) {
+        return get_audio_alsa_options_output_device();
+    }
+}
+
 void audio_options_window_ok_clicked(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *main_window = GTK_WIDGET(user_data);
     if (get_audio_driver_type() == 0) {
         set_audio_oss_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(oss_output_device_entry)));
-    } else if (get_audio_driver_type()  == 1) {
+            GTK_ENTRY(output_device_entry)));
+    } else if (get_audio_driver_type() == 1) {
         set_audio_alsa_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(alsa_output_device_entry)));
+            GTK_ENTRY(output_device_entry)));
     }
     gtk_widget_destroy(main_window);
 }
@@ -229,6 +252,12 @@ void audio_options_window_show(GtkWidget *main_window)
     label = gtk_label_new("Output Device: ");
     gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
     gtk_widget_show(label);
+
+    output_device_entry = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
+    gtk_entry_set_width_chars(GTK_ENTRY(output_device_entry), 10);
+    gtk_box_pack_start(GTK_BOX(vbox), output_device_entry, FALSE, TRUE, 5);
+    gtk_widget_show(output_device_entry);
 
     hseparator = gtk_hseparator_new();
     gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
@@ -496,8 +525,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
 
-    set_audio_function_pointers(gtk_combo_box_get_active(
-        GTK_COMBO_BOX(combo_box)));
+    set_audio_function_pointers();
     printf("audio output driver: %d\n",
         gtk_combo_box_get_active(GTK_COMBO_BOX(combo_box)));
 
@@ -513,6 +541,7 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *hbbox;
     GtkWidget *outputdev_label;
     GtkWidget *hseparator;
+    GtkWidget *audio_configure_button;
     GtkWidget *ok_button, *cancel_button;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -557,7 +586,8 @@ void appconfig_show(GtkWidget *main_window)
     browse_button = gtk_button_new_with_label("Browse");
     gtk_table_attach(GTK_TABLE(table), browse_button,
         1, 2, 2, 3, GTK_FILL, 0, 5, 0);
-    g_signal_connect(G_OBJECT(browse_button), "clicked", (GtkSignalFunc)browse_button_clicked, window);
+    g_signal_connect(G_OBJECT(browse_button), "clicked",
+            (GtkSignalFunc)browse_button_clicked, window);
     gtk_widget_show(browse_button);
 
     /* Etree Filename Suffix */
@@ -570,69 +600,81 @@ void appconfig_show(GtkWidget *main_window)
     gtk_container_add(GTK_CONTAINER(vbox), table);
     gtk_widget_show(table);
 
-    use_etree_filename_suffix_toggle = gtk_check_button_new_with_label("Use Etree Style Filename Suffix (d#t##)");
-    gtk_table_attach(GTK_TABLE(table), use_etree_filename_suffix_toggle,
-        0, 2, 0, 1, GTK_FILL, 0, 5, 2);
-    g_signal_connect(GTK_OBJECT(use_etree_filename_suffix_toggle), "toggled",
-        G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
-    gtk_widget_show(use_etree_filename_suffix_toggle);
-
     etree_filename_suffix_label = gtk_label_new("Filename Suffix:");
     gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
-        0, 1, 1, 2, GTK_FILL, 0, 5, 2);
+            0, 1, 0, 1, GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_filename_suffix_label);
 
     etree_filename_suffix_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry,
-        1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 2);
+            1, 3, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_filename_suffix_entry);
+
+    use_etree_filename_suffix_toggle =
+        gtk_check_button_new_with_label("Use Etree Style Filename Suffix (d#t##)");
+    gtk_table_attach(GTK_TABLE(table), use_etree_filename_suffix_toggle,
+            0, 3, 1, 2, GTK_FILL, 0, 5, 2);
+    g_signal_connect(GTK_OBJECT(use_etree_filename_suffix_toggle), "toggled",
+        G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
+    gtk_widget_show(use_etree_filename_suffix_toggle);
 
     etree_cd_length_label = gtk_label_new("CD Length:");
     gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
-        0, 1, 2, 3, GTK_FILL, 0, 5, 2);
+            0, 1, 2, 3, GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_cd_length_label);
 
     etree_cd_length_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_cd_length_entry), etree_cd_length);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
-    gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry, 1, 2, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 2);
+    gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry,
+            1, 3, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_cd_length_entry);
 
     /* Audio Output Device */
     hseparator = gtk_hseparator_new();
     gtk_table_attach(GTK_TABLE(table), hseparator,
-        0, 2, 3, 4, GTK_FILL, 0, 0, 5);
+            0, 3, 3, 4, GTK_FILL, 0, 0, 5);
     gtk_widget_show(hseparator);
 
     outputdev_label = gtk_label_new("Audio Device:");
     gtk_misc_set_alignment(GTK_MISC(outputdev_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), outputdev_label,
-        0, 1, 4, 5, GTK_FILL, 0, 5, 0);
+            0, 1, 4, 5, GTK_FILL, 0, 5, 0);
     gtk_widget_show(outputdev_label);
 
 /*
-    outputdev_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(outputdev_entry), outputdev);
-    gtk_table_attach(GTK_TABLE(table), outputdev_entry,
+    output_device_entry = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(output_device_entry), outputdev);
+    gtk_table_attach(GTK_TABLE(table), output_device_entry,
         1, 2, 4, 5, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-    gtk_widget_show(outputdev_entry);
+    gtk_widget_show(output_device_entry);
 */
 
     combo_box = gtk_combo_box_new_text ();
 
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "OSS");
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Alsa");
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack");
+//    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack"); // not yet
     gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), get_audio_driver_type());
     gtk_table_attach(GTK_TABLE(table), combo_box,
-        1, 2, 4, 5, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+            1, 2, 4, 5, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+    g_signal_connect(G_OBJECT(combo_box), "changed",
+            (GtkSignalFunc)set_audio_function_pointers, NULL);
+    gtk_widget_show(combo_box);
+
+    audio_configure_button = gtk_button_new_with_label("Configure");
+
+    gtk_table_attach(GTK_TABLE(table), audio_configure_button,
+            2, 3, 4, 5, GTK_FILL, 0, 5, 0);
     //gtk_container_add(GTK_CONTAINER(vbox), combo_box);
     //gtk_box_pack_start(GTK_BOX(vbox), combo_box, FALSE, TRUE, 5);
-    gtk_widget_show(combo_box);
+    g_signal_connect(G_OBJECT(audio_configure_button), "clicked",
+            (GtkSignalFunc)audio_options_window_show, window);
+    gtk_widget_show(audio_configure_button);
 
     /* OK and Cancel Buttons */
     hseparator = gtk_hseparator_new();
@@ -734,9 +776,13 @@ static int appconfig_read_file() {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_use_outputdir(key);
             xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "oss_outputdev"))) {
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "oss_options_output_device"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_audio_oss_options_output_device(key);
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "alsa_options_output_device"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            set_audio_alsa_options_output_device(key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdir"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
@@ -754,6 +800,11 @@ static int appconfig_read_file() {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_etree_cd_length(key);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "audio_driver_type"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            int nkey = atoi(key);
+            set_audio_function_pointers_with_index(nkey);
+            xmlFree(key); 
         }
         cur = cur->next;
     }
@@ -819,6 +870,17 @@ static int appconfig_write_file() {
         return 3;
     }
 
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"alsa_options_output_device",
+        (const xmlChar *) get_audio_alsa_options_output_device());
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating outputdev node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
     sprintf(tmp_str, "%d", get_use_etree_filename_suffix());
     cur = xmlNewChild(root, NULL, (const xmlChar *)"use_etree_filename_suffix",
         (const xmlChar *) tmp_str);
@@ -853,6 +915,18 @@ static int appconfig_write_file() {
         return 3;
     }
 
+    sprintf(tmp_str, "%d", get_audio_driver_type());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"audio_driver_type",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating audio_driver_type node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+ 
     root = xmlDocSetRootElement(doc, root);
     /*
     if (root == NULL) {
@@ -924,6 +998,8 @@ void default_all_strings() {
         default_audio_alsa_options_output_device();
     }
 
-    set_audio_function_pointers(0);
+    if (get_audio_driver_type() == -1) {
+        default_audio_function_pointers();
+    }
 }
 

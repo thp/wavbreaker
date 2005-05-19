@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2004 Timothy Robinson
+ * Copyright (C) 2002-2005 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include "about.h"
 #include "appconfig.h"
 #include "autosplit.h"
+#include "saveas.h"
 
 #define play_icon_filename IMAGEDIR"play.png"
 #define stop_icon_filename IMAGEDIR"stop.png"
@@ -168,6 +169,9 @@ static void
 menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
+menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
@@ -218,8 +222,9 @@ char *basename(const char *str)
 
 static GtkItemFactoryEntry menu_items[] = {
   { "/_File",      NULL,         0,              0, "<Branch>"},
-  { "/File/_Open", "<control>O", menu_open_file, 0, "<StockItem>", GTK_STOCK_OPEN},
+  { "/File/_Open...", "<control>O", menu_open_file, 0, "<StockItem>", GTK_STOCK_OPEN},
   { "/File/_Save", "<control>S", menu_save,      0, "<StockItem>", GTK_STOCK_SAVE},
+  { "/File/Save_As...", "<shift><control>S", menu_save_as,      0, "<StockItem>", GTK_STOCK_SAVE_AS},
   { "/File/sep1",  NULL,         NULL,           0, "<Separator>"},
   { "/File/_Quit", "<control>Q", menu_quit,      0, "<StockItem>", GTK_STOCK_QUIT},
 
@@ -1700,8 +1705,7 @@ static void menu_stop(GtkWidget *widget, gpointer user_data)
     stop_sample();
 }
 
-static void
-menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
+static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     if (sample_filename == NULL) {
         return;
@@ -1712,14 +1716,21 @@ menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
     idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
 }
 
-void
-menu_delete_track_break(GtkWidget *widget, gpointer user_data)
+static void menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    saveas_show(main_window);
+}
+
+void wavbreaker_write_files(char *dirname) {
+    sample_write_files(track_break_list, &write_info, dirname);
+}
+
+void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
 {
     track_break_delete_entry();
 }
 
-void
-menu_add_track_break(GtkWidget *widget, gpointer user_data)
+void menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
     track_break_add_entry();
 }
@@ -1843,6 +1854,9 @@ int main(int argc, char **argv)
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
                              "Save Track Breaks", NULL,
                              G_CALLBACK(menu_save), main_window, -1);
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE_AS,
+                             "Save Track Breaks To Dir", NULL,
+                             G_CALLBACK(menu_save_as), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
                              "Quit wavbreaker", NULL,
                              G_CALLBACK(menu_quit), main_window, -1);
@@ -2041,3 +2055,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
+

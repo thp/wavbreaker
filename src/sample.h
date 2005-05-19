@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple wave.
- * Copyright (C) 2002 Timothy Robinson
+ * Copyright (C) 2002-2005 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ int play_sample(gulong, gulong *);
 void stop_sample();
 int sample_open_file(const char *, GraphData *, double *);
 void sample_close_file();
-void sample_write_files(GList *, WriteInfo *);
+void sample_write_files(GList *, WriteInfo *, char *);
 gint sample_get_playing();
 
 #endif /* SAMPLE_H*/

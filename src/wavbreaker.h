@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple wave.
- * Copyright (C) 2002 Timothy Robinson
+ * Copyright (C) 2002-2005 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,5 +54,6 @@ struct WriteInfo_ {
 
 void wavbreaker_autosplit(long x);
 void track_break_rename();
+void wavbreaker_write_files(char *dirname);
 
 #endif /* WAVBREAKER_H */
