@@ -1,4 +1,6 @@
 version 0.6 (2005-??-??)
+    + Added configuration option to prepend file number as opposed to append it
+        to the file name.
     + Save As dialog lets you select the directory to put the new files.
     + Use the new gtk file dialogs if using gtk+-2.3 or greater.
     ! Fixed a small bug that when deleting a track break, the durations are

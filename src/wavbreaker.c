@@ -577,7 +577,6 @@ track_break_setup_filename(gpointer data, gpointer user_data)
             sprintf(buf, "d%dt%d", disc_num, track_num);
         }
     } else {
-        printf("prepend: %d\n", get_prepend_file_number());
         if (index < 10) {
             if (get_prepend_file_number()) {
                 sprintf(buf, "0%d%s", index, get_etree_filename_suffix());
