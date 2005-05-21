@@ -461,7 +461,7 @@ void track_break_set_duration(gpointer data, gpointer user_data)
 
     if (next_track_break != NULL) {
         // Take the offset of the next track as the end of the duration.
-        offset_to_duration(track_break->offset, next_track_break->offset - 1,
+        offset_to_duration(track_break->offset, next_track_break->offset,
             track_break->duration);
     } else {
         // There is no next track.
@@ -469,7 +469,7 @@ void track_break_set_duration(gpointer data, gpointer user_data)
         offset_to_duration(track_break->offset, graphData.numSamples,
             track_break->duration);
     }
-//printf("\n");
+    //printf("\n");
 }
 
 void track_break_find(gpointer data, gpointer user_data)
@@ -1744,6 +1744,49 @@ void wavbreaker_write_files(char *dirname) {
     sample_write_files(track_break_list, &write_info, dirname);
 }
 
+static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    if (sample_filename == NULL) {
+       return;
+    }
+
+    char dir[strlen(sample_filename)+4];
+    strcpy(dir, sample_filename);
+    char *ptr = strstr(dir, "wav");
+    if(ptr == NULL) {
+         int n = strlen(dir);
+         dir[n] = '.';
+         dir[n+1] = 't';
+         dir[n+2] = 'o';
+         dir[n+3] = 'c';
+         dir[n+4] = 0;
+    } else {
+         ptr[0] = 't';
+         ptr[1] = 'o';
+         ptr[2] = 'c';
+         ptr[3] = 0;
+    }
+    printf("%s\n", dir);
+
+    ptr = strrchr(sample_filename, '/');
+    if (ptr == NULL) {
+        ptr = sample_filename;
+    }
+    ptr = &ptr[1];
+    char data_filename[strlen(ptr)];
+    strcpy(data_filename, ptr);
+       
+    int write_err = toc_write_file(dir, data_filename, track_break_list);
+    char msg[128];
+    if (write_err) {
+        sprintf(msg, "Export TOC to %s: FAILED!", dir);
+    } else {
+        sprintf(msg, "Export TOC to %s: Successful", dir);
+    }
+
+    popupmessage_show(main_window, msg);
+}
+
 void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
 {
     track_break_delete_entry();
@@ -1876,6 +1919,9 @@ int main(int argc, char **argv)
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE_AS,
                              "Save Track Breaks To Dir", NULL,
                              G_CALLBACK(menu_save_as), main_window, -1);
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CDROM,
+                             "Export to TOC", NULL,
+                             G_CALLBACK(menu_export), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
                              "Quit wavbreaker", NULL,
                              G_CALLBACK(menu_quit), main_window, -1);
