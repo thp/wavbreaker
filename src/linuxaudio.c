@@ -25,87 +25,99 @@
 
 #include "linuxaudio.h"
 
+#define DEBUG 0
+
 static int audio_fd;
 
 void oss_audio_close_device()
 {
-    printf("closing audio device\n");
-	close(audio_fd);
+    if (DEBUG) {
+        printf("closing audio device\n");
+    }
+    close(audio_fd);
 }
 
 int oss_audio_write(char *devbuf, int size)
 {
-//    printf("writing to audio device: %d\n", size);
-	return write(audio_fd, devbuf, size);
+    if (DEBUG) {
+        printf("writing to audio device: %d\n", size);
+    }
+    return write(audio_fd, devbuf, size);
 }
 
 int oss_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
 {
-	int format, speed, channels;
-	int ret;
+    int format, speed, channels;
+    int ret;
 
-	if (sampleInfo->bitsPerSample == 16) {
-		format = AFMT_S16_LE;
-	} else if (sampleInfo->bitsPerSample == 8) {
-		format = AFMT_U8;
-	}
-	speed = sampleInfo->samplesPerSec;
-	channels = sampleInfo->channels;
+    if (sampleInfo->bitsPerSample == 16) {
+        format = AFMT_S16_LE;
+    } else if (sampleInfo->bitsPerSample == 8) {
+        format = AFMT_U8;
+    }
+    speed = sampleInfo->samplesPerSec;
+    channels = sampleInfo->channels;
     sampleInfo->bufferSize = DEFAULT_BUF_SIZE;
 
-    printf("opening audio device (%s)\n", audio_dev);
-    /*
-    printf("opening audio device...");
-    fflush(stdout);
-    */
-	/* setup dsp device */
-	if ((audio_fd = open(audio_dev, O_WRONLY)) == -1) {
-		perror("open");
-		printf("error opening %s\n", audio_dev);
-		return audio_fd;
-	}
-    //printf("done\n");
- 
-    //printf("setting format of audio device\n");
-	/* set format */
-	ret = format;
-	if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &ret) == -1) {
-		perror("SNDCTL_DSP_SETFMT");
-		return -1; 
-	}
+    if (DEBUG) {
+        printf("opening audio device (%s)\n", audio_dev);
+        printf("opening audio device...");
+        fflush(stdout);
+    }
+    /* setup dsp device */
+    if ((audio_fd = open(audio_dev, O_WRONLY)) == -1) {
+        perror("open");
+        printf("error opening %s\n", audio_dev);
+        return audio_fd;
+    }
 
-	if (format != ret) {  
-		printf("Device, %s, does not support %d for format.\n", audio_dev, format);
-		return -1;
-	}
+    if (DEBUG) {
+        printf("done\n");
+        printf("setting format of audio device\n");
+    }
+    /* set format */
+    ret = format;
+    if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &ret) == -1) {
+        perror("SNDCTL_DSP_SETFMT");
+        return -1; 
+    }
 
-    //printf("setting channel on audio device\n");
-	/* set channels */
-	ret = channels;
-	if (ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &ret) == -1) {
-		perror("SNDCTL_DSP_CHANNELS");
-		return -1;
-	}       
+    if (format != ret) {  
+        printf("Device, %s, does not support %d for format.\n", audio_dev, format);
+        return -1;
+    }
 
-	if (channels != ret) {
-		printf("Device, %s, doesn't support %d channels\n", audio_dev, channels);
-		return -1;
-	}
+    if (DEBUG) {
+        printf("setting channel on audio device\n");
+    }
+    /* set channels */
+    ret = channels;
+    if (ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &ret) == -1) {
+        perror("SNDCTL_DSP_CHANNELS");
+        return -1;
+    }       
 
-    //printf("setting speed on audio device\n");
-	/* set speed */
-	ret = speed;
-	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &ret) == -1) {
-		perror("SNDCTL_DSP_SPEED");
-		return -1;
-	}
+    if (channels != ret) {
+        printf("Device, %s, doesn't support %d channels\n", audio_dev, channels);
+        return -1;
+    }
 
-	if (speed != ret) {
-		printf("Device, %s, doesn't support speed of %d\n", audio_dev, speed);
-		printf("Speed returned was %d\n", ret);
-		return -1;
-	}
+    if (DEBUG) {
+        printf("setting speed on audio device\n");
+    }
+    /* set speed */
+    ret = speed;
+    if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &ret) == -1) {
+        perror("SNDCTL_DSP_SPEED");
+        return -1;
+    }
 
-	return 0;
+    if (speed != ret) {
+        printf("Device, %s, doesn't support speed of %d\n", audio_dev, speed);
+        printf("Speed returned was %d\n", ret);
+        return -1;
+    }
+
+    return 0;
 }
 

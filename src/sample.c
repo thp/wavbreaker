@@ -111,8 +111,10 @@ static gpointer play_thread(gpointer thread_data)
 
     audio_function_pointers = get_audio_function_pointers();
 
+    /*
     printf("play_thread: calling open_audio_device\n");
     printf("devault outputdev: %s\n", audio_function_pointers->get_outputdev());
+    */
     if (audio_function_pointers->audio_open_device(
         audio_function_pointers->get_outputdev(), &sampleInfo) != 0) {
 
@@ -120,10 +122,10 @@ static gpointer play_thread(gpointer thread_data)
         playing = 0;
         audio_function_pointers->audio_close_device();
         g_mutex_unlock(mutex);
-        printf("play_thread: return from open_audio_device != 0\n");
+        //printf("play_thread: return from open_audio_device != 0\n");
 		return NULL;
 	}
-    printf("play_thread: return from open_audio_device\n");
+    //printf("play_thread: return from open_audio_device\n");
 
 	i = 0;
 
@@ -146,9 +148,11 @@ static gpointer play_thread(gpointer thread_data)
 	}
 
 	while (read_ret > 0 && read_ret <= sampleInfo.bufferSize) {
+        /*
         if (read_ret < 0) {
             printf("read_ret: %d\n", read_ret);
         }
+        */
 
         write_ret = audio_function_pointers->audio_write(devbuf, read_ret);
 
