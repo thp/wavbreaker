@@ -70,6 +70,11 @@ static char *etree_filename_suffix = NULL;
 static GtkWidget *etree_filename_suffix_label = NULL;
 static GtkWidget *etree_filename_suffix_entry = NULL;
 
+/* Prepend File Number for wave files. */
+static int prepend_file_number = 0;
+static GtkWidget *prepend_file_number_toggle = NULL;
+
+/* CD Length disc cutoff. */
 static char *etree_cd_length = NULL;
 static GtkWidget *etree_cd_length_label = NULL;
 static GtkWidget *etree_cd_length_entry = NULL;
@@ -347,6 +352,16 @@ char *default_etree_filename_suffix()
     return etree_filename_suffix;
 }
 
+int get_prepend_file_number()
+{
+    return prepend_file_number;
+}
+
+void set_prepend_file_number(const char *val)
+{
+    prepend_file_number = atoi(val);
+}
+
 char *get_etree_cd_length()
 {
     return etree_cd_length;
@@ -418,17 +433,18 @@ static void use_outputdir_toggled(GtkWidget *widget, gpointer user_data)
 static void use_etree_filename_suffix_toggled(GtkWidget *widget, gpointer user_data)
 {
     if (get_use_etree_filename_suffix()) {
-        gtk_widget_set_sensitive(etree_filename_suffix_entry, TRUE);
-        gtk_widget_set_sensitive(etree_filename_suffix_label, TRUE);
-        gtk_widget_set_sensitive(etree_cd_length_entry, FALSE);
-        gtk_widget_set_sensitive(etree_cd_length_label, FALSE);
         set_use_etree_filename_suffix("0");
     } else {
-        gtk_widget_set_sensitive(etree_filename_suffix_entry, FALSE);
-        gtk_widget_set_sensitive(etree_filename_suffix_label, FALSE);
-        gtk_widget_set_sensitive(etree_cd_length_entry, TRUE);
-        gtk_widget_set_sensitive(etree_cd_length_label, TRUE);
         set_use_etree_filename_suffix("1");
+    }
+}
+
+static void prepend_file_number_toggled(GtkWidget *widget, gpointer user_data)
+{
+    if (get_prepend_file_number()) {
+        set_prepend_file_number("0");
+    } else {
+        set_prepend_file_number("1");
     }
 }
 
@@ -526,8 +542,10 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
 
     set_audio_function_pointers();
+    /*
     printf("audio output driver: %d\n",
         gtk_combo_box_get_active(GTK_COMBO_BOX(combo_box)));
+        */
 
     track_break_rename();
     appconfig_hide(GTK_WIDGET(user_data));
@@ -543,6 +561,9 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *hseparator;
     GtkWidget *audio_configure_button;
     GtkWidget *ok_button, *cancel_button;
+    GtkWidget *label;
+
+    GtkWidget *radio1, *radio2;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_realize(window);
@@ -596,63 +617,71 @@ void appconfig_show(GtkWidget *main_window)
     gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
     gtk_widget_show(hseparator);
 
-    table = gtk_table_new(2, 5, FALSE);
+    table = gtk_table_new(4, 10, FALSE);
     gtk_container_add(GTK_CONTAINER(vbox), table);
     gtk_widget_show(table);
 
-    etree_filename_suffix_label = gtk_label_new("Filename Suffix:");
+    radio1 = gtk_radio_button_new_with_label(NULL, "Use Standard Numbering Scheme");
+    gtk_table_attach(GTK_TABLE(table), radio1, 0, 3, 0, 1, GTK_FILL, 0, 5, 2);
+
+    label = gtk_label_new("   ");
+    gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
+    gtk_table_attach(GTK_TABLE(table), label,
+            0, 1, 2, 3, GTK_FILL, 0, 5, 2);
+    gtk_widget_show(label);
+
+    prepend_file_number_toggle = gtk_check_button_new_with_label("Prepend File Number");
+    gtk_table_attach(GTK_TABLE(table), prepend_file_number_toggle,
+            1, 3, 1, 2, GTK_FILL, 0, 5, 0);
+    g_signal_connect(GTK_OBJECT(prepend_file_number_toggle), "toggled",
+        G_CALLBACK(prepend_file_number_toggled), NULL);
+    gtk_widget_show(prepend_file_number_toggle);
+
+    etree_filename_suffix_label = gtk_label_new("Filename/Number Separator:");
     gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
-            0, 1, 0, 1, GTK_FILL, 0, 5, 2);
+            1, 2, 2, 3, GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_filename_suffix_label);
 
     etree_filename_suffix_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry,
-            1, 3, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 2);
+            2, 3, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_filename_suffix_entry);
 
-    use_etree_filename_suffix_toggle =
-        gtk_check_button_new_with_label("Use Etree Style Filename Suffix (d#t##)");
-    gtk_table_attach(GTK_TABLE(table), use_etree_filename_suffix_toggle,
-            0, 3, 1, 2, GTK_FILL, 0, 5, 2);
-    g_signal_connect(GTK_OBJECT(use_etree_filename_suffix_toggle), "toggled",
-        G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
-    gtk_widget_show(use_etree_filename_suffix_toggle);
+    radio2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio1),
+            "Use Etree Style Filename Scheme (d#t##)");
+    gtk_table_attach(GTK_TABLE(table), radio2, 0, 3, 3, 4, GTK_FILL, 0, 5, 2);
 
     etree_cd_length_label = gtk_label_new("CD Length:");
     gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
-            0, 1, 2, 3, GTK_FILL, 0, 5, 2);
+            1, 2, 5, 6, GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_cd_length_label);
 
     etree_cd_length_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_cd_length_entry), etree_cd_length);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry,
-            1, 3, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 2);
+            2, 3, 5, 6, GTK_EXPAND | GTK_FILL, 0, 5, 2);
     gtk_widget_show(etree_cd_length_entry);
 
-    /* Audio Output Device */
     hseparator = gtk_hseparator_new();
     gtk_table_attach(GTK_TABLE(table), hseparator,
-            0, 3, 3, 4, GTK_FILL, 0, 0, 5);
+            0, 3, 6, 7, GTK_FILL, 0, 0, 5);
     gtk_widget_show(hseparator);
+
+    /* Audio Output Device */
+    table = gtk_table_new(3, 1, FALSE);
+    gtk_container_add(GTK_CONTAINER(vbox), table);
+    gtk_widget_show(table);
 
     outputdev_label = gtk_label_new("Audio Device:");
     gtk_misc_set_alignment(GTK_MISC(outputdev_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), outputdev_label,
-            0, 1, 4, 5, GTK_FILL, 0, 5, 0);
+            0, 1, 0, 1, GTK_FILL, 0, 5, 0);
     gtk_widget_show(outputdev_label);
-
-/*
-    output_device_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(output_device_entry), outputdev);
-    gtk_table_attach(GTK_TABLE(table), output_device_entry,
-        1, 2, 4, 5, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-    gtk_widget_show(output_device_entry);
-*/
 
     combo_box = gtk_combo_box_new_text ();
 
@@ -661,7 +690,7 @@ void appconfig_show(GtkWidget *main_window)
 //    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack"); // not yet
     gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), get_audio_driver_type());
     gtk_table_attach(GTK_TABLE(table), combo_box,
-            1, 2, 4, 5, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+            1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(combo_box), "changed",
             (GtkSignalFunc)set_audio_function_pointers, NULL);
     gtk_widget_show(combo_box);
@@ -669,7 +698,7 @@ void appconfig_show(GtkWidget *main_window)
     audio_configure_button = gtk_button_new_with_label("Configure");
 
     gtk_table_attach(GTK_TABLE(table), audio_configure_button,
-            2, 3, 4, 5, GTK_FILL, 0, 5, 0);
+            2, 3, 0, 1, GTK_FILL, 0, 5, 0);
     //gtk_container_add(GTK_CONTAINER(vbox), combo_box);
     //gtk_box_pack_start(GTK_BOX(vbox), combo_box, FALSE, TRUE, 5);
     g_signal_connect(G_OBJECT(audio_configure_button), "clicked",
@@ -699,6 +728,11 @@ void appconfig_show(GtkWidget *main_window)
         (GtkSignalFunc)ok_button_clicked, window);
     gtk_widget_show(ok_button);
 
+    g_signal_connect(GTK_OBJECT(radio2), "toggled",
+        G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
+    gtk_widget_show(radio1);
+    gtk_widget_show(radio2);
+
     if (get_use_outputdir()) {
         // enable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, TRUE);
@@ -706,6 +740,7 @@ void appconfig_show(GtkWidget *main_window)
         gtk_widget_set_sensitive(outputdir_label, TRUE);
 
         //gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), TRUE);
+        // set directly so the toggled event is not emitted
         GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = TRUE;
     } else {
         // disable the output dir widget
@@ -714,25 +749,24 @@ void appconfig_show(GtkWidget *main_window)
         gtk_widget_set_sensitive(outputdir_label, FALSE);
 
         //gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), FALSE);
+        // set directly so the toggled event is not emitted
         GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = FALSE;
     }
 
-    if (get_use_etree_filename_suffix()) {
-        gtk_widget_set_sensitive(etree_filename_suffix_entry, FALSE);
-        gtk_widget_set_sensitive(etree_filename_suffix_label, FALSE);
-        gtk_widget_set_sensitive(etree_cd_length_entry, TRUE);
-        gtk_widget_set_sensitive(etree_cd_length_label, TRUE);
-
-        // set directly so the toggled event is not emitted
-        GTK_TOGGLE_BUTTON(use_etree_filename_suffix_toggle)->active = TRUE;
+    if (get_prepend_file_number()) {
+        GTK_TOGGLE_BUTTON(prepend_file_number_toggle)->active = TRUE;
     } else {
-        gtk_widget_set_sensitive(etree_filename_suffix_entry, TRUE);
-        gtk_widget_set_sensitive(etree_filename_suffix_label, TRUE);
-        gtk_widget_set_sensitive(etree_cd_length_entry, FALSE);
-        gtk_widget_set_sensitive(etree_cd_length_label, FALSE);
+        GTK_TOGGLE_BUTTON(prepend_file_number_toggle)->active = FALSE;
+    }
 
+    if (get_use_etree_filename_suffix()) {
         // set directly so the toggled event is not emitted
-        GTK_TOGGLE_BUTTON(use_etree_filename_suffix_toggle)->active = FALSE;
+        GTK_TOGGLE_BUTTON(radio1)->active = FALSE;
+        GTK_TOGGLE_BUTTON(radio2)->active = TRUE;
+    } else {
+        // set directly so the toggled event is not emitted
+        GTK_TOGGLE_BUTTON(radio1)->active = TRUE;
+        GTK_TOGGLE_BUTTON(radio2)->active = FALSE;
     }
 
     gtk_widget_show(window);
@@ -791,6 +825,10 @@ static int appconfig_read_file() {
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_etree_filename_suffix"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_use_etree_filename_suffix(key);
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "prepend_file_number"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            set_prepend_file_number(key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "etree_filename_suffix"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
@@ -871,7 +909,7 @@ static int appconfig_write_file() {
     }
 
     cur = xmlNewChild(root, NULL, (const xmlChar *)"alsa_options_output_device",
-        (const xmlChar *) get_audio_alsa_options_output_device());
+            (const xmlChar *) get_audio_alsa_options_output_device());
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
@@ -883,7 +921,19 @@ static int appconfig_write_file() {
 
     sprintf(tmp_str, "%d", get_use_etree_filename_suffix());
     cur = xmlNewChild(root, NULL, (const xmlChar *)"use_etree_filename_suffix",
-        (const xmlChar *) tmp_str);
+            (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating use_etree_filename_suffix node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", get_prepend_file_number());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"prepend_file_number",
+            (const xmlChar *) tmp_str);
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");

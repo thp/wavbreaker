@@ -556,9 +556,6 @@ track_break_setup_filename(gpointer data, gpointer user_data)
     static int prev_disc_num;
     static int track_num = 1;
 
-    fn[0] = '\0';
-    strcat(fn, (gchar *)user_data);
-
     index = g_list_index(track_break_list, track_break);
     index++;
     if (get_use_etree_filename_suffix()) {
@@ -580,13 +577,32 @@ track_break_setup_filename(gpointer data, gpointer user_data)
             sprintf(buf, "d%dt%d", disc_num, track_num);
         }
     } else {
+        printf("prepend: %d\n", get_prepend_file_number());
         if (index < 10) {
-            sprintf(buf, "%s0%d", get_etree_filename_suffix(), index);
+            if (get_prepend_file_number()) {
+                sprintf(buf, "0%d%s", index, get_etree_filename_suffix());
+            } else {
+                sprintf(buf, "%s0%d", get_etree_filename_suffix(), index);
+            }
         } else {
-            sprintf(buf, "%s%d", get_etree_filename_suffix(), index);
+            if (get_prepend_file_number()) {
+                sprintf(buf, "%d%s", index, get_etree_filename_suffix());
+            } else {
+                sprintf(buf, "%s%d", get_etree_filename_suffix(), index);
+            }
         }
     }
-    strcat(fn, buf);
+
+    fn[0] = '\0';
+
+    if (!get_use_etree_filename_suffix() && get_prepend_file_number()) {
+        strcat(fn, buf);
+        strcat(fn, (gchar *)user_data);
+    } else {
+        strcat(fn, (gchar *)user_data);
+        strcat(fn, buf);
+    }
+
     if (track_break->filename != NULL) {
         g_free(track_break->filename);
     }
