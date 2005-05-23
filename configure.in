@@ -1,8 +1,11 @@
-dnl Process this file with autoconf to produce a configure script.
-AC_INIT(acconfig.h)
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
 
-AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(wavbreaker, 0.6b)
+AC_PREREQ(2.59)
+AC_INIT(wavbreaker, 0.6b)
+AM_INIT_AUTOMAKE
+#AM_CONFIG_SRCDIR([src])
+AM_CONFIG_HEADER([config.h])
 
 dnl Checks for programs.
 AC_PROG_AWK
@@ -10,63 +13,34 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
-dnl Checks for libraries.
-dnl Replace `main' with a function in -latk:
-AC_CHECK_LIB(atk, main)
-dnl Replace `main' with a function in -ldl:
-AC_CHECK_LIB(dl, main)
-dnl Replace `main' with a function in -lgdk:
-AC_CHECK_LIB(gdk, main)
-dnl Replace `main' with a function in -lgdk_pixbuf:
-AC_CHECK_LIB(gdk_pixbuf, main)
-dnl Replace `main' with a function in -lglib:
-AC_CHECK_LIB(glib, main)
-dnl Replace `main' with a function in -lgmodule:
-AC_CHECK_LIB(gmodule, main)
-dnl Replace `main' with a function in -lgobject:
-AC_CHECK_LIB(gobject, main)
-dnl Replace `main' with a function in -lgthread:
-AC_CHECK_LIB(gthread, main)
-dnl Replace `main' with a function in -lgtk:
-AC_CHECK_LIB(gtk, main)
-dnl Replace `main' with a function in -lm:
-AC_CHECK_LIB(m, main)
-dnl Replace `main' with a function in -lpango:
-AC_CHECK_LIB(pango, main)
-dnl Replace `main' with a function in -lpangoft2:
-AC_CHECK_LIB(pangoft2, main)
-dnl Replace `main' with a function in -lpangowin32:
-AC_CHECK_LIB(pangowin32, main)
-dnl Replace `main' with a function in -lpangox:
-AC_CHECK_LIB(pangox, main)
-dnl Replace `main' with a function in -lpangoxft:
-AC_CHECK_LIB(pangoxft, main)
-dnl Replace `main' with a function in -lpthread:
-AC_CHECK_LIB(pthread, main)
-dnl Replace `main' with a function in -lwinmm:
-AC_CHECK_LIB(winmm, main)
-dnl Replace `main' with a function in -lxml2:
-AC_CHECK_LIB(xml2, main)
-dnl Replace `main' with a function in -lz:
-AC_CHECK_LIB(z, main)
+# Checks for libraries.
+# FIXME: Replace `main' with a function in `-lasound':
+AC_CHECK_LIB([asound], [main])
+# FIXME: Replace `main' with a function in `-lm':
+AC_CHECK_LIB([m], [main])
+# FIXME: Replace `main' with a function in `-lwinmm':
+AC_CHECK_LIB([winmm], [main])
+AC_CHECK_LIB([gtk], [main])
 
-dnl Checks for header files.
+# Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h limits.h sys/ioctl.h unistd.h)
+AC_CHECK_HEADERS([fcntl.h limits.h stdlib.h string.h sys/ioctl.h unistd.h])
 
-dnl Checks for typedefs, structures, and compiler characteristics.
+# Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 
-dnl Checks for library functions.
+# Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
+AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_CHECK_FUNCS(strdup strstr)
+AC_FUNC_STAT
+AC_CHECK_FUNCS([strchr strdup strrchr strstr])
 
 PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 gthread-2.0 libxml-2.0)
 AC_SUBST(WAVBREAKER_CFLAGS)
 AC_SUBST(WAVBREAKER_LIBS)
 
-dnl AC_DEFINE_UNQUOTED(IMAGEDIR, "${prefix}/share/wavbreaker/images/")
+# AC_DEFINE_UNQUOTED(IMAGEDIR, "${prefix}/share/wavbreaker/images/")
 
 AC_MSG_CHECKING([if GTK+ is version 2.3.0 or newer])
 if $PKG_CONFIG --atleast-version=2.3.0 gtk+-2.0; then
@@ -81,5 +55,9 @@ if test x"$have_gtk_23" = xyes; then
    AC_DEFINE(HAVE_GTK_2_3, 1, [Define if you have GTK+ 2.4.0 or better])
 fi
 
-AC_OUTPUT(src/Makefile images/Makefile Makefile)
+AC_CONFIG_FILES([Makefile
+                 images/Makefile
+                 src/Makefile])
+
+AC_OUTPUT
 
