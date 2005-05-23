@@ -4,6 +4,7 @@ version 0.6 (2005-??-??)
         to the file name.
     + Save As dialog lets you select the directory to put the new files.
     + Use the new gtk file dialogs if using gtk+-2.3 or greater.
+    + Export to TOC file
     ! Fixed a small bug that when deleting a track break, the durations are
         not updated in the list display.
     ! Fixed file closing bug
