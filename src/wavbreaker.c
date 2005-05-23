@@ -181,6 +181,9 @@ static void
 menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
+menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
@@ -231,6 +234,7 @@ static GtkItemFactoryEntry menu_items[] = {
   { "/_Edit",             NULL, 0,           0, "<Branch>" },
   { "/Edit/_Preferences", NULL, menu_config, 0, "" },
   { "/Edit/_AutoSplit", NULL, menu_autosplit, 0, "" },
+  { "/Edit/_Export TOC", NULL, menu_export, 0, "" },
 
   { "/_Help",       NULL, 0,          0, "<Branch>" },
   { "/Help/_About", NULL, menu_about, 0, "" },
@@ -1746,42 +1750,41 @@ void wavbreaker_write_files(char *dirname) {
 
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
+    int write_err = -1;
+    char toc_filename[strlen(sample_filename)+5];
+    char *ptr = NULL;
+    char *data_filename = NULL;
+    char msg[128];
+
     if (sample_filename == NULL) {
        return;
     }
 
-    char dir[strlen(sample_filename)+4];
-    strcpy(dir, sample_filename);
-    char *ptr = strstr(dir, "wav");
-    if(ptr == NULL) {
-         int n = strlen(dir);
-         dir[n] = '.';
-         dir[n+1] = 't';
-         dir[n+2] = 'o';
-         dir[n+3] = 'c';
-         dir[n+4] = 0;
-    } else {
-         ptr[0] = 't';
-         ptr[1] = 'o';
-         ptr[2] = 'c';
-         ptr[3] = 0;
-    }
-    printf("%s\n", dir);
-
-    ptr = strrchr(sample_filename, '/');
+    strcpy(toc_filename, sample_filename);
+    ptr = strstr(toc_filename, ".wav");
     if (ptr == NULL) {
-        ptr = sample_filename;
-    }
-    ptr = &ptr[1];
-    char data_filename[strlen(ptr)];
-    strcpy(data_filename, ptr);
-       
-    int write_err = toc_write_file(dir, data_filename, track_break_list);
-    char msg[128];
-    if (write_err) {
-        sprintf(msg, "Export TOC to %s: FAILED!", dir);
+        int n = strlen(toc_filename);
+        toc_filename[n] = '.';
+        toc_filename[n+1] = 't';
+        toc_filename[n+2] = 'o';
+        toc_filename[n+3] = 'c';
+        toc_filename[n+4] = 0;
     } else {
-        sprintf(msg, "Export TOC to %s: Successful", dir);
+        ptr++;
+        ptr[0] = 't';
+        ptr[1] = 'o';
+        ptr[2] = 'c';
+        ptr[3] = 0;
+    }
+    printf("%s\n", toc_filename);
+
+    data_filename = basename(sample_filename);
+       
+    write_err = toc_write_file(toc_filename, data_filename, track_break_list);
+    if (write_err) {
+        sprintf(msg, "Export TOC to %s: FAILED!", toc_filename);
+    } else {
+        sprintf(msg, "Export TOC to %s: Successful", toc_filename);
     }
 
     popupmessage_show(main_window, msg);
