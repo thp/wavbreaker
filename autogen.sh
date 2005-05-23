@@ -2,6 +2,6 @@
 
 autoscan
 aclocal
+autoconf
 autoheader
 automake -a -c
-autoconf
