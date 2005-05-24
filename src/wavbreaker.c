@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#  define IMAGEDIR "../images/"
 #ifdef _WIN32
 #  define IMAGEDIR "../images/"
 #else
@@ -39,6 +40,7 @@
 #include "appconfig.h"
 #include "autosplit.h"
 #include "saveas.h"
+//#include "cellrendererspin.h"
 
 #define play_icon_filename IMAGEDIR"play.png"
 #define stop_icon_filename IMAGEDIR"stop.png"
@@ -56,6 +58,8 @@ static GtkObject *adj;
 static GtkWidget *draw;
 static GtkWidget *draw_summary;
 static GtkWidget *statusbar;
+
+static GtkAdjustment *cursor_marker_spinner_adj;
 
 static GraphData graphData;
 
@@ -108,6 +112,8 @@ static gboolean track_break_button_press(GtkWidget *widget,
 void track_break_write_toggled(GtkWidget *widget, gchar *path_str,
     gpointer data);
 void track_break_filename_edited(GtkCellRendererText *cell,
+    const gchar *path_str, const gchar *new_text, gpointer user_data);
+void track_break_start_time_edited(GtkCellRendererText *cell,
     const gchar *path_str, const gchar *new_text, gpointer user_data);
 guint track_break_find_offset();
 void track_break_delete_entry();
@@ -290,6 +296,27 @@ void wavbreaker_autosplit(long x) {
  *-------------------------------------------------------------------------
  */
 
+/* TODO */
+/*
+static void
+cell_data_func_gpa (GtkTreeViewColumn *col,
+                    GtkCellRenderer   *cell,
+                    GtkTreeModel      *model,
+                    GtkTreeIter       *iter,
+                    gpointer           data)
+{
+	gchar   buf[32];
+	GValue  val = {0, };
+
+	gtk_tree_model_get_value(model, iter, COLUMN_TIME, &val);
+
+	g_snprintf(buf, sizeof(buf), "%s", g_value_get_string(&val));
+
+    g_printf("text: %s\n", buf);
+//	g_object_set(cell, "text", buf, NULL);
+}
+*/
+
 GtkWidget *
 track_break_create_list_gui()
 {
@@ -328,41 +355,62 @@ track_break_create_list_gui()
 
     /* create the columns */
     /* Write Toggle Column */
+    column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_toggle_new();
     g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(track_break_write_toggled), store);
-    column = gtk_tree_view_column_new_with_attributes("Write", renderer, "active", COLUMN_WRITE, NULL);
-    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
+    gtk_tree_view_column_set_title(column, "Write");
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_add_attribute(column, renderer, "active", COLUMN_WRITE);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_fixed_width(column, 50);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* File Name Column */
+    column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("File Name", renderer,
-                        "text", COLUMN_FILENAME,
-                        "editable", COLUMN_EDITABLE, NULL);
-    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
-    gtk_tree_view_column_set_resizable(column, TRUE);
     g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
+    gtk_tree_view_column_set_title(column, "File Name                               ");
+    gtk_tree_view_column_pack_start(column, renderer, TRUE);
+    gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_FILENAME);
+    gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    //gtk_tree_view_column_set_fixed_width(column, 200);
+    gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* File Time Start Column */
+    column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Time", renderer, "text", COLUMN_TIME, NULL);
-    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    /* TODO
+    renderer = gui_cell_renderer_spin_new(0.0, 5.0, 0.1, 1.0, 1.0, 0.1, 0);
+    g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_start_time_edited), store);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, cell_data_func_gpa, NULL, NULL);
+    */
+    gtk_tree_view_column_set_title(column, "Time");
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_TIME);
+    //gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* File Duration Column */
+    column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Duration", renderer, "text", COLUMN_DURATION, NULL);
-    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    gtk_tree_view_column_set_title(column, "Duration");
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_DURATION);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* File Offset Column */
+    column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Offset", renderer, "text", COLUMN_OFFSET, NULL);
-    gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+    gtk_tree_view_column_set_title(column, "Offset");
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_OFFSET);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     return sw;
@@ -801,7 +849,7 @@ void track_break_filename_edited(GtkCellRendererText *cell,
                                  const gchar *new_text,
                                  gpointer user_data)
 {
-    GtkTreeModel *model = (GtkTreeModel *)user_data;
+    GtkTreeModel *model = GTK_TREE_MODEL(user_data);
     GtkTreeIter iter;
     GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
     TrackBreak *track_break;
@@ -816,6 +864,34 @@ void track_break_filename_edited(GtkCellRendererText *cell,
     gtk_tree_model_get_iter(model, &iter, path);
     gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
                        track_break->filename, -1);
+
+    gtk_tree_path_free(path);
+}
+
+void track_break_start_time_edited(GtkCellRendererText *cell,
+                                   const gchar *path_str,
+                                   const gchar *new_text,
+                                   gpointer user_data)
+{
+    GtkTreeModel *model = GTK_TREE_MODEL(user_data);
+    GtkTreeIter iter;
+    GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
+    TrackBreak *track_break;
+    guint list_pos;
+    gpointer list_data;
+
+    list_pos = atoi(path_str);
+    list_data = g_list_nth_data(track_break_list, list_pos);
+    track_break = (TrackBreak *)list_data;
+    printf("new time: %s\n", new_text);
+    printf("old time: %s\n", track_break->time);
+    /*
+    track_break->filename = g_strdup(new_text);
+
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
+                       track_break->filename, -1);
+                       */
 
     gtk_tree_path_free(path);
 }
@@ -1311,6 +1387,7 @@ static gboolean configure_event(GtkWidget *widget,
 
     GTK_ADJUSTMENT(adj)->step_increment = 10;
     gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+    GTK_ADJUSTMENT(cursor_marker_spinner_adj)->upper = graphData.numSamples - 1;
 
     draw_sample(widget);
     draw_cursor_marker();
@@ -1607,6 +1684,22 @@ static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
     return TRUE;
 }
 
+static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
+{
+    if (sample_get_playing()) {
+        return;
+    }
+    cursor_marker = adj->value;
+    /*
+    printf("adj->value: %lu\n", adj->value);
+    printf("cursor_marker: %lu\n", cursor_marker);
+    printf("pixmap_offset: %lu\n", pixmap_offset);
+    */
+
+    update_status();
+    redraw();
+}
+
 static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
@@ -1645,6 +1738,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     }
 
     cursor_marker = pixmap_offset + event->x;
+    gtk_adjustment_set_value(cursor_marker_spinner_adj, cursor_marker);
 
     /* DEBUG CODE START */
     /*
@@ -1870,6 +1964,13 @@ int main(int argc, char **argv)
     GtkWidget *list_vbox;
     GtkWidget *frame;
 
+    GtkWidget *cursor_marker_spinner;
+    GtkWidget *hbox;
+    GtkWidget *hbbox;
+    GtkWidget *button;
+    GtkWidget *button_hbox;
+    GtkWidget *label;
+
     g_thread_init(NULL);
     gdk_threads_init();
     gtk_init(&argc, &argv);
@@ -2083,6 +2184,62 @@ int main(int argc, char **argv)
     gtk_paned_add2(GTK_PANED(vpane2), frame);
 //    gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
     gtk_widget_show(draw);
+
+/* Add cursor marker spinner and track break add and delete buttons */
+    hbox = gtk_hbox_new(FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vpane_vbox), hbox, FALSE, FALSE, 0);
+    gtk_widget_show(hbox);
+
+    cursor_marker_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 74.0);
+    cursor_marker_spinner = gtk_spin_button_new(cursor_marker_spinner_adj, 1.0, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_spinner_changed), NULL);
+    gtk_widget_show(cursor_marker_spinner);
+
+    hbbox = gtk_hbutton_box_new();
+    gtk_box_pack_start(GTK_BOX(hbox), hbbox, FALSE, FALSE, 0);
+    gtk_box_set_spacing(GTK_BOX(hbbox), 5);
+    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_START);
+    gtk_widget_show(hbbox);
+
+    /* add track break button */
+    button = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_add_track_break), NULL);
+    gtk_widget_show(button);
+
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(button), button_hbox);
+    gtk_widget_show(button_hbox);
+
+    icon = gtk_image_new_from_file(break_icon_filename);
+    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
+    gtk_widget_show(icon);
+
+    label = gtk_label_new("Add");
+    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    gtk_widget_show(label);
+
+    /* delete track break button */
+    button = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_delete_track_break), NULL);
+    gtk_widget_show(button);
+
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(button), button_hbox);
+    gtk_widget_show(button_hbox);
+
+    icon = gtk_image_new_from_file(del_break_icon_filename);
+    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
+    gtk_widget_show(icon);
+
+    label = gtk_label_new("Delete");
+    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    gtk_widget_show(label);
 
 /* Add scrollbar */
     adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
