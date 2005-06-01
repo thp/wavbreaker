@@ -1,546 +1,748 @@
-2004-07-07 04:23  Timothy Robinson <tdrobinson@huli.org>
+2005-06-01 12:14  Timothy Robinson <tdrobinson@huli.org>
 
-	* NEWS, TODO: Added some changes for version 0.5 release.
+	* src/wavbreaker.c: whoops, deleted one too many lines
 
-2004-07-07 04:22  Timothy Robinson <tdrobinson@huli.org>
+2005-06-01 11:26  Timothy Robinson <tdrobinson@huli.org>
 
-	* src/appconfig.c: Fixed the directory selection.  Was appending
-	the previous directory name on the end of the string.  I added a
-	trailing "/" to the end of the string when setting the filename for
-	the new file selection dialog.
+	* src/wavbreaker.c: removed some debug statements
 
-2004-07-07 03:58  Timothy Robinson <tdrobinson@huli.org>
+2005-06-01 11:21  Timothy Robinson <tdrobinson@huli.org>
 
-	* src/appconfig.c: Cleaned up the widget locations.
+	* src/wavbreaker.c: commented out redefine of IMAGEDIR for release
 
-2004-07-07 03:53  Timothy Robinson <tdrobinson@huli.org>
+2005-06-01 11:17  Timothy Robinson <tdrobinson@huli.org>
 
-	* src/: wavbreaker.c, wavbreaker.h: Added the duration of the track
-	break to the list.
+	* NEWS, configure.in: 0.6 release version increment
+
+2005-06-01 11:15  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: appconfig.c, appconfig.h, wavbreaker.c: Save window and
+	  pane sizes.
+
+2005-05-24 18:57  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wavbreaker.c: added a spinner widget to move the cursor
+	  marker by precise increments
+
+2005-05-23 19:33  Timothy Robinson <tdrobinson@huli.org>
+
+	* autogen.sh, configure.in: release number increment to 0.6c
+
+2005-05-23 19:17  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wavbreaker.c: Cleaned up the export toc function.
+
+2005-05-23 19:16  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/Makefile.am: Removed asound library.  It is now in the
+	  automake configuration.
+
+2005-05-23 19:15  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS: New export toc file news.
+
+2005-05-23 19:15  Timothy Robinson <tdrobinson@huli.org>
+
+	* configure.in: New syntax rules for automake 2.59.
+
+2005-05-23 08:39  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS: Added alsa news
+
+2005-05-21 10:05  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: Makefile.am, toc.c, toc.h, wavbreaker.c: Added toc file
+	  export submitted by Justin Ruggles <jruggle@earthlink.net>.
+
+2005-05-21 09:24  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: linuxaudio.c, sample.c: turn off some debug
+
+2005-05-21 09:12  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS, src/wavbreaker.c: added new for prepend feature
+
+2005-05-21 09:10  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: appconfig.c, wavbreaker.c: Added configuration option to
+	  prepend file number as opposed to append it to the file name.
+
+2005-05-19 17:07  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wavbreaker.c: Whoops, removed the wrong conflict section.
+
+2005-05-19 16:57  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS: Added Save As option.
+
+2005-05-19 16:57  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: Makefile.am, appconfig.c, appconfig.h, browsedir.c,
+	  browsedir.h, sample.c, sample.h, saveas.c, saveas.h,
+	  wavbreaker.c, wavbreaker.h: Added Save As option.  Fixed config
+	  audio output device stuff.
+
+2005-05-18 18:22  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/Makefile.am: added asound library to link to
+
+2005-05-18 18:22  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: sample.c, sample.h, wav.c, wavbreaker.c: Fixed the file
+	  closing issues which were causing the lock up on opening multiple
+	  files.
+
+2005-05-18 13:36  Timothy Robinson <tdrobinson@huli.org>
+
+	* configure.in, src/Makefile.am: version increment
+
+2005-05-18 13:35  Timothy Robinson <tdrobinson@huli.org>
+
+	* TODO: new feature request
+
+2005-05-18 13:35  Timothy Robinson <tdrobinson@huli.org>
+
+	* email/wavbreaker-announce.list: new subscriber
+
+2005-01-09 12:17  Timothy Robinson <tdrobinson@huli.org>
+
+	* email/wavbreaker-announce.list: new subscribers
+
+2004-11-14 10:13  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS, configure.in, src/Makefile.am: preview release
+
+2004-11-13 11:13  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: sample.c, wav.c: Fixed file closing bug.
+
+2004-08-24 18:11  Timothy Robinson <tdrobinson@huli.org>
+
+	* TODO, email/wavbreaker-announce.list: Adding the email list.
+
+2004-08-16 20:21  Timothy Robinson <tdrobinson@huli.org>
+
+	* .cvsignore, images/.cvsignore, src/.cvsignore: adding new cvs
+	  ignore files
+
+2004-08-16 19:14  Timothy Robinson <tdrobinson@huli.org>
+
+	* TODO, src/alsaaudio.c, src/appconfig.c, src/appconfig.h,
+	  src/linuxaudio.c, src/sample.c: Changed the config dialog to
+	  allow choosing OSS or Alsa as the audio output device.  Still need
+	  to add the dialog to configure OSS and Alsa independly.  Also need
+	  to make sure the audio is not playing before changing output
+	  devices.
+
+2004-07-23 22:28  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: appconfig.c, appconfig.h, linuxaudio.c, linuxaudio.h,
+	  sample.c, wavmerge.c: Got the audio function pointers working.
+	  Now I need to add the configuration gui for selecting different
+	  audio interfaces.
+
+2004-07-20 02:31  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: alsaaudio.c, alsaaudio.h, linuxaudio.c, linuxaudio.h,
+	  sample.c, sample.h, wavmerge.c: Changed the buffer size from a
+	  #define to be a variable in the sampleInfo struct.  This is to
+	  accomidate alsa giving the buffer size based on the audio
+	  parameters.
+
+2004-07-20 02:09  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: alsaaudio.c, sample.c: Removed some debug prints.
+
+2004-07-20 02:03  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: alsaaudio.c, linuxaudio.c, sample.c, sample.h,
+	  wavbreaker.c: Added #ifdef to the debug code.
+
+2004-07-19 01:44  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wav.h: Changed the longs to ints becaues long is different on
+	  32-bit and 64-bit processors.
+
+2004-07-18 14:46  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: Makefile.am, alsaaudio.c, alsaaudio.h: Added support for
+	  alsa.  Still can't set the audio format to unsigned 8-bit.
+
+2004-07-15 21:32  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS, src/appconfig.c, src/wavbreaker.c: Now destroy the old file
+	  dialog when clicking ok or cancel.  Set the last used dir when
+	  opening a new file dialog.
+
+2004-07-15 21:05  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wavbreaker.c: Fixed a small bug that when deleting a track
+	  break, the durations are not updated in the list display.
+
+2004-07-15 21:01  Timothy Robinson <tdrobinson@huli.org>
+
+	* configure.in, src/appconfig.c, src/wavbreaker.c: Use the new gtk
+	  file dialogs if using gtk+-2.3 or greater.
+
+2004-07-14 23:27  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/sample.c: Added some gtk_thread_yield() calls after creating
+	  the new threads for playing and opening files.  This gets rid of the
+	  nasty wait when creating the new threads.
+
+2004-07-11 14:53  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/appconfig.c: Removed a debug statement.
+
+2004-07-11 14:01  Timothy Robinson <tdrobinson@huli.org>
+
+	* ChangeLog, configure.in: Changes for release 0.5.
 
 2004-07-07 00:23  Timothy Robinson <tdrobinson@huli.org>
 
-	* src/wavbreaker.c: Fixed a floating point exception when the
-	sample summary display was proportional to the window size.
+	* NEWS, TODO: Added some changes for version 0.5 release.
 
-2004-04-13 01:35  Timothy Robinson <tdrobinson@huli.org>
+2004-07-07 00:22  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/appconfig.c: Fixed the directory selection.  Was appending
+	  the previous directory name on the end of the string.  I added a
+	  trailing "/" to the end of the string when setting the filename for
+	  the new file selection dialog.
+
+2004-07-06 23:58  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/appconfig.c: Cleaned up the widget locations.
+
+2004-07-06 23:53  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/: wavbreaker.c, wavbreaker.h: Added the duration of the track
+	  break to the list.
+
+2004-07-06 20:23  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wavbreaker.c: Fixed a floating point exception when the
+	  sample summary display was proportional to the window size.
+
+2004-04-12 21:35  Timothy Robinson <tdrobinson@huli.org>
 
 	* TODO, users: [no log message]
 
-2004-04-13 01:11  Timothy Robinson <tdrobinson@huli.org>
+2004-04-12 21:11  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: appconfig.c, autosplit.c: cleaned up the config and
-	autosplit menus
+	  autosplit menus
 
-2004-04-13 00:20  Timothy Robinson <tdrobinson@huli.org>
+2004-04-12 20:20  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: added function prototype
 
-2004-01-19 23:21  Timothy Robinson <tdrobinson@huli.org>
+2004-01-19 18:21  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: removed debug statements
 
-2004-01-19 23:17  Timothy Robinson <tdrobinson@huli.org>
+2004-01-19 18:17  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: Fixed the logic that would read in the config
-	file and default the global strings.
+	  file and default the global strings.
 
-2004-01-19 22:28  Timothy Robinson <tdrobinson@huli.org>
+2004-01-19 17:28  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed track_break_rename() to return right away
-	if no file is open.
+	  if no file is open.
 
-2004-01-19 22:18  Timothy Robinson <tdrobinson@huli.org>
+2004-01-19 17:18  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added / Fixed the jump to track break and jump
-	to cursor marker.
+	  to cursor marker.
 
-2004-01-19 05:04  Timothy Robinson <tdrobinson@huli.org>
+2004-01-19 00:04  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: appconfig.c, wavbreaker.c, wavbreaker.h: update the
-	filenames when changing the filename suffix configuration
+	  filenames when changing the filename suffix configuration
 
-2004-01-19 04:46  Timothy Robinson <tdrobinson@huli.org>
+2004-01-18 23:46  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: appconfig.c, appconfig.h, wavbreaker.c: added some options
-	for the filename suffix
+	  for the filename suffix
 
-2004-01-19 04:41  Timothy Robinson <tdrobinson@huli.org>
+2004-01-18 23:41  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/about.c: updated the copyright for 2004
 
-2004-01-18 02:00  Timothy Robinson <tdrobinson@huli.org>
+2004-01-17 21:00  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/sample.c: Check to see if we should use the user defined
-	output directory or use the current directory.
+	  output directory or use the current directory.
 
-2004-01-18 02:00  Timothy Robinson <tdrobinson@huli.org>
+2004-01-17 21:00  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: removed writing the outputdev config item twice
 
-2004-01-18 01:43  Timothy Robinson <tdrobinson@huli.org>
+2004-01-17 20:43  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavinfo.c: Added the copyright info.
 
-2003-12-19 23:54  Timothy Robinson <tdrobinson@huli.org>
+2003-12-19 18:54  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: wavbreaker.c, wavinfo.c: moved the variable definition to
-	the top of the code block to satisfy gcc 2.95
+	  the top of the code block to satisfy gcc 2.95
 
-2003-10-25 21:50  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 17:50  Timothy Robinson <tdrobinson@huli.org>
 
 	* ChangeLog, NEWS, README: updated for 0.4 release
 
-2003-10-25 21:22  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 17:22  Timothy Robinson <tdrobinson@huli.org>
 
 	* configure.in, src/Makefile.am: fixed problem with
-	autoconf/automake when not giving ./configure a prefix directory
+	  autoconf/automake when not giving ./configure a prefix directory
 
-2003-10-25 20:57  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 16:57  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: added use_outputdir so that you can choose to
-	use outpudir or not
+	  use outpudir or not
 
-2003-10-25 20:52  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 16:52  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavinfo.c: modified to use wav_get_error_message()
 
-2003-10-25 19:21  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 15:21  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/autosplit.c: modified the parse to allow leaving off the
-	subseconds
+	  subseconds
 
-2003-10-25 19:21  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 15:21  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: modified the right click to pass on to the rest
-	of the handlers
+	  of the handlers
 
-2003-10-25 19:20  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 15:20  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/sample.c: commented some debug statements
 
-2003-10-25 16:58  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 12:58  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: autosplit.c, wavbreaker.c, wavbreaker.h: implemented the
-	autosplit feature
+	  autosplit feature
 
-2003-10-25 16:32  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 12:32  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wav.c: Fixed error that would occur when reading a
-	non-standard wav header.  The FormatChunk is supposed to be 16
-	bytes, but is 18 bytes, so I just skip over the extra non-pcm junk.
+	  non-standard wav header.  The FormatChunk is supposed to be 16
+	  bytes, but is 18 bytes, so I just skip over the extra non-pcm junk.
 
-2003-10-25 16:11  Timothy Robinson <tdrobinson@huli.org>
+2003-10-25 12:11  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: Makefile.am, autosplit.c, autosplit.h, popupmessage.c,
-	popupmessage.h, sample.c, sample.h, wav.c, wav.h, wavbreaker.c:
-	added the menu and popup window for doing autosplit at a given
-	interval added passing errors back up the stream to be displayed in
-	a popup box
+	  popupmessage.h, sample.c, sample.h, wav.c, wav.h, wavbreaker.c:
+	  added the menu and popup window for doing autosplit at a given
+	  interval added passing errors back up the stream to be displayed in
+	  a popup box
 
-2003-10-25 01:17  Timothy Robinson <tdrobinson@huli.org>
+2003-10-24 21:17  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/sample.c: fixed the sample_min_max problem with the size junk
 
-2003-10-25 01:04  Timothy Robinson <tdrobinson@huli.org>
+2003-10-24 21:04  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: Makefile.am, sample.c, wav.c, wav.h: added the wavinfo
-	program fixed the bug relating to mono wav files
+	  program fixed the bug relating to mono wav files
 
-2003-10-10 16:13  Timothy Robinson <tdrobinson@huli.org>
+2003-10-10 12:13  Timothy Robinson <tdrobinson@huli.org>
 
 	* gentoo/wavbreaker-0.3.ebuild: gentoo ebuild
 
-2003-10-08 22:56  Timothy Robinson <tdrobinson@huli.org>
+2003-10-08 18:56  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavinfo.c: New executable to print the info of a given
-	wavfile.
+	  wavfile.
 
-2003-06-26 23:12  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 19:12  Timothy Robinson <tdrobinson@huli.org>
 
 	* ChangeLog: Changed my email address
 
-2003-06-26 23:05  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 19:05  Timothy Robinson <tdrobinson@huli.org>
 
 	* ChangeLog, NEWS: version 0.3 is being released
 
-2003-06-26 22:59  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:59  Timothy Robinson <tdrobinson@huli.org>
 
 	* configure.in: new for version 0.3 Ran autoscan and then added the
-	automake (AM), pkg_check_modules and cflags/libs ac_subst entries.
+	  automake (AM), pkg_check_modules and cflags/libs ac_subst entries.
 
-2003-06-26 22:42  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:42  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: added more verbose error messages to the xml
-	handlers
+	  handlers
 
-2003-06-26 22:32  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:32  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added the strrchr back after chasing down a
-	problem with basename.
+	  problem with basename.
 
-2003-06-26 22:30  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:30  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/sample.c: removed debug statement
 
-2003-06-26 22:29  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:29  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c: Modified the audio interfaces.
-	Changed the filename manipulation when writing.
+	  Changed the filename manipulation when writing.
 
-2003-06-26 22:27  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:27  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: linuxaudio.c, linuxaudio.h: Modified the interface to be
-	more platform independent or audio interface independent.
+	  more platform independent or audio interface independent.
 
-2003-06-26 22:26  Timothy Robinson <tdrobinson@huli.org>
+2003-06-26 18:26  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: Make sure the configuration gets set if the file
-	is of the wrong type.
+	  is of the wrong type.
 
-2003-06-25 23:51  Timothy Robinson <tdrobinson@huli.org>
+2003-06-25 19:51  Timothy Robinson <tdrobinson@huli.org>
 
 	* windows/Makefile: added the about and config windows
 
-2003-06-19 23:32  Timothy Robinson <tdrobinson@huli.org>
+2003-06-19 19:32  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.h: Added the getters for the config variables.
 
-2003-06-08 14:28  Timothy Robinson <tdrobinson@huli.org>
+2003-06-08 10:28  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: increased the initial characters (size) in the
-	entry box
+	  entry box
 
-2003-06-08 14:23  Timothy Robinson <tdrobinson@huli.org>
+2003-06-08 10:23  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: Modified the widgets that show in the file
-	selection dialog.
+	  selection dialog.
 
-2003-06-08 13:58  Timothy Robinson <tdrobinson@huli.org>
+2003-06-08 09:58  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/appconfig.c: Set the file selection dialog name to the
-	current directory.
+	  current directory.
 
-2003-06-08 00:45  Timothy Robinson <tdrobinson@huli.org>
+2003-06-07 20:45  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: about.c, appconfig.c: added some ifdefs to get it to
-	compile in winbloze
+	  compile in winbloze
 
-2003-06-08 00:15  Timothy Robinson <tdrobinson@huli.org>
+2003-06-07 20:15  Timothy Robinson <tdrobinson@huli.org>
 
 	* configure.in: added libxml-2.0
 
-2003-06-07 22:23  Timothy Robinson <tdrobinson@huli.org>
+2003-06-07 18:23  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: Makefile.am, about.c, about.h, appconfig.c, appconfig.h:
-	Adding the about and configuration menus.
+	  Adding the about and configuration menus.
 
-2003-06-07 22:22  Timothy Robinson <tdrobinson@huli.org>
+2003-06-07 18:22  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added right click functionality to the sample
-	display to add a break and to the list display to delete a selected
-	break.
+	  display to add a break and to the list display to delete a selected
+	  break.
 
-	Added the hooks to call the new about and preferences menus.
+	  Added the hooks to call the new about and preferences menus.
 
-2003-05-03 18:02  Timothy Robinson <tdrobinson@huli.org>
+2003-05-03 14:02  Timothy Robinson <tdrobinson@huli.org>
 
 	* windows/Makefile: windows makefile
 
-2003-05-03 00:58  Timothy Robinson <tdrobinson@huli.org>
+2003-05-02 20:58  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed the basename function and added windows
-	condition for images basdir.
+	  condition for images basdir.
 
-2003-05-02 01:30  Timothy Robinson <tdrobinson@huli.org>
+2003-05-01 21:30  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: winaudio.c, winaudio.h: Just the stubs for a windows audio
-	interface so far.
+	  interface so far.
 
-2003-05-02 01:30  Timothy Robinson <tdrobinson@huli.org>
+2003-05-01 21:30  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: cdda.c, sample.c, wav.c, wavbreaker.c: Added b flag to
-	fopen and basename function for windows.
+	  fopen and basename function for windows.
 
-2003-04-29 02:35  Timothy Robinson <tdrobinson@huli.org>
+2003-04-28 22:35  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, sample.h, wavbreaker.c: Changed the thread
-	interface to use the GThread library instead of posix threads for
-	portability reasons.  Although on linux the GThread library is just
-	a wrapper for pthreads.
+	  interface to use the GThread library instead of posix threads for
+	  portability reasons.  Although on linux the GThread library is just
+	  a wrapper for pthreads.
 
-2003-04-29 01:37  Timothy Robinson <tdrobinson@huli.org>
+2003-04-28 21:37  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Discovered the memprof tool and cleaned up all
-	the...ughugh...memory leaks.
+	  the...ughugh...memory leaks.
 
-2003-04-10 10:42  Timothy Robinson <tdrobinson@huli.org>
+2003-04-10 06:42  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c: fixed some string memory leaks
 
-2003-04-10 10:41  Timothy Robinson <tdrobinson@huli.org>
+2003-04-10 06:41  Timothy Robinson <tdrobinson@huli.org>
 
 	* NEWS, autogen.sh: initial addition
 
-2003-04-05 03:38  Timothy Robinson <tdrobinson@huli.org>
+2003-04-04 22:38  Timothy Robinson <tdrobinson@huli.org>
 
 	* configure.in: Incremented version number.
 
-2003-04-05 03:32  Timothy Robinson <tdrobinson@huli.org>
+2003-04-04 22:32  Timothy Robinson <tdrobinson@huli.org>
 
 	* ChangeLog: Added to repository.
 
-2003-04-05 03:13  Timothy Robinson <tdrobinson@huli.org>
+2003-04-04 22:13  Timothy Robinson <tdrobinson@huli.org>
 
 	* images/Makefile.am, images/del-break.png, src/wavbreaker.c: Added
-	new image for deleting track break.
+	  new image for deleting track break.
 
-2003-04-05 03:02  Timothy Robinson <tdrobinson@huli.org>
+2003-04-04 22:02  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c, wavbreaker.h: Added a delete button
-	that will delete a selected track break from the list.
+	  that will delete a selected track break from the list.
 
-	Modified the track break list to append the list number to the
-	filename and display it in the list.  The name is updated when an
-	add or delete from the list happens.
+	  Modified the track break list to append the list number to the
+	  filename and display it in the list.  The name is updated when an
+	  add or delete from the list happens.
 
-2003-04-02 01:33  Timothy Robinson <tdrobinson@huli.org>
+2003-04-01 20:33  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, sample.h, wavbreaker.c, wavbreaker.h: Added play
-	tracking.  The sample display will move while it is playing and a
-	marker is drawn on the current position.
+	  tracking.  The sample display will move while it is playing and a
+	  marker is drawn on the current position.
 
-	The time is now displayed for the cursor marker and the play marker.
+	  The time is now displayed for the cursor marker and the play marker.
 
-	The time is now displayed in the track break list.
+	  The time is now displayed in the track break list.
 
-2003-03-29 19:46  Timothy Robinson <tdrobinson@huli.org>
+2003-03-29 14:46  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.h, wavbreaker.c: Fixed the marker time display.
 
-2003-03-29 14:36  Timothy Robinson <tdrobinson@huli.org>
+2003-03-29 09:36  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Cleaned up the vertical resize functionality.
 
-2003-03-29 13:53  Timothy Robinson <tdrobinson@huli.org>
+2003-03-29 08:53  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added vertical resizer.
 
-2003-03-22 03:45  Timothy Robinson <tdrobinson@huli.org>
+2003-03-21 22:45  Timothy Robinson <tdrobinson@huli.org>
 
 	* README: [no log message]
 
-2003-03-05 22:09  Timothy Robinson <tdrobinson@huli.org>
+2003-03-05 17:09  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed crash when clicking the summary display
-	when samples where empty.
+	  when samples where empty.
 
-2003-03-05 00:43  Timothy Robinson <tdrobinson@huli.org>
+2003-03-04 19:43  Timothy Robinson <tdrobinson@huli.org>
 
 	* images/Makefile.am: added flag to add images to the dist tar
 
-2003-03-05 00:17  Timothy Robinson <tdrobinson@huli.org>
+2003-03-04 19:17  Timothy Robinson <tdrobinson@huli.org>
 
 	* configure.in, src/Makefile.am, src/wavbreaker.c: The configure
-	stuff now tells the program where to get the images.
+	  stuff now tells the program where to get the images.
 
-2003-03-04 23:33  Timothy Robinson <tdrobinson@huli.org>
+2003-03-04 18:33  Timothy Robinson <tdrobinson@huli.org>
 
 	* acconfig.h, configure.in: Added config.h stuff
 
-2003-03-04 02:51  Timothy Robinson <tdrobinson@huli.org>
+2003-03-03 21:51  Timothy Robinson <tdrobinson@huli.org>
 
 	* Makefile.am, configure.in, images/Makefile.am: Added images data
-	to build system.
+	  to build system.
 
-2003-03-04 02:28  Timothy Robinson <tdrobinson@huli.org>
+2003-03-03 21:28  Timothy Robinson <tdrobinson@huli.org>
 
 	* Makefile: Using GNU build system now.
 
-2003-03-04 02:25  Timothy Robinson <tdrobinson@huli.org>
+2003-03-03 21:25  Timothy Robinson <tdrobinson@huli.org>
 
 	* Makefile.am, configure.in, src/Makefile.am: GNU build system.
 
-2003-03-02 18:40  Timothy Robinson <tdrobinson@huli.org>
+2003-03-02 13:40  Timothy Robinson <tdrobinson@huli.org>
 
 	* INSTALL: Generic install instructions for gnu build system.
 
-2003-02-28 02:11  Timothy Robinson <tdrobinson@huli.org>
+2003-02-27 21:11  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Changed the play event handler to stop and
-	start playing at the current cursor position.  This helps narrow
-	down exactly where the break should take place.
+	  start playing at the current cursor position.  This helps narrow
+	  down exactly where the break should take place.
 
-2003-02-16 03:40  Timothy Robinson <tdrobinson@huli.org>
+2003-02-15 22:40  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c, wavbreaker.h: Fixed the save file
-	progress window to go away after the last file is saved.
+	  progress window to go away after the last file is saved.
 
-2003-02-13 00:14  Timothy Robinson <tdrobinson@huli.org>
+2003-02-12 19:14  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, sample.h, wav.c, wav.h, wavbreaker.c,
-	wavbreaker.h: Added status/progress display when writing the files.
-	Still need to fix a small bug when detecting the last file is done.
+	  wavbreaker.h: Added status/progress display when writing the
+	  files.  Still need to fix a small bug when detecting the last file
+	  is done.
 
-2003-02-10 23:14  Timothy Robinson <tdrobinson@huli.org>
+2003-02-10 18:14  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: fixed looping through the track break list
 
-2003-02-10 23:02  Timothy Robinson <tdrobinson@huli.org>
+2003-02-10 18:02  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Update the display when adding a track break so
-	that the colors take effect right away.
+	  that the colors take effect right away.
 
-2003-02-10 22:42  Timothy Robinson <tdrobinson@huli.org>
+2003-02-10 17:42  Timothy Robinson <tdrobinson@huli.org>
 
 	* images/: break.png, break2.png, play.png, stop.png: Added icons
-	for the toolbar.
+	  for the toolbar.
 
-2003-02-10 22:41  Timothy Robinson <tdrobinson@huli.org>
+2003-02-10 17:41  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: wavbreaker.c, wavbreaker.h: Now when a track break is made
-	the different pieces will display with different colors.
+	  the different pieces will display with different colors.
 
-2003-02-05 02:25  Timothy Robinson <tdrobinson@huli.org>
+2003-02-04 21:25  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Made the open status display in the middle of
-	the main window.
+	  the main window.
 
-2003-02-05 01:40  Timothy Robinson <tdrobinson@huli.org>
+2003-02-04 20:40  Timothy Robinson <tdrobinson@huli.org>
 
 	* README: initial checkin
 
-2002-12-12 01:40  Timothy Robinson <tdrobinson@huli.org>
+2002-12-11 20:40  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added label to file open progress window.
 
-2002-12-11 01:06  Timothy Robinson <tdrobinson@huli.org>
+2002-12-10 20:06  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/sample.c: Fixed auto file numbering
 
-2002-11-24 23:44  Timothy Robinson <tdrobinson@huli.org>
+2002-11-24 18:44  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c: When writing the new files, the
-	iteration number is now appended to the filename.
+	  iteration number is now appended to the filename.
 
-2002-11-17 22:13  Timothy Robinson <tdrobinson@huli.org>
+2002-11-17 17:13  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c: Added the button toolbar.
 
-2002-11-17 18:04  Timothy Robinson <tdrobinson@huli.org>
+2002-11-17 13:04  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed positioning the sample display when
-	clicking on the summary display.
+	  clicking on the summary display.
 
-2002-11-17 15:02  Timothy Robinson <tdrobinson@huli.org>
+2002-11-17 10:02  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: wavbreaker.c, wavmerge.c: Added menu at the top of the app
-	for file/save, etc.
+	  for file/save, etc.
 
-2002-11-16 15:40  Timothy Robinson <tdrobinson@huli.org>
+2002-11-16 10:40  Timothy Robinson <tdrobinson@huli.org>
 
 	* AUTHORS, COPYING, src/wavbreaker.c: Added AUTHORS COPYING files
-	and GPL to wavbreaker.c.
+	  and GPL to wavbreaker.c.
 
-2002-11-16 15:38  Timothy Robinson <tdrobinson@huli.org>
+2002-11-16 10:38  Timothy Robinson <tdrobinson@huli.org>
 
 	* wavmerge.h, src/cdda.c, src/cdda.h, src/linuxaudio.c,
-	src/linuxaudio.h, src/sample.c, src/sample.h, src/wav.c, src/wav.h,
-	src/wavbreaker.h, src/wavmerge.c: Added GPL license terms to source
-	files.
+	  src/linuxaudio.h, src/sample.c, src/sample.h, src/wav.c,
+	  src/wav.h, src/wavbreaker.h, src/wavmerge.c: Added GPL license
+	  terms to source files.
 
-2002-11-16 00:58  Timothy Robinson <tdrobinson@huli.org>
+2002-11-15 19:58  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed the summary display to correctly adjust
-	to the width of the window.
+	  to the width of the window.
 
-2002-11-10 13:24  Timothy Robinson <tdrobinson@huli.org>
+2002-11-10 08:24  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: You can now click on the summary wave form to
-	go to that point in the sample wave form.
+	  go to that point in the sample wave form.
 
-2002-11-10 03:13  Timothy Robinson <tdrobinson@huli.org>
+2002-11-09 22:13  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c: Added summary display of wave form.
 
-2002-11-09 16:44  Timothy Robinson <tdrobinson@huli.org>
+2002-11-09 11:44  Timothy Robinson <tdrobinson@huli.org>
 
 	* Makefile, wavmerge.h, src/sample.c, src/wav.c, src/wav.h,
-	src/wavbreaker.c, src/wavmerge.c: Added wavmerge.
+	  src/wavbreaker.c, src/wavmerge.c: Added wavmerge.
 
-2002-11-03 17:31  Timothy Robinson <tdrobinson@huli.org>
+2002-11-03 12:31  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: wav.c, wav.h: Code Cleanup. Moved some things like
-	structures and #defines to the header files.
+	  structures and #defines to the header files.
 
-2002-10-26 13:18  Timothy Robinson <tdrobinson@huli.org>
+2002-10-26 09:18  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, sample.h: Fixed calculating the number of
-	samples.  There was rounding error, so I used a floating value to
-	store the calculation until the end.  Thus, only having one round
-	off at the end.
+	  samples.  There was rounding error, so I used a floating value to
+	  store the calculation until the end.  Thus, only having one round
+	  off at the end.
 
-2002-10-24 22:13  Timothy Robinson <tdrobinson@huli.org>
+2002-10-24 18:13  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/cdda.c: Fixed changing buf_size based on the amount of data
-	left to read.
+	  left to read.
 
-2002-10-24 22:03  Timothy Robinson <tdrobinson@huli.org>
+2002-10-24 18:03  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed removing the extention (.wav) when there
-	is no extention.
+	  is no extention.
 
-2002-10-24 02:32  Timothy Robinson <tdrobinson@huli.org>
+2002-10-23 22:32  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Changed the axis to only draw to the end of the
-	sample.
+	  sample.
 
-2002-10-23 01:59  Timothy Robinson <tdrobinson@huli.org>
+2002-10-22 21:59  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added automatic first track break at position
-	0.  Working on auto filename generation based on list position.
+	  0.  Working on auto filename generation based on list position.
 
-2002-10-22 22:43  Timothy Robinson <tdrobinson@huli.org>
+2002-10-22 18:43  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: sample.c, wavbreaker.c: Fixed determining min and max of 8
-	bit wave file.  The value is unsigned if it is 8 bit and signed if
-	it is 16 bit.
+	  bit wave file.  The value is unsigned if it is 8 bit and signed if
+	  it is 16 bit.
 
-2002-10-22 21:55  Timothy Robinson <tdrobinson@huli.org>
+2002-10-22 17:55  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: cdda.c, sample.c, sample.h, wav.c, wav.h, wavbreaker.c:
-	Added writing wave files.  Fixed sample_min_max loop counter.  Fixed
-	reading past wav data chunk in wav_read_sample.
+	  Added writing wave files.  Fixed sample_min_max loop counter.  Fixed
+	  reading past wav data chunk in wav_read_sample.
 
-2002-10-20 02:56  Timothy Robinson <tdrobinson@huli.org>
+2002-10-19 22:56  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Fixed some updates to the scrollbar and draw
-	data on new file load.
+	  data on new file load.
 
-2002-10-20 02:02  Timothy Robinson <tdrobinson@huli.org>
+2002-10-19 22:02  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: cdda.c, cdda.h, sample.c, sample.h, wav.c, wavbreaker.c,
-	wavbreaker.h: Added cdda write functionality.
+	  wavbreaker.h: Added cdda write functionality.
 
-2002-10-19 17:04  Timothy Robinson <tdrobinson@huli.org>
+2002-10-19 13:04  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added changing filename to track break list.
 
-2002-10-14 20:29  Timothy Robinson <tdrobinson@huli.org>
+2002-10-14 16:29  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: Added checking for duplicate track break.
 
-2002-10-11 02:36  Timothy Robinson <tdrobinson@huli.org>
+2002-10-10 22:36  Timothy Robinson <tdrobinson@huli.org>
 
 	* Makefile: Initial Import
 
-2002-10-11 02:33  Timothy Robinson <tdrobinson@huli.org>
+2002-10-10 22:33  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: linuxaudio.c, wavbreaker.c, cdda.c, cdda.h, sample.c,
-	wav.c, wav.h: "Initial Import"
+	  wav.c, wav.h: "Initial Import"
 
-2002-10-11 02:28  Timothy Robinson <tdrobinson@huli.org>
+2002-10-10 22:28  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/: cdda.c, cdda.h, linuxaudio.c, linuxaudio.h, sample.c,
-	sample.h, wav.c, wav.h, wavbreaker.c, wavbreaker.h: Initial Import
+	  sample.h, wav.c, wav.h, wavbreaker.c, wavbreaker.h: Initial
+	  Import
 
