@@ -31,6 +31,8 @@ struct AudioFunctionPointers_ {
 };
 
 void appconfig_show(GtkWidget *);
+int appconfig_write_file();
+
 char *get_outputdir();
 AudioFunctionPointers *get_audio_function_pointers();
 char *get_audio_oss_options_output_device();
@@ -38,6 +40,15 @@ char *get_audio_alsa_options_output_device();
 int get_use_etree_filename_suffix();
 char *get_etree_filename_suffix();
 char *get_etree_cd_length();
+
+int appconfig_get_main_window_width();
+void appconfig_set_main_window_width(int x);
+int appconfig_get_main_window_height();
+void appconfig_set_main_window_height(int x);
+int appconfig_get_vpane1_position();
+void appconfig_set_vpane1_position(int x);
+int appconfig_get_vpane2_position();
+void appconfig_set_vpane2_position(int x);
 
 #endif /* APPCONFIG_H */
 

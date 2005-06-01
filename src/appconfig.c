@@ -85,8 +85,13 @@ static char *outputdev = NULL;
 /* Config Filename */
 static char *config_filename = NULL;
 
+/* Window and pane sizes. */
+static int main_window_width = -1;
+static int main_window_height = -1;
+static int vpane1_position = -1;
+static int vpane2_position = -1;
+
 /* function prototypes */
-static int appconfig_write_file();
 static int appconfig_read_file();
 static void default_all_strings();
 static void open_select_outputdir_2();
@@ -214,6 +219,46 @@ char *audio_options_get_output_device()
     } else if (get_audio_driver_type()  == 1) {
         return get_audio_alsa_options_output_device();
     }
+}
+
+int appconfig_get_main_window_width()
+{
+    return main_window_width;
+}
+
+void appconfig_set_main_window_width(int x)
+{
+    main_window_width = x;
+}
+
+int appconfig_get_main_window_height()
+{
+    return main_window_height;
+}
+
+void appconfig_set_main_window_height(int x)
+{
+    main_window_height = x;
+}
+
+int appconfig_get_vpane1_position()
+{
+    return vpane1_position;
+}
+
+void appconfig_set_vpane1_position(int x)
+{
+    vpane1_position = x;
+}
+
+int appconfig_get_vpane2_position()
+{
+    return vpane2_position;
+}
+
+void appconfig_set_vpane2_position(int x)
+{
+    vpane2_position = x;
 }
 
 void audio_options_window_ok_clicked(GtkWidget *widget, gpointer user_data)
@@ -805,6 +850,7 @@ static int appconfig_read_file() {
     cur = cur->xmlChildrenNode;
     while (cur != NULL) {
         xmlChar *key;
+        int nkey;
 
         if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_outputdir"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
@@ -840,9 +886,29 @@ static int appconfig_read_file() {
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "audio_driver_type"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            int nkey = atoi(key);
+            nkey = atoi(key);
             set_audio_function_pointers_with_index(nkey);
-            xmlFree(key); 
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_width"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi(key);
+            appconfig_set_main_window_width(nkey);
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_height"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi(key);
+            appconfig_set_main_window_height(nkey);
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "vpane1_position"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi(key);
+            appconfig_set_vpane1_position(nkey);
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "vpane2_position"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi(key);
+            appconfig_set_vpane2_position(nkey);
+            xmlFree(key);
         }
         cur = cur->next;
     }
@@ -851,7 +917,12 @@ static int appconfig_read_file() {
 #endif
 }
 
-static int appconfig_write_file() {
+/*
+static int check_xml_node_ptr_for_null(xmlNodePtr ptr) {
+}
+*/
+
+int appconfig_write_file() {
 #ifndef _WIN32
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -902,7 +973,7 @@ static int appconfig_write_file() {
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating outputdev node\n");
+        fprintf(stderr, "error creating oss_options_output_device node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
@@ -913,7 +984,7 @@ static int appconfig_write_file() {
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating outputdev node\n");
+        fprintf(stderr, "error creating alsa_options_output_device node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
@@ -937,7 +1008,7 @@ static int appconfig_write_file() {
 
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating use_etree_filename_suffix node\n");
+        fprintf(stderr, "error creating prepend_file_number node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
@@ -977,6 +1048,54 @@ static int appconfig_write_file() {
         return 3;
     }
  
+    sprintf(tmp_str, "%d", appconfig_get_main_window_width());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_width",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating main_window_width node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_main_window_height());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_height",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating main_window_height node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_vpane1_position());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"vpane1_position",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating vpane1_position node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_vpane2_position());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"vpane2_position",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating vpane2_position node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
     root = xmlDocSetRootElement(doc, root);
     /*
     if (root == NULL) {

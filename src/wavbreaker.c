@@ -17,6 +17,7 @@
  */
 
 #  define IMAGEDIR "../images/"
+
 #ifdef _WIN32
 #  define IMAGEDIR "../images/"
 #else
@@ -444,7 +445,7 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 
     menu = gtk_menu_new();
 
-    delete_item = gtk_menu_item_new_with_label("Delete Selected Track Break");
+    delete_item = gtk_menu_item_new_with_label("Remove Selected Track Break");
     g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
     gtk_widget_show(delete_item);
 
@@ -1091,6 +1092,7 @@ file_open_progress_idle_func(gpointer data) {
     track_break_add_entry();
 
     gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
+    gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_spinner_adj), 0);
     gtk_widget_queue_draw(scrollbar);
 
 //    gdk_window_process_all_updates();
@@ -1387,6 +1389,7 @@ static gboolean configure_event(GtkWidget *widget,
 
     GTK_ADJUSTMENT(adj)->step_increment = 10;
     gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+
     GTK_ADJUSTMENT(cursor_marker_spinner_adj)->upper = graphData.numSamples - 1;
 
     draw_sample(widget);
@@ -1971,6 +1974,8 @@ int main(int argc, char **argv)
     GtkWidget *button_hbox;
     GtkWidget *label;
 
+    gint w, h;
+
     g_thread_init(NULL);
     gdk_threads_init();
     gtk_init(&argc, &argv);
@@ -2037,6 +2042,7 @@ int main(int argc, char **argv)
     icon = gtk_image_new_from_file(stop_icon_filename);
     gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
                              icon, G_CALLBACK(menu_stop), NULL);
+    /*
     icon = gtk_image_new_from_file(break_icon_filename);
     gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Add", "Add Track Break",
                             NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
@@ -2044,6 +2050,7 @@ int main(int argc, char **argv)
     gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
                             "Delete Selected Track Break", NULL, icon,
                             G_CALLBACK(menu_delete_track_break), NULL);
+    */
 
     /*
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
@@ -2237,7 +2244,7 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
     gtk_widget_show(icon);
 
-    label = gtk_label_new("Delete");
+    label = gtk_label_new("Remove");
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
     gtk_widget_show(label);
 
@@ -2271,12 +2278,39 @@ int main(int argc, char **argv)
 
     sample_init();
     appconfig_init();
+    gtk_window_resize(GTK_WINDOW(main_window),
+            appconfig_get_main_window_width(),
+            appconfig_get_main_window_height());
+    gtk_paned_set_position(GTK_PANED(vpane1), appconfig_get_vpane1_position());
+    gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
     gtk_widget_show(main_window);
 
     if (!g_thread_supported ()) g_thread_init (NULL);
     gdk_threads_enter();
     gtk_main();
     gdk_threads_leave();
+
+    GdkScreen *screen = gtk_window_get_screen(GTK_WINDOW(main_window));
+    g_printf("screen\n");
+    g_printf("\twidth: %d\n", gdk_screen_get_width(screen));
+    g_printf("\theight: %d\n", gdk_screen_get_height(screen));
+
+    gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
+    g_printf("main_window\n");
+    g_printf("\twidth: %d\n", w);
+    g_printf("\theight: %d\n", h);
+    appconfig_set_main_window_width(w);
+    appconfig_set_main_window_height(h);
+
+    g_printf("vpane1\n");
+    g_printf("\tposition: %d\n", gtk_paned_get_position(GTK_PANED(vpane1)));
+    appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
+
+    g_printf("vpane2\n");
+    g_printf("\tposition: %d\n", gtk_paned_get_position(GTK_PANED(vpane2)));
+    appconfig_set_vpane2_position(gtk_paned_get_position(GTK_PANED(vpane2)));
+
+    appconfig_write_file();
 
     return 0;
 }
