@@ -1,1 +1,3 @@
 SUBDIRS = src images
+
+EXTRA_DIST = CONTRIBUTORS
