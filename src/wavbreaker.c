@@ -2290,24 +2290,9 @@ int main(int argc, char **argv)
     gtk_main();
     gdk_threads_leave();
 
-    GdkScreen *screen = gtk_window_get_screen(GTK_WINDOW(main_window));
-    g_printf("screen\n");
-    g_printf("\twidth: %d\n", gdk_screen_get_width(screen));
-    g_printf("\theight: %d\n", gdk_screen_get_height(screen));
-
-    gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
-    g_printf("main_window\n");
-    g_printf("\twidth: %d\n", w);
-    g_printf("\theight: %d\n", h);
     appconfig_set_main_window_width(w);
     appconfig_set_main_window_height(h);
-
-    g_printf("vpane1\n");
-    g_printf("\tposition: %d\n", gtk_paned_get_position(GTK_PANED(vpane1)));
     appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
-
-    g_printf("vpane2\n");
-    g_printf("\tposition: %d\n", gtk_paned_get_position(GTK_PANED(vpane2)));
     appconfig_set_vpane2_position(gtk_paned_get_position(GTK_PANED(vpane2)));
 
     appconfig_write_file();
