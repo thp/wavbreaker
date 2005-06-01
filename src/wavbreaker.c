@@ -2290,6 +2290,7 @@ int main(int argc, char **argv)
     gtk_main();
     gdk_threads_leave();
 
+    gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
     appconfig_set_main_window_width(w);
     appconfig_set_main_window_height(h);
     appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
