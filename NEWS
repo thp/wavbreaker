@@ -1,3 +1,5 @@
+version 0.6 (2005-06-02)
+    ! Fixed window and pane sizes not saving when the window's x is clicked.
 version 0.6 (2005-06-01)
     + Alsa support with the ability to configure alsa or oss use.
     + Added configuration option to prepend file number as opposed to append it
