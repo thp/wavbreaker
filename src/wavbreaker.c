@@ -1941,8 +1941,10 @@ menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 static void save_window_sizes() {
     gint w, h;
     gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
+    /*
     g_print("w: %d\n", w);
     g_print("h: %d\n", h);
+    */
     appconfig_set_main_window_width(w);
     appconfig_set_main_window_height(h);
     appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
