@@ -1,3 +1,20 @@
+2005-06-02 13:48  Timothy Robinson <tdrobinson@huli.org>
+
+	* NEWS, configure.in: version increment for 0.6.1
+
+2005-06-02 13:48  Timothy Robinson <tdrobinson@huli.org>
+
+	* src/wavbreaker.c: Fixed window and pane sizes not saving when the
+	  window's x is clicked.
+
+2005-06-01 12:39  Timothy Robinson <tdrobinson@huli.org>
+
+	* Makefile.am: added CONTRIBUTORS file
+
+2005-06-01 12:32  Timothy Robinson <tdrobinson@huli.org>
+
+	* CONTRIBUTORS, ChangeLog, NEWS: tidying up for 0.6 release
+
 2005-06-01 12:14  Timothy Robinson <tdrobinson@huli.org>
 
 	* src/wavbreaker.c: whoops, deleted one too many lines
