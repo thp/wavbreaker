@@ -54,6 +54,7 @@ static GdkPixmap *cursor_pixmap;
 static GdkPixmap *play_pixmap;
 
 static GtkWidget *main_window;
+static GtkWidget *vpane1, *vpane2;
 static GtkWidget *scrollbar;
 static GtkObject *adj;
 static GtkWidget *draw;
@@ -201,6 +202,8 @@ menu_stop(GtkWidget *widget, gpointer user_data);
 
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
+
+static void save_window_sizes();
 
 static void
 offset_to_time(guint, gchar *);
@@ -1912,7 +1915,9 @@ menu_open_file(gpointer callback_data, guint callback_action,
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-    gtk_main_quit();
+    save_window_sizes();
+    gtk_object_destroy(GTK_OBJECT(main_window));
+    //gtk_main_quit();
 }
 
 static void
@@ -1933,6 +1938,17 @@ menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
     autosplit_show(main_window);
 }
 
+static void save_window_sizes() {
+    gint w, h;
+    gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
+    g_print("w: %d\n", w);
+    g_print("h: %d\n", h);
+    appconfig_set_main_window_width(w);
+    appconfig_set_main_window_height(h);
+    appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
+    appconfig_set_vpane2_position(gtk_paned_get_position(GTK_PANED(vpane2)));
+}
+
 /*
  *-------------------------------------------------------------------------
  * Main Window Events
@@ -1942,14 +1958,17 @@ menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 static gboolean
 delete_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
+    save_window_sizes();
+//    g_print("delete_event event occurred\n");
     return FALSE;
 }
 
-static gboolean
-destroy(GtkWidget *widget, GdkEventAny *event, gpointer data)
+static void
+destroy(GtkWidget *widget, gpointer data)
 {
+//    g_print("destroy event occurred\n");
+
     gtk_main_quit();
-    return FALSE;
 }
 
 int main(int argc, char **argv)
@@ -1962,7 +1981,6 @@ int main(int argc, char **argv)
     GtkAccelGroup *accel_group;      
     GtkItemFactory *item_factory;
 
-    GtkWidget *vpane1, *vpane2;
     GtkWidget *vpane_vbox;
     GtkWidget *list_vbox;
     GtkWidget *frame;
@@ -1973,8 +1991,6 @@ int main(int argc, char **argv)
     GtkWidget *button;
     GtkWidget *button_hbox;
     GtkWidget *label;
-
-    gint w, h;
 
     g_thread_init(NULL);
     gdk_threads_init();
@@ -2289,12 +2305,6 @@ int main(int argc, char **argv)
     gdk_threads_enter();
     gtk_main();
     gdk_threads_leave();
-
-    gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
-    appconfig_set_main_window_width(w);
-    appconfig_set_main_window_height(h);
-    appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
-    appconfig_set_vpane2_position(gtk_paned_get_position(GTK_PANED(vpane2)));
 
     appconfig_write_file();
 
