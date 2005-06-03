@@ -1,0 +1,7 @@
+Quick bug fix for the last minute window size changes. That's what I get for
+throwing something in last minute. ;-)
+
+http://huli.org/wavbreaker/
+
+Timothy
+
