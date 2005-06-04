@@ -1851,7 +1851,7 @@ void wavbreaker_write_files(char *dirname) {
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     int write_err = -1;
-    char toc_filename[strlen(sample_filename)+5];
+    char *toc_filename;
     char *ptr = NULL;
     char *data_filename = NULL;
     char msg[128];
@@ -1859,6 +1859,8 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     if (sample_filename == NULL) {
        return;
     }
+
+    toc_filename = g_malloc(strlen(sample_filename) + 5);
 
     strcpy(toc_filename, sample_filename);
     ptr = strstr(toc_filename, ".wav");
@@ -1876,7 +1878,6 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
         ptr[2] = 'c';
         ptr[3] = 0;
     }
-    printf("%s\n", toc_filename);
 
     data_filename = basename(sample_filename);
        
@@ -1888,6 +1889,7 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     }
 
     popupmessage_show(main_window, msg);
+    g_free(toc_filename);
 }
 
 void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
