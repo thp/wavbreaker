@@ -23,15 +23,19 @@
 #include "wavbreaker.h"
 #include "toc.h"
 
-int toc_read_file(char *toc_filename, GList *breaks)
+char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime);
+
+int toc_read_file(const char *toc_filename, GList *breaks)
 {
     return 0;
 }
 
-int toc_write_file(char *toc_filename, char *wav_filename, GList *breaks)
+int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks)
 {
     FILE *fp;
     TrackBreak *next_break = NULL;
+    char *tocTime;
+    char *tocDuration;
 
     fp = fopen(toc_filename, "w");
     if(!fp) return 1;
@@ -44,16 +48,45 @@ int toc_write_file(char *toc_filename, char *wav_filename, GList *breaks)
         if (next_break != NULL) {
             fprintf(fp, "\n// track %02d\n", i);
             fprintf(fp, "TRACK AUDIO\n");
+
+            tocTime = convert_wavbreaker_time_to_toc_time(next_break->time);
             if (i != len-1) {
+                tocDuration = convert_wavbreaker_time_to_toc_time(next_break->duration);
                 fprintf(fp, "FILE \"%s\" %s %s\n",
-                        wav_filename, next_break->time, next_break->duration);
+                        wav_filename, tocTime, tocDuration);
+                g_free(tocDuration);
             } else {
-                fprintf(fp, "FILE \"%s\" %s\n", wav_filename, next_break->time);
+                fprintf(fp, "FILE \"%s\" %s\n", wav_filename, tocTime);
             }
+            g_free(tocTime);
         }
         i++;
     }
     fclose(fp);
     return 0;
+}
+
+char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime) {
+    char *tocTime;
+    int i;
+    int p = 0;
+
+    printf("start of convert_wavbreaker_time_to_toc_time\n");
+    printf("called convert_wavbreaker_time_to_toc_time with: %s\n", wavbreakerTime);
+    tocTime = g_strdup(wavbreakerTime);
+    printf("got to: %d\n", p++);
+
+    i = 0;
+    while (tocTime[i] != '\0') {
+    printf("got to: %d\n", p++);
+        printf("looping with: %d", tocTime[i]);
+        if (tocTime[i] == '.') {
+            tocTime[i] = ':';
+        }
+        i++;
+    }
+
+    printf("end of convert_wavbreaker_time_to_toc_time\n");
+    return tocTime;
 }
 

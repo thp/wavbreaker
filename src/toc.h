@@ -21,8 +21,8 @@
 
 #include <gtk/gtk.h>
 
-int toc_read_file(char *toc_filename, GList *breaks);
-int toc_write_file(char *toc_filename, char *wav_filename, GList *breaks);
+int toc_read_file(const char *toc_filename, GList *breaks);
+int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks);
 
 #endif /* TOC_H */
 
