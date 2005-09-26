@@ -26,7 +26,6 @@ AC_PROG_LN_S
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [cos])
-AC_CHECK_LIB([asound], [snd_pcm_open])
 
 # Checks for header files.
 AC_HEADER_STDC
