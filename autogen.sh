@@ -1,7 +1,6 @@
 #!/bin/bash
 
-autoscan
-aclocal
+aclocal-1.7
 autoconf
 autoheader
-automake -a -c
+automake-1.7 --add-missing --gnu

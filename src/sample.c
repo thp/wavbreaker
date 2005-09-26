@@ -29,9 +29,6 @@
 
 #ifdef _WIN32
 #include "winaudio.h"
-#else
-#include "linuxaudio.h"
-#include "alsaaudio.h"
 #endif
 
 #include "sample.h"
@@ -81,17 +78,17 @@ static char error_message[ERROR_MESSAGE_SIZE];
 
 char *sample_get_error_message()
 {
-	return error_message;
+    return g_strdup(error_message);
 }
 
 void sample_set_error_message(const char *val)
 {
-	strncpy(error_message, val, ERROR_MESSAGE_SIZE);
+    strncpy(error_message, val, ERROR_MESSAGE_SIZE);
 }
 
 gint sample_get_playing()
 {
-	return playing;
+    return playing;
 }
 
 void sample_init()
@@ -122,7 +119,7 @@ static gpointer play_thread(gpointer thread_data)
         playing = 0;
         audio_function_pointers->audio_close_device();
         g_mutex_unlock(mutex);
-        //printf("play_thread: return from open_audio_device != 0\n");
+        printf("play_thread: return from open_audio_device != 0\n");
 		return NULL;
 	}
     //printf("play_thread: return from open_audio_device\n");

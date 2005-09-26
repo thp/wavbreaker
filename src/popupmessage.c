@@ -21,8 +21,8 @@
 
 void popupmessage_hide(GtkWidget *widget, gpointer user_data)
 {
-	GtkWidget *main_window = GTK_WIDGET(user_data);
-	gtk_widget_destroy(main_window);
+	GtkWidget *window = GTK_WIDGET(user_data);
+	gtk_widget_destroy(window);
 }
 
 void popupmessage_show(GtkWidget *main_window, const char *message)
@@ -33,6 +33,10 @@ void popupmessage_show(GtkWidget *main_window, const char *message)
 	GtkWidget *status_label;
 	GtkWidget *hseparator;
 	GtkWidget *button;
+
+    if (main_window == NULL) {
+        main_window = wavbreaker_get_main_window();
+    }
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_widget_realize(window);

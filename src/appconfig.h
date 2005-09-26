@@ -35,8 +35,6 @@ int appconfig_write_file();
 
 char *get_outputdir();
 AudioFunctionPointers *get_audio_function_pointers();
-char *get_audio_oss_options_output_device();
-char *get_audio_alsa_options_output_device();
 int get_use_etree_filename_suffix();
 char *get_etree_filename_suffix();
 char *get_etree_cd_length();

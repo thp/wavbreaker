@@ -1,3 +1,4 @@
+Autosplit based on silence
 Split based on cue and toc files
 Movable Boundaries in wav display
 fix highlight on summary display
@@ -10,7 +11,10 @@ sound card format issues
 fix the calculation of the time (error when sample is not 16-bit 44100)
 pause function
 
+Done
+----
 !use new gtk 2.4 file selection
 !fix dir selection in config menu
 !Start, End and Duration in list
 !jump to on right-click in list (gtktreeview)
+

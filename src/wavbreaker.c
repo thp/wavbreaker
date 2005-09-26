@@ -41,6 +41,7 @@
 #include "appconfig.h"
 #include "autosplit.h"
 #include "saveas.h"
+#include "popupmessage.h"
 //#include "cellrendererspin.h"
 
 #define play_icon_filename IMAGEDIR"play.png"
@@ -1121,7 +1122,9 @@ file_open_progress_idle_func(gpointer data) {
 
 static void open_file() {
     if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
-        popupmessage_show(main_window, sample_get_error_message());
+        char *message = sample_get_error_message();
+        popupmessage_show(main_window, message);
+        g_free(message);
         return;
     }
 
@@ -1942,7 +1945,8 @@ menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
     autosplit_show(main_window);
 }
 
-static void save_window_sizes() {
+static void save_window_sizes()
+{
     gint w, h;
     gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
     /*
@@ -1954,6 +1958,12 @@ static void save_window_sizes() {
     appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
     appconfig_set_vpane2_position(gtk_paned_get_position(GTK_PANED(vpane2)));
 }
+
+GtkWidget *wavbreaker_get_main_window()
+{
+    return main_window;
+}
+
 
 /*
  *-------------------------------------------------------------------------

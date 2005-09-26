@@ -40,6 +40,7 @@ struct SampleInfo_ {
 };
 
 char *wav_get_error_message();
+char *sample_get_error_message();
 
 void sample_init();
 void sample_set_audio_dev(char *str);

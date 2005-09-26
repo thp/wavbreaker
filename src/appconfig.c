@@ -16,16 +16,25 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <config.h>
+
 #include "appconfig.h"
 #include "sample.h"
+#include "popupmessage.h"
+#include "nosound.h"
+
+#ifdef HAVE_ALSA
 #include "alsaaudio.h"
+#endif
+
+#ifdef HAVE_OSS
 #include "linuxaudio.h"
+#endif
 
 #include <gtk/gtk.h>
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <config.h>
 
 #ifndef _WIN32
 #include <libxml/xmlmemory.h>
@@ -34,6 +43,11 @@
 #endif
 
 #define APPCONFIG_FILENAME "/.wavbreaker"
+
+#define NOSOUND 0
+#define OSS     1
+#define ALSA    2
+#define JACK    3
 
 static GtkWidget *window;
 
@@ -97,6 +111,10 @@ static void default_all_strings();
 static void open_select_outputdir_2();
 static void open_select_outputdir();
 
+static char *get_audio_nosound_options_output_device();
+static char *get_audio_oss_options_output_device();
+static char *get_audio_alsa_options_output_device();
+
 AudioFunctionPointers *get_audio_function_pointers()
 {
     return &audio_function_pointers;
@@ -132,30 +150,55 @@ void set_audio_get_outputdev(void (*f))
     audio_function_pointers.get_outputdev = f;
 }
 
+void set_nosound_driver() {
+    set_audio_driver_type(NOSOUND);
+    set_audio_close_device(nosound_audio_close_device);
+    set_audio_open_device(nosound_audio_open_device);
+    set_audio_write(nosound_audio_write);
+    set_audio_get_outputdev(get_audio_nosound_options_output_device);
+}
+
+void warn_nosound_set() {
+    popupmessage_show(window, "The audio driver in the configuration file is invalid.  The \"No Sound\" audio driver has been set.\n\nEverything will function as normal, but no sound will play.\n\nYou may change the audio driver in the Edit/Preferences menu.");
+}
+
 void set_audio_function_pointers_with_index(int index)
 {
-    set_audio_driver_type(index);
 
     switch (index) {
-        case 0:
+#ifdef HAVE_OSS
+        case OSS:
+            set_audio_driver_type(OSS);
             set_audio_close_device(oss_audio_close_device);
             set_audio_open_device(oss_audio_open_device);
             set_audio_write(oss_audio_write);
             set_audio_get_outputdev(get_audio_oss_options_output_device);
             break;
-        case 1:
+#endif
+#ifdef HAVE_ALSA
+        case ALSA:
+            set_audio_driver_type(ALSA);
             set_audio_close_device(alsa_audio_close_device);
             set_audio_open_device(alsa_audio_open_device);
             set_audio_write(alsa_audio_write);
             set_audio_get_outputdev(get_audio_alsa_options_output_device);
             break;
-            /*
-        case 2:
+#endif
+#ifdef HAVE_JACK
+        case JACK:
+            set_audio_driver_type(JACK);
             set_audio_close_device(jack_audio_close_device);
             set_audio_open_device(jack_audio_open_device);
             set_audio_write(jack_audio_write);
             break;
-            */
+#endif
+        case NOSOUND:
+            set_nosound_driver();
+            break;
+        default:
+            warn_nosound_set();
+            set_nosound_driver();
+            break;
     }
 }
 
@@ -167,7 +210,21 @@ void set_audio_function_pointers()
 
 void default_audio_function_pointers()
 {
-    set_audio_function_pointers_with_index(0);
+    set_audio_function_pointers_with_index(NOSOUND);
+#ifdef HAVE_JACK
+    set_audio_function_pointers_with_index(JACK);
+#endif
+#ifdef HAVE_OSS
+    set_audio_function_pointers_with_index(OSS);
+#endif
+#ifdef HAVE_ALSA
+    set_audio_function_pointers_with_index(ALSA);
+#endif
+}
+
+/* nosound audio driver options */
+char *get_audio_nosound_options_output_device() {
+    return "";
 }
 
 /* oss audio driver options */
@@ -214,9 +271,11 @@ void audio_options_window_cancel_clicked(GtkWidget *widget, gpointer user_data)
 
 char *audio_options_get_output_device()
 {
-    if (get_audio_driver_type() == 0) {
+    if (get_audio_driver_type() == NOSOUND) {
+        return get_audio_nosound_options_output_device();
+    } else if (get_audio_driver_type() == OSS) {
         return get_audio_oss_options_output_device();
-    } else if (get_audio_driver_type()  == 1) {
+    } else if (get_audio_driver_type()  == ALSA) {
         return get_audio_alsa_options_output_device();
     }
 }
@@ -264,10 +323,10 @@ void appconfig_set_vpane2_position(int x)
 void audio_options_window_ok_clicked(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *main_window = GTK_WIDGET(user_data);
-    if (get_audio_driver_type() == 0) {
+    if (get_audio_driver_type() == OSS) {
         set_audio_oss_options_output_device(gtk_entry_get_text(
             GTK_ENTRY(output_device_entry)));
-    } else if (get_audio_driver_type() == 1) {
+    } else if (get_audio_driver_type() == ALSA) {
         set_audio_alsa_options_output_device(gtk_entry_get_text(
             GTK_ENTRY(output_device_entry)));
     }
@@ -730,9 +789,16 @@ void appconfig_show(GtkWidget *main_window)
 
     combo_box = gtk_combo_box_new_text ();
 
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "No Sound");
+#ifdef HAVE_OSS
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "OSS");
+#endif
+#ifdef HAVE_ALSA
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Alsa");
-//    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack"); // not yet
+#endif
+#ifdef HAVE_JACK
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack");
+#endif
     gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), get_audio_driver_type());
     gtk_table_attach(GTK_TABLE(table), combo_box,
             1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
