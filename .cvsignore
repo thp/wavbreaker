@@ -14,12 +14,5 @@ missing
 mkinstalldirs
 stamp-h
 stamp-h.in
-images/Makefile
-images/Makefile.in
-src/.deps
-src/Makefile
-src/Makefile.in
-src/wavbreaker
-src/wavinfo
-src/wavmerge
 *.wav
+*.swp
