@@ -19,4 +19,4 @@ noinst_HEADERS = cdda.h linuxaudio.h sample.h wav.h wavbreaker.h about.h \
 	appconfig.h autosplit.h popupmessage.h alsaaudio.h saveas.h browsedir.h \
 	toc.h nosound.h
 
-wavbreaker_LDADD = $(WAVBREAKER_LIBS) -lasound
+wavbreaker_LDADD = $(WAVBREAKER_LIBS) $(ALSA_LIBS)

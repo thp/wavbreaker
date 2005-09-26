@@ -26,6 +26,7 @@ AC_PROG_LN_S
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [cos])
+AC_CHECK_LIB([asound], [snd_pcm_open])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -43,22 +44,21 @@ AC_CHECK_FUNCS([strchr strdup strrchr strstr])
 
 # AC_DEFINE_UNQUOTED(IMAGEDIR, "${prefix}/share/wavbreaker/images/")
 
-AC_MSG_CHECKING([if GTK+ is version 2.3.0 or newer])
-if $PKG_CONFIG --atleast-version=2.3.0 gtk+-2.0; then
-    have_gtk_2_3=yes
-else
-    have_gtk_2_3=no
-fi
-AC_MSG_RESULT($have_gtk_2_3)
 
 PKG_CHECK_MODULES(UNUSED, gtk+-2.0 >= 2.4.0, [have_gtk_23=yes], [have_gtk_23=no])
-if test x"$have_gtk_23" = xyes; then
+
+AC_MSG_CHECKING([if GTK+ is version 2.3.0 or newer])
+if test "x$have_gtk_23" = "xyes"; then
    AC_DEFINE(HAVE_GTK_2_3, 1, [Define if you have GTK+ 2.4.0 or better])
 fi
+AC_MSG_RESULT($have_gtk_23)
 
+echo "TDR: $WAVBREAKER_LIBS"
 if test "x$enable_alsa" = "xyes"
 then
-    AC_CHECK_LIB([asound], [snd_pcm_open], found_alsa=yes, found_alsa=no)
+    AC_CHECK_LIB([asound], [snd_pcm_open],
+        [found_alsa=yes; ALSA_LIBS=-lasound],
+        [found_alsa=no])
     if test "x$found_alsa" = "xyes"
     then
         AC_DEFINE([HAVE_ALSA], 1, [Define if you have Alsa installed])
@@ -66,6 +66,7 @@ then
         enable_alsa=no
     fi
 fi
+AC_SUBST(ALSA_LIBS)
 
 if test "x$enable_oss" = "xyes"
 then
@@ -79,17 +80,17 @@ then
     fi
 fi
 
+PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 gthread-2.0 libxml-2.0)
 AM_CONDITIONAL(NEED_ALSA, test "x$enable_alsa" = "xyes")
 AM_CONDITIONAL(NEED_OSS, test "x$enable_oss" = "xyes")
 AC_SUBST(WAVBREAKER_CFLAGS)
 AC_SUBST(WAVBREAKER_LIBS)
-PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 gthread-2.0 libxml-2.0)
 
 AC_CONFIG_FILES([Makefile
                  images/Makefile
                  src/Makefile])
 
-echo $WAVBREAKER_LIBS
+echo "TDR: $WAVBREAKER_LIBS"
 
 AC_OUTPUT
 
