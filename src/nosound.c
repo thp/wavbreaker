@@ -25,7 +25,7 @@
 
 #include "nosound.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 void nosound_audio_close_device()
 {

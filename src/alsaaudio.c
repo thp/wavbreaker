@@ -31,8 +31,8 @@ static unsigned int bytesPerFrame;
 
 void alsa_audio_close_device()
 {
-    printf("closing alsa audio device\n");
     #ifdef DEBUG
+    printf("closing alsa audio device\n");
     #endif
     snd_pcm_close(playback_handle);
 }
@@ -86,8 +86,8 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
     rate = sampleInfo->samplesPerSec;
     channels = sampleInfo->channels;
 
-    printf("opening alsa audio device (%s)\n", audio_dev);
     #ifdef DEBUG
+    printf("opening alsa audio device (%s)\n", audio_dev);
     #endif
     /* setup dsp device */
     err = snd_pcm_open(&playback_handle, audio_dev, SND_PCM_STREAM_PLAYBACK, 0);
