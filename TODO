@@ -1,4 +1,12 @@
+High Priority
+-------------
+NOSOUND - will default because "0" used to be OSS
+i18n
+fix the calculation of the time (error when sample is not stereo 16-bit 44100)
 Autosplit based on silence
+
+Low Priority
+-------------
 Split based on cue and toc files
 Movable Boundaries in wav display
 fix highlight on summary display
@@ -8,7 +16,6 @@ alsa and jack drivers
     - dynamic function call based on audio interface
         - make sure not playing when changing audio interfaces
 sound card format issues
-fix the calculation of the time (error when sample is not 16-bit 44100)
 pause function
 
 Done
