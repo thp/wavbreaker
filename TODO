@@ -1,5 +1,6 @@
 High Priority
 -------------
+2GB file limit - large file support
 NOSOUND - will default because "0" used to be OSS
 i18n
 fix the calculation of the time (error when sample is not stereo 16-bit 44100)
