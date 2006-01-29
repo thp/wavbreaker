@@ -16,37 +16,63 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+
 #include "sample.h"
 #include "wav.h"
 
+void usage() {
+    printf("Must pass filenames of wave files to merge.\n");
+    printf("Usage: wavmerge [-o outfile] mergefiles...\n");
+}
+
 int main(int argc, char *argv[])
 {
-	int ret;
+    int ret;
+    char *merge_filename;
+    int num_files;
+    char **filenames;
+    struct stat stat_buf;
 
-	if (argc < 3) {
-		printf("Must pass filenames of wave files to merge.\n");
-		printf("Usage: wavmerge [-o outfile] mergefiles...\n");
-		return 1;
-	}
+    if (strcmp(argv[1], "-o") == 0) {
+        if (argc < 5) {
+            usage();
+            return 1;
+        }
+        merge_filename = strdup(argv[2]);
+        num_files = argc - 3;
+        filenames = &argv[3];
+    } else {
+        if (argc < 3) {
+            usage();
+            return 1;
+        }
+        merge_filename = strdup("merged.wav");
+        num_files = argc - 1;
+        filenames = &argv[1];
+    }
 
-	if (strcmp(argv[1], "-o") == 0) {
-		ret = wav_merge_files(argv[2], argc - 3, &argv[3], DEFAULT_BUF_SIZE);
-	} else {
-		ret = wav_merge_files("merged.wav", argc - 1, &argv[1],
-            DEFAULT_BUF_SIZE);
-	}
+    if (stat(merge_filename, &stat_buf) == 0) {
+        fprintf(stderr, "ERROR: The output file already exists.\n");
+        return 2;
+    }
 
-	if (ret != 0) {
+    ret = wav_merge_files(merge_filename, num_files, filenames, DEFAULT_BUF_SIZE);
+
+    if (ret != 0) {
         fprintf(stderr,
 "ERROR: The files are not of the same format.\n\n"
 "This means that the sample rate, bits per sample, etc. are different.\n"
 "Please use a tool, like sox, to convert the files to the same format and\n"
 "try again.\n"
 );
-		return 1;
-	}
+        return 1;
+    }
 
-	return 0;
+    return 0;
 }
+
