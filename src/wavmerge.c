@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     char **filenames;
     struct stat stat_buf;
 
-    if (strcmp(argv[1], "-o") == 0) {
+    if (argc > 1 && strcmp(argv[1], "-o") == 0) {
         if (argc < 5) {
             usage();
             return 1;
