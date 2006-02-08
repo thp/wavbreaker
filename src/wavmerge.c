@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     }
 
     if (stat(merge_filename, &stat_buf) == 0) {
-        fprintf(stderr, "ERROR: The output file already exists.\n");
+        fprintf(stderr, "ERROR: The output file %s already exists.\n", merge_filename);
         return 2;
     }
 
