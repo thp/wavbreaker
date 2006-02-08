@@ -105,6 +105,9 @@ static int main_window_height = -1;
 static int vpane1_position = -1;
 static int vpane2_position = -1;
 
+/* Ask user if the user really wants to quit wavbreaker. */
+static int ask_really_quit = 1;
+
 /* function prototypes */
 static int appconfig_read_file();
 static void default_all_strings();
@@ -318,6 +321,16 @@ int appconfig_get_vpane2_position()
 void appconfig_set_vpane2_position(int x)
 {
     vpane2_position = x;
+}
+
+int appconfig_get_ask_really_quit()
+{
+    return ask_really_quit;
+}
+
+void appconfig_set_ask_really_quit(int x)
+{
+    ask_really_quit = x;
 }
 
 void audio_options_window_ok_clicked(GtkWidget *widget, gpointer user_data)
@@ -975,6 +988,11 @@ static int appconfig_read_file() {
             nkey = atoi(key);
             appconfig_set_vpane2_position(nkey);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "ask_really_quit"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi(key);
+            appconfig_set_ask_really_quit(nkey);
+            xmlFree(key);
         }
         cur = cur->next;
     }
@@ -1157,6 +1175,18 @@ int appconfig_write_file() {
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
         fprintf(stderr, "error creating vpane2_position node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_ask_really_quit());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"ask_really_quit",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating ask_really_quit node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;

@@ -1,7 +1,9 @@
 High Priority
 -------------
-confirm exit
+[ ] check for existing files
+    - add popup for confirmation
 2GB file limit - large file support
+    - libsndfile example
 NOSOUND - will default because "0" used to be OSS
 i18n
 fix the calculation of the time (error when sample is not stereo 16-bit 44100)
@@ -20,10 +22,14 @@ alsa and jack drivers
 sound card format issues
 pause function
 
+rel_0.7
+--------
+[*] confirm exit
+
 Done
 ----
-!use new gtk 2.4 file selection
-!fix dir selection in config menu
-!Start, End and Duration in list
-!jump to on right-click in list (gtktreeview)
+[*] use new gtk 2.4 file selection
+[*] fix dir selection in config menu
+[*] Start, End and Duration in list
+[*] jump to on right-click in list (gtktreeview)
 

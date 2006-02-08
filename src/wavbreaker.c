@@ -205,6 +205,7 @@ void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
 
 static void save_window_sizes();
+static void check_really_quit();
 
 static void
 offset_to_time(guint, gchar *);
@@ -1922,9 +1923,8 @@ menu_open_file(gpointer callback_data, guint callback_action,
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-    save_window_sizes();
-    gtk_object_destroy(GTK_OBJECT(main_window));
-    //gtk_main_quit();
+    //g_print("menu_quit called\n");
+    check_really_quit();
 }
 
 static void
@@ -1959,6 +1959,20 @@ static void save_window_sizes()
     appconfig_set_vpane2_position(gtk_paned_get_position(GTK_PANED(vpane2)));
 }
 
+void wavbreaker_quit() {
+    save_window_sizes();
+    gtk_object_destroy(GTK_OBJECT(main_window));
+}
+
+static void check_really_quit()
+{
+    if (appconfig_get_ask_really_quit()) {
+        reallyquit_show(main_window);
+    } else {
+        wavbreaker_quit();
+    }
+}
+
 GtkWidget *wavbreaker_get_main_window()
 {
     return main_window;
@@ -1974,16 +1988,15 @@ GtkWidget *wavbreaker_get_main_window()
 static gboolean
 delete_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
-    save_window_sizes();
-//    g_print("delete_event event occurred\n");
-    return FALSE;
+    //g_print("delete_event event occurred\n");
+    check_really_quit();
+    return TRUE;
 }
 
 static void
 destroy(GtkWidget *widget, gpointer data)
 {
-//    g_print("destroy event occurred\n");
-
+    //g_print("destroy event occurred\n");
     gtk_main_quit();
 }
 

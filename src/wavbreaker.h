@@ -57,4 +57,6 @@ void track_break_rename();
 void wavbreaker_write_files(char *dirname);
 GtkWidget *wavbreaker_get_main_window();
 
+void wavbreaker_quit();
+
 #endif /* WAVBREAKER_H */
