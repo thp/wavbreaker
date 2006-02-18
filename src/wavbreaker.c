@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2005 Timothy Robinson
+ * Copyright (C) 2002-2006 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2081,27 +2081,12 @@ int main(int argc, char **argv)
                              G_CALLBACK(menu_quit), main_window, -1);
     gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
-    icon = gtk_image_new_from_file(play_icon_filename);
-    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
-                             icon, G_CALLBACK(menu_play), NULL);
-    icon = gtk_image_new_from_file(stop_icon_filename);
-    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
-                             icon, G_CALLBACK(menu_stop), NULL);
-    /*
-    icon = gtk_image_new_from_file(break_icon_filename);
-    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Add", "Add Track Break",
-                            NULL, icon, G_CALLBACK(menu_add_track_break), NULL);
-    icon = gtk_image_new_from_file(del_break_icon_filename);
-    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Delete",
-                            "Delete Selected Track Break", NULL, icon,
-                            G_CALLBACK(menu_delete_track_break), NULL);
-    */
-
-    /*
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
-                             "Add Track Break", NULL,
-                             G_CALLBACK(menu_add_track_break), main_window, -1);
-    */
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
+                             "Quit wavbreaker", NULL,
+                             G_CALLBACK(menu_play), main_window, -1);
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
+                             "Quit wavbreaker", NULL,
+                             G_CALLBACK(menu_stop), main_window, -1);
 
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
     gtk_widget_show(toolbar);
