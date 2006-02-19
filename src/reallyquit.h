@@ -19,6 +19,6 @@
 #ifndef REALLYQUIT_H
 #define REALLYQUIT_H
 
-void reallyquit_show(GtkWidget *, const char *);
+void reallyquit_show(GtkWidget *);
 
 #endif /* REALLYQUIT_H */
