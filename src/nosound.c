@@ -37,7 +37,7 @@ void nosound_audio_close_device()
 /**
  * returns int the number of bytes written to the audio device
  */
-int nosound_audio_write(char *devbuf, int size)
+int nosound_audio_write(unsigned char *devbuf, int size)
 {
     if (DEBUG) {
 //        printf("writing to audio device: %d\n", size);

@@ -37,7 +37,7 @@ void alsa_audio_close_device()
     snd_pcm_close(playback_handle);
 }
 
-int alsa_audio_write(char *devbuf, int size)
+int alsa_audio_write(unsigned char *devbuf, int size)
 {
     int err;
     char *ptr = devbuf;

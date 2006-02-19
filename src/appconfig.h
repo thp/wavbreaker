@@ -26,7 +26,7 @@ typedef struct AudioFunctionPointers_ AudioFunctionPointers;
 struct AudioFunctionPointers_ {
     void (*audio_close_device)();
     int (*audio_open_device)(const char *, SampleInfo *);
-    int (*audio_write)(char *, int);
+    int (*audio_write)(unsigned char *, int);
     char *(*get_outputdev)();
 };
 

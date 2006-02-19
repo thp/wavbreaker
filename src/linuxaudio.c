@@ -37,7 +37,7 @@ void oss_audio_close_device()
     close(audio_fd);
 }
 
-int oss_audio_write(char *devbuf, int size)
+int oss_audio_write(unsigned char *devbuf, int size)
 {
     if (DEBUG) {
         printf("writing to audio device: %d\n", size);

@@ -23,7 +23,7 @@
 
 void oss_audio_close_device();
 int oss_audio_open_device(const char *, SampleInfo *);
-int oss_audio_write(char *, int);
+int oss_audio_write(unsigned char *, int);
 
 #endif /* LINUXAUDIO_H */
 

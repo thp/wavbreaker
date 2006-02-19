@@ -23,7 +23,7 @@
 
 void nosound_audio_close_device();
 int nosound_audio_open_device(const char *, SampleInfo *);
-int nosound_audio_write(char *, int);
+int nosound_audio_write(unsigned char *, int);
 
 #endif /* NOSOUND_H */
 

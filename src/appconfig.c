@@ -35,6 +35,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #ifndef _WIN32
 #include <libxml/xmlmemory.h>
@@ -933,64 +934,64 @@ static int appconfig_read_file() {
 
         if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_outputdir"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_use_outputdir(key);
+            set_use_outputdir((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "oss_options_output_device"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_audio_oss_options_output_device(key);
+            set_audio_oss_options_output_device((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "alsa_options_output_device"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_audio_alsa_options_output_device(key);
+            set_audio_alsa_options_output_device((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdir"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_outputdir(key);
+            set_outputdir((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_etree_filename_suffix"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_use_etree_filename_suffix(key);
+            set_use_etree_filename_suffix((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "prepend_file_number"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_prepend_file_number(key);
+            set_prepend_file_number((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "etree_filename_suffix"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_etree_filename_suffix(key);
+            set_etree_filename_suffix((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "etree_cd_length"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_etree_cd_length(key);
+            set_etree_cd_length((char *)key);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "audio_driver_type"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi(key);
+            nkey = atoi((char *)key);
             set_audio_function_pointers_with_index(nkey);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_width"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi(key);
+            nkey = atoi((char *)key);
             appconfig_set_main_window_width(nkey);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_height"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi(key);
+            nkey = atoi((char *)key);
             appconfig_set_main_window_height(nkey);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "vpane1_position"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi(key);
+            nkey = atoi((char *)key);
             appconfig_set_vpane1_position(nkey);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "vpane2_position"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi(key);
+            nkey = atoi((char *)key);
             appconfig_set_vpane2_position(nkey);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "ask_really_quit"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi(key);
+            nkey = atoi((char *)key);
             appconfig_set_ask_really_quit(nkey);
             xmlFree(key);
         }
@@ -1021,7 +1022,7 @@ int appconfig_write_file() {
         return 1;
     }
 
-    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"wavbreaker", "");
+    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"wavbreaker", (xmlChar*) "");
 
     if (root == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");

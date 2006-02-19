@@ -23,7 +23,7 @@
 
 void alsa_audio_close_device();
 int alsa_audio_open_device(const char *, SampleInfo *);
-int alsa_audio_write(char *, int);
+int alsa_audio_write(unsigned char *, int);
 
 #endif /* ALSAAUDIO_H */
 
