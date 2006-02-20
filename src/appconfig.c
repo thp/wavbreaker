@@ -52,6 +52,8 @@
 
 static GtkWidget *window;
 
+static int config_file_version = 0;
+
 /* Function pointers to the currently selected audio driver. */
 static int audio_driver_type = -1;
 static AudioFunctionPointers audio_function_pointers;
@@ -118,6 +120,16 @@ static void open_select_outputdir();
 static char *get_audio_nosound_options_output_device();
 static char *get_audio_oss_options_output_device();
 static char *get_audio_alsa_options_output_device();
+
+int get_config_file_version()
+{
+    return config_file_version;
+}
+
+void set_config_file_version(int x)
+{
+    config_file_version = x;
+}
 
 AudioFunctionPointers *get_audio_function_pointers()
 {
@@ -936,6 +948,11 @@ static int appconfig_read_file() {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_use_outputdir((char *)key);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "config_file_version"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi((char *)key);
+            set_config_file_version(nkey);
+            xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "oss_options_output_device"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_audio_oss_options_output_device((char *)key);
@@ -1029,6 +1046,17 @@ int appconfig_write_file() {
         fprintf(stderr, "error creating doc node\n");
         xmlFreeDoc(doc);
         return 2;
+    }
+
+    sprintf(tmp_str, "%d", get_config_file_version());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"config_file_version", (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating config_file_version node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
     }
 
     sprintf(tmp_str, "%d", get_use_outputdir());
@@ -1221,6 +1249,15 @@ int appconfig_write_file() {
 #endif
 }
 
+void do_config_file_version_conversions() {
+    if (get_config_file_version() == 0) {
+        printf("driver_type: %d\n", get_audio_driver_type());
+        set_audio_function_pointers_with_index(get_audio_driver_type() + 1);
+    }
+    printf("driver_type: %d\n", get_audio_driver_type());
+    set_config_file_version(1);
+}
+
 void appconfig_init()
 {
 #ifndef _WIN32
@@ -1235,6 +1272,7 @@ void appconfig_init()
         appconfig_write_file();
     } else {
         default_all_strings();
+        do_config_file_version_conversions();
     }
 
 #else
