@@ -2324,11 +2324,13 @@ int main(int argc, char **argv)
 
     sample_init();
     appconfig_init();
-    gtk_window_resize(GTK_WINDOW(main_window),
-            appconfig_get_main_window_width(),
-            appconfig_get_main_window_height());
-    gtk_paned_set_position(GTK_PANED(vpane1), appconfig_get_vpane1_position());
-    gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
+    if (appconfig_get_main_window_width() > 0) {
+        gtk_window_resize(GTK_WINDOW(main_window),
+                appconfig_get_main_window_width(),
+                appconfig_get_main_window_height());
+        gtk_paned_set_position(GTK_PANED(vpane1), appconfig_get_vpane1_position());
+        gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
+    }
     gtk_widget_show(main_window);
 
     if (!g_thread_supported ()) g_thread_init (NULL);
