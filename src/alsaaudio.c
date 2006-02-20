@@ -40,7 +40,7 @@ void alsa_audio_close_device()
 int alsa_audio_write(unsigned char *devbuf, int size)
 {
     int err;
-    char *ptr = devbuf;
+    unsigned char *ptr = devbuf;
 
     #ifdef DEBUG
     printf("writing to audio device: %d\n", size);

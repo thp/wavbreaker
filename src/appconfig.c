@@ -1251,10 +1251,8 @@ int appconfig_write_file() {
 
 void do_config_file_version_conversions() {
     if (get_config_file_version() == 0) {
-        printf("driver_type: %d\n", get_audio_driver_type());
         set_audio_function_pointers_with_index(get_audio_driver_type() + 1);
     }
-    printf("driver_type: %d\n", get_audio_driver_type());
     set_config_file_version(1);
 }
 
