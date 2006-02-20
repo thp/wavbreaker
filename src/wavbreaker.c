@@ -44,8 +44,6 @@
 #include "popupmessage.h"
 //#include "cellrendererspin.h"
 
-#define play_icon_filename IMAGEDIR"play.png"
-#define stop_icon_filename IMAGEDIR"stop.png"
 #define break_icon_filename IMAGEDIR"break2.png"
 #define del_break_icon_filename IMAGEDIR"del-break.png"
 
@@ -918,6 +916,26 @@ file_write_progress_idle_func(gpointer data) {
     char *str_ptr;
     static int cur_file_displayed = 0;
 
+    if (write_info.check_file_exists) {
+        gdk_threads_enter();
+
+        if (window != NULL) {
+            gtk_widget_destroy(window);
+            window = NULL;
+        }
+        write_info.sync_check_file_overwrite_to_write_progress = 1;
+        write_info.check_file_exists = 0;
+        overwritedialog_show(wavbreaker_get_main_window(), &write_info);
+
+        gdk_threads_leave();
+
+        return TRUE;
+    }
+
+    if (write_info.sync_check_file_overwrite_to_write_progress) {
+        return TRUE;
+    }
+
     if (window == NULL) {
         gdk_threads_enter();
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1102,7 +1120,7 @@ file_open_progress_idle_func(gpointer data) {
 
 //    gdk_window_process_all_updates();
 
-/* Remove FIX !!!!!!!!!!! */
+/* TODO: Remove FIX !!!!!!!!!!! */
     configure_event(draw, NULL, NULL);
 
     redraw();
@@ -1839,8 +1857,6 @@ static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *
     } else {
         wavbreaker_write_files(".");
     }
-
-    idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
 }
 
 static void menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget)

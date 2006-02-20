@@ -1,9 +1,8 @@
 High Priority
 -------------
-[ ] check for existing files
-    - add popup for confirmation
 2GB file limit - large file support
     - libsndfile example
+[ ] change add/del to stock GTK_STOCK_ADD and GTK_STOCK_REMOVE
 NOSOUND - will default because "0" used to be OSS
 i18n
 fix the calculation of the time (error when sample is not stereo 16-bit 44100)
@@ -25,6 +24,8 @@ pause function
 rel_0.7
 --------
 [*] confirm exit
+[*] check for existing files
+[*] alsa/oss ./configure options
 
 Done
 ----

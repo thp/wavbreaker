@@ -1,5 +1,5 @@
 /* wavbreaker - A tool to split a wave file up into multiple wave.
- * Copyright (C) 2002 Timothy Robinson
+ * Copyright (C) 2002-2006 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #include "sample.h"
 #include "wav.h"
+#include "fileutils.h"
 
 void usage() {
     printf("Must pass filenames of wave files to merge.\n");
@@ -56,7 +57,7 @@ int main(int argc, char *argv[])
         filenames = &argv[1];
     }
 
-    if (stat(merge_filename, &stat_buf) == 0) {
+    if (check_file_exists(merge_filename)) {
         fprintf(stderr, "ERROR: The output file %s already exists.\n", merge_filename);
         return 2;
     }

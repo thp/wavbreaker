@@ -50,6 +50,13 @@ struct WriteInfo_ {
 	char *cur_filename;
 	double pct_done;
 	guint sync;
+	gint check_file_exists;
+	gint skip_file; /* -1 = waiting for check
+                     * 0 = don't overwrite file
+                     * 1 = file is ok to overwrite
+                     * 2 = overwrite all files
+                     */
+    gint sync_check_file_overwrite_to_write_progress;
 };
 
 void wavbreaker_autosplit(long x);
