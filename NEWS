@@ -1,4 +1,9 @@
-version 0.6 (2005-06-02)
+version 0.7 (2006-02-26)
+    + Added ./configure checking for alsa and oss
+    + Added a dialog to ask if you "really" want to quit
+    + Added checks for existing files and dialogs to say yes or no to overwrite
+        the existing files
+version 0.6.1 (2005-06-02)
     ! Fixed window and pane sizes not saving when the window's x is clicked.
 version 0.6 (2005-06-01)
     + Alsa support with the ability to configure alsa or oss use.

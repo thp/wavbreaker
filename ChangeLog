@@ -1,3 +1,13 @@
+2006-02-26 12:01  Timothy Robinson <tdrobinson@huli.org>
+
+	* configure.in, src/about.c, src/about.h: Incremented year in the
+	  about dialog and changed version # to 0.7
+
+2006-02-26 11:58  Timothy Robinson <tdrobinson@huli.org>
+
+	* ChangeLog, configure.in, src/wavbreaker.c: Added checks for
+	  having >= gtk 2.6 for the stock multimedia icons.
+
 2006-02-20 01:25  Timothy Robinson <tdrobinson@huli.org>
 
 	* configure.in, src/alsaaudio.c, src/appconfig.c: bumped version to
