@@ -44,6 +44,10 @@
 #include "popupmessage.h"
 //#include "cellrendererspin.h"
 
+#ifndef HAVE_GTK_2_6
+#  define play_icon_filename IMAGEDIR"play.png"
+#  define stop_icon_filename IMAGEDIR"stop.png"
+#endif
 #define break_icon_filename IMAGEDIR"break2.png"
 #define del_break_icon_filename IMAGEDIR"del-break.png"
 
@@ -2097,12 +2101,21 @@ int main(int argc, char **argv)
                              G_CALLBACK(menu_quit), main_window, -1);
     gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
+#ifdef HAVE_GTK_2_6
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
                              "Quit wavbreaker", NULL,
                              G_CALLBACK(menu_play), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
                              "Quit wavbreaker", NULL,
                              G_CALLBACK(menu_stop), main_window, -1);
+#else
+    icon = gtk_image_new_from_file(play_icon_filename);
+    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
+                            icon, G_CALLBACK(menu_play), NULL);
+    icon = gtk_image_new_from_file(stop_icon_filename);
+    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
+                            icon, G_CALLBACK(menu_stop), NULL);
+#endif
 
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
     gtk_widget_show(toolbar);

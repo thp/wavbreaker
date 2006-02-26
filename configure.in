@@ -44,6 +44,14 @@ AC_CHECK_FUNCS([strchr strdup strrchr strstr])
 # AC_DEFINE_UNQUOTED(IMAGEDIR, "${prefix}/share/wavbreaker/images/")
 
 
+PKG_CHECK_MODULES(UNUSED, gtk+-2.0 >= 2.6.0, [have_gtk_26=yes], [have_gtk_26=no])
+
+AC_MSG_CHECKING([if GTK+ is version 2.6.0 or newer])
+if test "x$have_gtk_26" = "xyes"; then
+   AC_DEFINE(HAVE_GTK_2_6, 1, [Define if you have GTK+ 2.4.0 or better])
+fi
+AC_MSG_RESULT($have_gtk_26)
+
 PKG_CHECK_MODULES(UNUSED, gtk+-2.0 >= 2.4.0, [have_gtk_23=yes], [have_gtk_23=no])
 
 AC_MSG_CHECKING([if GTK+ is version 2.3.0 or newer])
