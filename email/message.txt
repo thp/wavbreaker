@@ -1,7 +1,14 @@
-Quick bug fix for the last minute window size changes. That's what I get for
-throwing something in last minute. ;-)
+wavbreaker 0.7 has been released
+
+version 0.7 (2006-02-26)
+    + Added ./configure checking for alsa and oss
+    + Added a dialog to ask if you "really" want to quit
+    + Added checks for existing files and dialogs to say yes or no to overwrite
+        the existing files
 
 http://huli.org/wavbreaker/
+http://huli.org/wavbreaker/download.html
+http://huli.org/wavbreaker/wavbreaker-0.7.tar.gz
 
 Timothy
 
