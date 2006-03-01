@@ -2103,10 +2103,10 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_GTK_2_6
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
-                             "Quit wavbreaker", NULL,
+                             "Play", NULL,
                              G_CALLBACK(menu_play), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
-                             "Quit wavbreaker", NULL,
+                             "Stop", NULL,
                              G_CALLBACK(menu_stop), main_window, -1);
 #else
     icon = gtk_image_new_from_file(play_icon_filename);
