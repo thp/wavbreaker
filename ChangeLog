@@ -1,12 +1,35 @@
-2006-02-26 12:01  Timothy Robinson <tdrobinson@huli.org>
+2007-03-11 17:15  Thomas Perl <thp@perli.net>
 
-	* configure.in, src/about.c, src/about.h: Incremented year in the
-	  about dialog and changed version # to 0.7
+	* *, src/*: Clean-up of unneeded files, use automake-1.9 instead of
+	  automake-1.7; remove win32 code; general clean-up after all ;)
+	* images/*: Remove custom icons
+	+ images/wavbreaker.png, images/wavbreaker.svg: Add new wavbreaker
+	  icon by thp
 
-2006-02-26 11:58  Timothy Robinson <tdrobinson@huli.org>
+2006-07-20 20:45  Thomas Perl <thp@perli.net>
 
-	* ChangeLog, configure.in, src/wavbreaker.c: Added checks for
-	  having >= gtk 2.6 for the stock multimedia icons.
+	* src/about.c: Use GtkAboutDialog instead of hand-crafted about box
+	* src/appconfig.c: Don't auto-rename tracks when closing prefs
+	* src/wavbreaker.c: Add/Remove track break icons removed, use stock
+	  icons; improved command line parameter handling; window title is 
+	  set when opening files, as in "wavbreaker (filename.wav)"; auto-
+	  rename moved into "menu_rename" function; re-ordered main menu 
+	  and added icons and keyboard shortcuts; do not rename track 
+	  breaks' names that the user might have customized (+ added 
+	  button to rename all track breaks according to rules set in prefs);
+	  re-designed toolbar and added AutoSplit button; Fixed wrong 
+	  tooltips for "Play" and "Stop" buttons; Use stock icons for 
+	  Add/Remove break buttons
+	* configure.in: bumped version to 0.7.1
+
+2006-07-19 20:33  Thomas Perl <thp@perli.net>
+
+	* src/wavbreaker.c: command line parameter handling
+
+2006-07-19 19:23  Thomas Perl <thp@perli.net>
+
+	* src/wavbreaker.c: Use proper format string in sprintf for track
+	  numbers when auto-generating file names
 
 2006-02-20 01:25  Timothy Robinson <tdrobinson@huli.org>
 

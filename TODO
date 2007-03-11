@@ -1,12 +1,11 @@
 High Priority
 -------------
-[ ] debian package - ubuntu
 2GB file limit - large file support
     - libsndfile example
-[ ] change add/del to stock GTK_STOCK_ADD and GTK_STOCK_REMOVE
-[ ] i18n
-[ ] fix the calculation of the time (error when sample is not stereo 16-bit 44100)
-[ ] Autosplit based on silence
+NOSOUND - will default because "0" used to be OSS
+i18n
+fix the calculation of the time (error when sample is not stereo 16-bit 44100)
+Autosplit based on silence
 
 Low Priority
 -------------
@@ -20,25 +19,4 @@ alsa and jack drivers
         - make sure not playing when changing audio interfaces
 sound card format issues
 pause function
-
-Release TODO list
-----
-freshmeat.net
-gnomefiles.org
-wavbreaker-announce
-gentoo
-
-rel_0.7
---------
-[*] confirm exit
-[*] check for existing files
-[*] alsa/oss ./configure options
-[*] NOSOUND - will default because "0" used to be OSS
-
-Done
-----
-[*] use new gtk 2.4 file selection
-[*] fix dir selection in config menu
-[*] Start, End and Duration in list
-[*] jump to on right-click in list (gtktreeview)
 

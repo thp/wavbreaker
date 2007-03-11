@@ -27,10 +27,6 @@
  
 #include "wavbreaker.h"
 
-#ifdef _WIN32
-#include "winaudio.h"
-#endif
-
 #include "sample.h"
 #include "wav.h"
 #include "cdda.h"

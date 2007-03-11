@@ -19,6 +19,8 @@
 #ifndef WAVBREAKER_H
 #define WAVBREAKER_H
 
+#define WAVBREAKER_ICON ICONDIR"/wavbreaker.png"
+
 #include <gtk/gtk.h>
 
 typedef struct Points_ Points;

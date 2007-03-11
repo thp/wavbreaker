@@ -16,16 +16,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-//#  define IMAGEDIR "../images/"
-
-#ifdef _WIN32
-#  define IMAGEDIR "../images/"
-#else
-#  ifdef HAVE_CONFIG_H
-#    include <config.h>
-#  endif
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -44,12 +34,7 @@
 #include "popupmessage.h"
 //#include "cellrendererspin.h"
 
-#ifndef HAVE_GTK_2_6
-#  define play_icon_filename IMAGEDIR"play.png"
-#  define stop_icon_filename IMAGEDIR"stop.png"
-#endif
-#define break_icon_filename IMAGEDIR"break2.png"
-#define del_break_icon_filename IMAGEDIR"del-break.png"
+#define APPNAME "wavbreaker"
 
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
@@ -78,6 +63,7 @@ static gulong cursor_marker;
 static gulong play_marker;
 static int pixmap_offset;
 static char *sample_filename = NULL;
+static gboolean overwrite_track_names = FALSE;
 
 static guint idle_func_num;
 static gdouble progress_pct;
@@ -123,7 +109,7 @@ void track_break_start_time_edited(GtkCellRendererText *cell,
 guint track_break_find_offset();
 void track_break_delete_entry();
 void track_break_setup_filename(gpointer data, gpointer user_data);
-void track_break_rename();
+void track_break_rename( gboolean overwrite);
 void track_break_add_to_model(gpointer data, gpointer user_data);
 void track_break_add_entry();
 void track_break_set_durations();
@@ -134,6 +120,9 @@ void filesel_ok_clicked(GtkWidget *widget, gpointer data);
 void filesel_cancel_clicked(GtkWidget *widget, gpointer data);
 void set_sample_filename(const char *f);
 static void open_file();
+static gboolean open_file_arg( gpointer data);
+static void handle_arguments( int argc, char** argv);
+static void set_title( char* title);
 
 /* Sample and Summary Display Functions */
 static void redraw();
@@ -198,6 +187,9 @@ static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
+menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
 menu_play(GtkWidget *widget, gpointer user_data);
 
 static void
@@ -218,40 +210,27 @@ offset_to_duration(guint, guint, gchar *);
 static void
 update_status();
 
-/*
-char *basename(const char *str)
-{
-#ifdef _WIN32
-    char del = '\\';
-#else
-    char del = '/';
-#endif
-    char *ret;
-
-    ret = strrchr(str, del);
-    if (ret == NULL) {
-        return NULL;
-    } else {
-        return ret + 1;
-    }
-}
-*/
-
 static GtkItemFactoryEntry menu_items[] = {
   { "/_File",      NULL,         0,              0, "<Branch>"},
   { "/File/_Open...", "<control>O", menu_open_file, 0, "<StockItem>", GTK_STOCK_OPEN},
-  { "/File/_Save", "<control>S", menu_save,      0, "<StockItem>", GTK_STOCK_SAVE},
-  { "/File/Save_As...", "<shift><control>S", menu_save_as,      0, "<StockItem>", GTK_STOCK_SAVE_AS},
   { "/File/sep1",  NULL,         NULL,           0, "<Separator>"},
+  { "/File/_Save", "<control>S", menu_save,      0, "<StockItem>", GTK_STOCK_SAVE},
+  { "/File/Save _as...", "<shift><control>S", menu_save_as,      0, "<StockItem>", GTK_STOCK_SAVE_AS},
+  { "/File/sep2",  NULL,         NULL,           0, "<Separator>"},
   { "/File/_Quit", "<control>Q", menu_quit,      0, "<StockItem>", GTK_STOCK_QUIT},
 
   { "/_Edit",             NULL, 0,           0, "<Branch>" },
-  { "/Edit/_Preferences", NULL, menu_config, 0, "" },
-  { "/Edit/_AutoSplit", NULL, menu_autosplit, 0, "" },
-  { "/Edit/_Export TOC", NULL, menu_export, 0, "" },
+  { "/Edit/_Add break", "<control>B", menu_add_track_break, 0, "<StockItem>", GTK_STOCK_ADD },
+  { "/Edit/_Remove break", "<control>X", menu_delete_track_break, 0, "<StockItem>", GTK_STOCK_REMOVE },
+  { "/Edit/_Rename all breaks", "<control>R", menu_rename, 0, "<StockItem>", GTK_STOCK_EDIT },
+  { "/Edit/sep3",  NULL,         NULL,           0, "<Separator>"},
+  { "/Edit/_AutoSplit", "<control>A", menu_autosplit, 0, "<StockItem>", GTK_STOCK_CUT },
+  { "/Edit/_Export TOC", "<control>E", menu_export, 0, "<StockItem>", GTK_STOCK_CDROM },
+  { "/Edit/sep4",  NULL,         NULL,           0, "<Separator>"},
+  { "/Edit/_Preferences", "<control>P", menu_config, 0, "<StockItem>", GTK_STOCK_PREFERENCES },
 
   { "/_Help",       NULL, 0,          0, "<Branch>" },
-  { "/Help/_About", NULL, menu_about, 0, "" },
+  { "/Help/_About", NULL, menu_about, 0, "<StockItem>", GTK_STOCK_ABOUT },
 };
 
 /*
@@ -602,7 +581,7 @@ track_break_delete_entry()
     g_list_free(list);
 
     track_break_set_durations();
-    track_break_rename();
+    track_break_rename( FALSE);
 }
 
 void
@@ -615,6 +594,11 @@ track_break_setup_filename(gpointer data, gpointer user_data)
     int disc_num;
     static int prev_disc_num;
     static int track_num = 1;
+
+    /* when not overwriting track names, only update not-yet-set names */
+    if( overwrite_track_names == FALSE && track_break->filename != NULL) {
+        return;
+    }
 
     index = g_list_index(track_break_list, track_break);
     index++;
@@ -631,24 +615,12 @@ track_break_setup_filename(gpointer data, gpointer user_data)
             track_num++;
         }
         prev_disc_num = disc_num;
-        if (index < 10) {
-            sprintf(buf, "d%dt0%d", disc_num, track_num);
-        } else {
-            sprintf(buf, "d%dt%d", disc_num, track_num);
-        }
+        sprintf(buf, "d%dt%02d", disc_num, track_num);
     } else {
-        if (index < 10) {
-            if (get_prepend_file_number()) {
-                sprintf(buf, "0%d%s", index, get_etree_filename_suffix());
-            } else {
-                sprintf(buf, "%s0%d", get_etree_filename_suffix(), index);
-            }
+        if (get_prepend_file_number()) {
+            sprintf(buf, "%02d%s", index, get_etree_filename_suffix());
         } else {
-            if (get_prepend_file_number()) {
-                sprintf(buf, "%d%s", index, get_etree_filename_suffix());
-            } else {
-                sprintf(buf, "%s%d", get_etree_filename_suffix(), index);
-            }
+            sprintf(buf, "%s%02d", get_etree_filename_suffix(), index);
         }
     }
 
@@ -781,7 +753,7 @@ void track_break_add_entry()
                                             track_break_sort);
 
     track_break_set_durations();
-    track_break_rename();
+    track_break_rename( FALSE);
 }
 
 void track_break_set_durations() {
@@ -790,13 +762,16 @@ void track_break_set_durations() {
     g_list_foreach(track_break_list, track_break_add_to_model, NULL);
 }
 
-void track_break_rename() {
+void track_break_rename( gboolean overwrite) {
     gchar str_tmp[1024];
     gchar *str_ptr;
 
     if (sample_filename == NULL) {
         return;
     }
+
+    /* do we have to overwrite already-set names or just NULL names? */
+    overwrite_track_names = overwrite;
 
     /* setup the filename */
     strncpy(str_tmp, sample_filename, 1024);
@@ -1154,6 +1129,53 @@ static void open_file() {
     menu_stop(NULL, NULL);
 
     idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
+    set_title( basename( sample_filename));
+}
+
+static gboolean open_file_arg( gpointer data) {
+    if( data != NULL) {
+      set_sample_filename( (char *)data);
+      open_file();
+      set_title( basename( sample_filename));
+    }
+
+    /* do not call this function again = return FALSE */
+    return FALSE;
+}
+
+static void handle_arguments( int argc, char** argv) {
+  struct stat s;
+  char* filename = NULL;
+
+  if( argc < 2) {
+    return; /* no arguments */
+  }
+
+  filename = argv[1];
+
+  if( stat( filename, &s) != 0) {
+    fprintf( stderr, "Cannot stat file: %s\n", filename);
+    return;
+  }
+
+  if( S_ISREG( s.st_mode) || S_ISLNK( s.st_mode)) {
+    g_idle_add( open_file_arg, (gpointer)filename);
+  } else {
+    fprintf( stderr, "Not a file: %s\n", filename);
+  }
+}
+
+static void set_title( char* title)
+{
+  char buf[1024];
+
+  if( title == NULL) {
+    gtk_window_set_title( (GtkWindow*)main_window, APPNAME);
+    return;
+  }
+
+  sprintf( buf, "%s (%s)", APPNAME, title);
+  gtk_window_set_title( (GtkWindow*)main_window, buf);
 }
 
 void filesel_ok_clicked(GtkWidget *widget, gpointer user_data) {
@@ -1172,25 +1194,7 @@ void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data) {
     gtk_widget_destroy(user_data);
 }
 
-static void open_select_file()
-{
-    GtkWidget *filesel = gtk_file_selection_new("open file");
-    gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
-        "clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
-
-    gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button),
-        "clicked", (GtkSignalFunc)filesel_cancel_clicked, filesel);
-
-    if (sample_filename != NULL) {
-        char filename[4096];
-        strcpy(filename, dirname(sample_filename));
-        strcat(filename, "/");
-        gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel), filename);
-    }
-    gtk_widget_show(filesel);
-}
-
-static void open_select_file_2() {
+static void open_select_file() {
     GtkWidget *dialog;
 
     dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(main_window),
@@ -1205,7 +1209,6 @@ static void open_select_file_2() {
         char *filename;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-//        printf("filename: \"%s\"\n", filename);
         set_sample_filename(filename);
         g_free(filename);
         open_file();
@@ -1932,12 +1935,7 @@ static void
 menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget)
 {
-#ifdef HAVE_GTK_2_3
-    open_select_file_2();
-#else
     open_select_file();
-#endif
-
 }
 
 static void
@@ -1963,6 +1961,13 @@ static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     autosplit_show(main_window);
+}
+
+static void
+menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    /* rename (AND overwrite) track breaks */
+    track_break_rename( TRUE);
 }
 
 static void save_window_sizes()
@@ -2047,6 +2052,10 @@ int main(int argc, char **argv)
 
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
+    gtk_window_set_default_icon_from_file( WAVBREAKER_ICON, NULL);
+
+    set_title( NULL);
+
     g_signal_connect(G_OBJECT(main_window), "delete_event",
              G_CALLBACK(delete_event), NULL);
 
@@ -2087,35 +2096,33 @@ int main(int argc, char **argv)
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
                              "Open New Wave File", NULL,
                              G_CALLBACK(menu_open_file), main_window, -1);
+    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
                              "Save Track Breaks", NULL,
                              G_CALLBACK(menu_save), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE_AS,
                              "Save Track Breaks To Dir", NULL,
                              G_CALLBACK(menu_save_as), main_window, -1);
+    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
+                             "AutoSplit", NULL,
+                             G_CALLBACK(menu_autosplit), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CDROM,
                              "Export to TOC", NULL,
                              G_CALLBACK(menu_export), main_window, -1);
+    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
+
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
+                             "Play from cursor", NULL,
+                             G_CALLBACK(menu_play), main_window, -1);
+    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
+                             "Stop playback", NULL,
+                             G_CALLBACK(menu_stop), main_window, -1);
+
+    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
                              "Quit wavbreaker", NULL,
                              G_CALLBACK(menu_quit), main_window, -1);
-    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-
-#ifdef HAVE_GTK_2_6
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
-                             "Play", NULL,
-                             G_CALLBACK(menu_play), main_window, -1);
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
-                             "Stop", NULL,
-                             G_CALLBACK(menu_stop), main_window, -1);
-#else
-    icon = gtk_image_new_from_file(play_icon_filename);
-    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Play", NULL, NULL,
-                            icon, G_CALLBACK(menu_play), NULL);
-    icon = gtk_image_new_from_file(stop_icon_filename);
-    gtk_toolbar_append_item(GTK_TOOLBAR(toolbar), "Stop", NULL, NULL,
-                            icon, G_CALLBACK(menu_stop), NULL);
-#endif
 
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
     gtk_widget_show(toolbar);
@@ -2280,7 +2287,7 @@ int main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(button), button_hbox);
     gtk_widget_show(button_hbox);
 
-    icon = gtk_image_new_from_file(break_icon_filename);
+    icon = gtk_image_new_from_stock( GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON);
     gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
     gtk_widget_show(icon);
 
@@ -2299,11 +2306,30 @@ int main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(button), button_hbox);
     gtk_widget_show(button_hbox);
 
-    icon = gtk_image_new_from_file(del_break_icon_filename);
+    icon = gtk_image_new_from_stock( GTK_STOCK_REMOVE, GTK_ICON_SIZE_BUTTON);
     gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
     gtk_widget_show(icon);
 
     label = gtk_label_new("Remove");
+    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    gtk_widget_show(label);
+
+    /* rename track breaks button */
+    button = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_rename), NULL);
+    gtk_widget_show(button);
+
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(button), button_hbox);
+    gtk_widget_show(button_hbox);
+
+    icon = gtk_image_new_from_stock( GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
+    gtk_widget_show(icon);
+
+    label = gtk_label_new("Auto-Rename");
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
     gtk_widget_show(label);
 
@@ -2345,6 +2371,8 @@ int main(int argc, char **argv)
         gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
     }
     gtk_widget_show(main_window);
+
+    handle_arguments( argc, argv);
 
     if (!g_thread_supported ()) g_thread_init (NULL);
     gdk_threads_enter();

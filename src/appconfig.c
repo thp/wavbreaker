@@ -37,11 +37,9 @@
 #include <unistd.h>
 #include <string.h>
 
-#ifndef _WIN32
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
-#endif
 
 #define APPCONFIG_FILENAME "/.wavbreaker"
 
@@ -602,14 +600,10 @@ static void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
 
 static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 {
-#ifdef HAVE_GTK_2_3
-    open_select_outputdir_2();
-#else
     open_select_outputdir();
-#endif
 }
 
-static void open_select_outputdir_2() {
+static void open_select_outputdir() {
     GtkWidget *dialog;
 
     dialog = gtk_file_chooser_dialog_new("Select Output Directory",
@@ -623,40 +617,11 @@ static void open_select_outputdir_2() {
         char *filename;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-//        printf("filename: %s\n", filename);
         gtk_entry_set_text(GTK_ENTRY(outputdir_entry), filename);
         g_free(filename);
     }
 
     gtk_widget_destroy(dialog);
-}
-
-static void open_select_outputdir() {
-    GtkWidget *filesel;
-    gchar filename[4096];
-
-    filesel = gtk_file_selection_new("select output directory");
-    gtk_window_set_modal(GTK_WINDOW(filesel), TRUE);
-    gtk_window_set_transient_for(GTK_WINDOW(filesel), GTK_WINDOW(window));
-    gtk_window_set_type_hint(GTK_WINDOW(filesel), GDK_WINDOW_TYPE_HINT_DIALOG);
-    gtk_window_set_resizable(GTK_WINDOW(filesel), TRUE);
-
-    strcpy(filename, gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
-    strcat(filename, "/");
-    gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel), filename);
-
-//    gtk_dialog_set_has_separator(GTK_DIALOG(filesel), TRUE);
-    gtk_widget_hide(GTK_FILE_SELECTION(filesel)->file_list->parent);
-    gtk_widget_hide(GTK_FILE_SELECTION(filesel)->file_list);
-    gtk_widget_hide(GTK_FILE_SELECTION(filesel)->selection_entry);
-
-    gtk_signal_connect(GTK_OBJECT( GTK_FILE_SELECTION(filesel)->ok_button),
-        "clicked", (GtkSignalFunc)filesel_ok_clicked, filesel);
-
-    gtk_signal_connect(GTK_OBJECT( GTK_FILE_SELECTION(filesel)->cancel_button),
-        "clicked", (GtkSignalFunc)filesel_cancel_clicked, filesel);
-
-    gtk_widget_show(filesel);
 }
 
 static void cancel_button_clicked(GtkWidget *widget, gpointer user_data)
@@ -677,7 +642,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
         gtk_combo_box_get_active(GTK_COMBO_BOX(combo_box)));
         */
 
-    track_break_rename();
+    track_break_rename( FALSE);
     appconfig_hide(GTK_WIDGET(user_data));
     appconfig_write_file();
 }
@@ -910,7 +875,6 @@ void appconfig_show(GtkWidget *main_window)
 }
 
 static int appconfig_read_file() {
-#ifndef _WIN32
     xmlDocPtr doc;
     xmlNodePtr cur;
 
@@ -1016,7 +980,6 @@ static int appconfig_read_file() {
     }
 
     return 0;
-#endif
 }
 
 /*
@@ -1025,7 +988,6 @@ static int check_xml_node_ptr_for_null(xmlNodePtr ptr) {
 */
 
 int appconfig_write_file() {
-#ifndef _WIN32
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr cur;
@@ -1246,7 +1208,6 @@ int appconfig_write_file() {
     xmlFreeDoc(doc);
 
     return 0;
-#endif
 }
 
 void do_config_file_version_conversions() {
@@ -1258,7 +1219,6 @@ void do_config_file_version_conversions() {
 
 void appconfig_init()
 {
-#ifndef _WIN32
     default_config_filename();
 
     /*
@@ -1272,13 +1232,6 @@ void appconfig_init()
         default_all_strings();
         do_config_file_version_conversions();
     }
-
-#else
-    outputdir = g_strdup("c:\\MyFiles");
-    outputdev = g_strdup("/dev/dsp");
-    etree_filename_suffix = g_strdup("-");
-    etree_cd_length = g_strdup("80");
-#endif
 }
 
 void default_all_strings() {

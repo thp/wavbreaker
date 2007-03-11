@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(wavbreaker, 0.7)
+AC_INIT(wavbreaker, 0.7.2)
 AC_CONFIG_SRCDIR(src/wavbreaker.h)
-AM_INIT_AUTOMAKE(1.7)
+AM_INIT_AUTOMAKE(1.9)
 AM_CONFIG_HEADER(config.h)
 
 # Parameters to configure
@@ -41,24 +41,6 @@ AC_FUNC_MEMCMP
 AC_FUNC_STAT
 AC_CHECK_FUNCS([strchr strdup strrchr strstr])
 
-# AC_DEFINE_UNQUOTED(IMAGEDIR, "${prefix}/share/wavbreaker/images/")
-
-
-PKG_CHECK_MODULES(UNUSED, gtk+-2.0 >= 2.6.0, [have_gtk_26=yes], [have_gtk_26=no])
-
-AC_MSG_CHECKING([if GTK+ is version 2.6.0 or newer])
-if test "x$have_gtk_26" = "xyes"; then
-   AC_DEFINE(HAVE_GTK_2_6, 1, [Define if you have GTK+ 2.4.0 or better])
-fi
-AC_MSG_RESULT($have_gtk_26)
-
-PKG_CHECK_MODULES(UNUSED, gtk+-2.0 >= 2.4.0, [have_gtk_23=yes], [have_gtk_23=no])
-
-AC_MSG_CHECKING([if GTK+ is version 2.3.0 or newer])
-if test "x$have_gtk_23" = "xyes"; then
-   AC_DEFINE(HAVE_GTK_2_3, 1, [Define if you have GTK+ 2.4.0 or better])
-fi
-AC_MSG_RESULT($have_gtk_23)
 
 echo "TDR: $WAVBREAKER_LIBS"
 if test "x$enable_alsa" = "xyes"
@@ -105,6 +87,7 @@ echo
 echo "ALSA Driver.......................   $enable_alsa"
 echo "OSS Driver........................   $enable_oss"
 echo
-echo "Configure finished.  Do 'make; make install' to compile and install wavbreaker."
+echo "    Configure finished.  Do 'make && make install'"
+echo "    to compile and install wavbreaker."
 echo
 

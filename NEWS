@@ -1,10 +1,22 @@
+version 0.7.1 (2007-07-20)
+    ! Fixed two-digit etree filename bug
+    + Added basic argv handling
+    ! Use GtkAboutDialog instead of hand-crafted GtkWindow
+    ! Only do auto-rename when user requested (button)
+    ! Use Gtk stock icons when possible
+    ! Show filename in window title when breaking a wav file
+    ! Re-structured main menu and toolbar
+    ! Fixed tooltips in toolbar buttons
+
 version 0.7 (2006-02-26)
     + Added ./configure checking for alsa and oss
     + Added a dialog to ask if you "really" want to quit
     + Added checks for existing files and dialogs to say yes or no to overwrite
         the existing files
-version 0.6.1 (2005-06-02)
+
+version 0.6 (2005-06-02)
     ! Fixed window and pane sizes not saving when the window's x is clicked.
+
 version 0.6 (2005-06-01)
     + Alsa support with the ability to configure alsa or oss use.
     + Added configuration option to prepend file number as opposed to append it
@@ -17,6 +29,7 @@ version 0.6 (2005-06-01)
     ! Fixed a small bug that when deleting a track break, the durations are
         not updated in the list display.
     ! Fixed file closing bug
+
 version 0.5 (2004-07-??)
     + Added duration to the list
     + Added automatic etree style filenaming
@@ -28,28 +41,32 @@ version 0.5 (2004-07-??)
     ! Fixed problem with autoconf/automake when not giving ./configure a prefix
         directory
     ! Fixed the directory selection.  It would append the dir name twice.
+
 version 0.4 (2003-10-25)
-	+ Added autosplit feature
-	+ Added toggle button to use the specified outputdir or not
-	! Fixed a bug that would occur when reading a non-standard wav header
-	! Fixed a segfault error when reading mono wav files
-	! Fixed a problem with automake/autoconf for the images directory
+    + Added autosplit feature
+    + Added toggle button to use the specified outputdir or not
+    ! Fixed a bug that would occur when reading a non-standard wav header
+    ! Fixed a segfault error when reading mono wav files
+    ! Fixed a problem with automake/autoconf for the images directory
+
 version 0.3 (2003-06-26)
-	+ Added right-click menus:
-		right-click on a split in the list and delete it.
-		right-click in the wav display to add a break.
-	+ Added configuration menu, the config is saved in xml format in the
-		~/.wavbreaker file.
+    + Added right-click menus:
+        right-click on a split in the list and delete it.
+        right-click in the wav display to add a break.
+    + Added configuration menu, the config is saved in xml format in the
+        ~/.wavbreaker file.
+
 version 0.2 (2003-04-04)
-	+ Added a delete button that will delete a selected track break from the
-		list.
-	* Modified the track break list to append the list number to the filename
-		and display it in the list.  The name is updated when an add or delete
-		from the list happens.
-	+ Added play tracking.  The sample display will move while it is playing
-		and a marker is drawn on the current position.
-	+ The time is now displayed for the cursor marker and the play marker in
-		the status bar on the bottom.
-	+ The time is now displayed in the track break list.
-	+ Added vertical resizer.  Now the wave sample displays and the track break
-		list can be resized as you please.
+    + Added a delete button that will delete a selected track break from the
+        list.
+    * Modified the track break list to append the list number to the filename
+        and display it in the list.  The name is updated when an add or delete
+        from the list happens.
+    + Added play tracking.  The sample display will move while it is playing
+        and a marker is drawn on the current position.
+    + The time is now displayed for the cursor marker and the play marker in
+        the status bar on the bottom.
+    + The time is now displayed in the track break list.
+    + Added vertical resizer.  Now the wave sample displays and the track break
+        list can be resized as you please.
+

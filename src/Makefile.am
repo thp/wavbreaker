@@ -1,17 +1,19 @@
-INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) -DIMAGEDIR="\"$(datadir)/wavbreaker/images/\""
-#wavbreaker_CPPFLAGS = -DIMAGEDIR=$(datadir)
+INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) -DICONDIR="\"$(datadir)/pixmaps/\""
 
 bin_PROGRAMS = wavbreaker wavmerge wavinfo
 
 wavbreaker_SOURCES = cdda.c sample.c wav.c wavbreaker.c about.c \
 	appconfig.c autosplit.c popupmessage.c saveas.c browsedir.c \
 	toc.c nosound.c reallyquit.c fileutils.c overwritedialog.c
+
 if NEED_ALSA
 wavbreaker_SOURCES += alsaaudio.c
 endif
+
 if NEED_OSS
 wavbreaker_SOURCES += linuxaudio.c
 endif
+
 wavmerge_SOURCES = wav.c wavmerge.c fileutils.c
 wavinfo_SOURCES = wavinfo.c wav.c
 
@@ -20,3 +22,4 @@ noinst_HEADERS = cdda.h linuxaudio.h sample.h wav.h wavbreaker.h about.h \
 	toc.h nosound.h reallyquit.h fileutils.h overwritedialog.h
 
 wavbreaker_LDADD = $(WAVBREAKER_LIBS) $(ALSA_LIBS)
+
