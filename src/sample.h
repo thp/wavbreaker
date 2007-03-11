@@ -42,7 +42,7 @@ struct SampleInfo_ {
 char *wav_get_error_message();
 char *sample_get_error_message();
 
-void sample_init();
+int sample_init( void* data);
 void sample_set_audio_dev(char *str);
 char * sample_get_audio_dev();
 

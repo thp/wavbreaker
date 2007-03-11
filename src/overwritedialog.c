@@ -21,6 +21,8 @@
 #include <gtk/gtk.h>
 #include "wavbreaker.h"
 
+#include "gettext.h"
+
 typedef struct OverwriteData_ OverwriteData;
 struct OverwriteData_ {
     GtkWidget* window;
@@ -95,12 +97,12 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
 
     message[0] = '\0';
     strncat(message, write_info->cur_filename, 1024);
-    strncat(message, " already exists.\n\nDo you want to overwrite the existing file?", 1024);
+    strncat(message, _(" already exists.\n\nDo you want to overwrite the existing file?"), 1024);
     status_label = gtk_label_new(message);
     gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
     gtk_widget_show(status_label);
 
-    checkbox = gtk_check_button_new_with_label("Overwrite all files");
+    checkbox = gtk_check_button_new_with_label(_("Overwrite all files"));
     gtk_box_pack_start(GTK_BOX(vbox), checkbox, FALSE, TRUE, 5);
     gtk_widget_show(checkbox);
 

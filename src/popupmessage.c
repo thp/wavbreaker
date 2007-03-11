@@ -19,59 +19,31 @@
 #include <gtk/gtk.h>
 #include "wavbreaker.h"
 
-void popupmessage_hide(GtkWidget *widget, gpointer user_data)
+void popupmessage_hide( GtkDialog *dialog, int response_id, gpointer user_data)
 {
-	GtkWidget *window = GTK_WIDGET(user_data);
-	gtk_widget_destroy(window);
+    GtkWidget *window = GTK_WIDGET(user_data);
+    gtk_widget_destroy(window);
 }
 
-void popupmessage_show(GtkWidget *main_window, const char *message)
+void popupmessage_show( GtkWidget *main_window, const char *message, const char *description)
 {
-	GtkWidget *window;
-	GtkWidget *vbox;
-	GtkWidget *hbbox;
-	GtkWidget *status_label;
-	GtkWidget *hseparator;
-	GtkWidget *button;
+    GtkMessageDialog *dialog;
+    gint result;
 
-    if (main_window == NULL) {
+    if( main_window == NULL) {
         main_window = wavbreaker_get_main_window();
     }
 
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_widget_realize(window);
-	gtk_window_set_modal(GTK_WINDOW(window), TRUE);
-	gtk_window_set_transient_for(GTK_WINDOW(window),
-			GTK_WINDOW(main_window));
-	gtk_window_set_type_hint(GTK_WINDOW(window),
-			GDK_WINDOW_TYPE_HINT_DIALOG);
-	gtk_window_set_position(GTK_WINDOW(window),
-			GTK_WIN_POS_CENTER_ON_PARENT);
-	gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+    dialog = gtk_message_dialog_new( main_window,
+                                     GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+                                     GTK_MESSAGE_INFO,
+                                     GTK_BUTTONS_OK,
+                                     message);
 
-	vbox = gtk_vbox_new(FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(window), vbox);
-	gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-	gtk_widget_show(vbox);
+    gtk_message_dialog_format_secondary_text( dialog, description);
 
-	status_label = gtk_label_new(message);
-	gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
-	gtk_widget_show(status_label);
+    g_signal_connect( G_OBJECT(dialog), "response", (GtkSignalFunc)popupmessage_hide, dialog);
 
-	hseparator = gtk_hseparator_new();
-	gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
-	gtk_widget_show(hseparator);
-
-	hbbox = gtk_hbutton_box_new();
-	gtk_container_add(GTK_CONTAINER(vbox), hbbox);
-	gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
-	gtk_widget_show(hbbox);
-
-	button = gtk_button_new_from_stock(GTK_STOCK_OK);
-	gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-	g_signal_connect(G_OBJECT(button), "clicked", (GtkSignalFunc)popupmessage_hide, window);
-	gtk_widget_show(button);
-
-	gtk_widget_show(window);
+    gtk_widget_show_all( dialog);
 }
 

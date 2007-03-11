@@ -1,5 +1,8 @@
 INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) -DICONDIR="\"$(datadir)/pixmaps/\""
 
+localedir = $(datadir)/locale
+DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@
+
 bin_PROGRAMS = wavbreaker wavmerge wavinfo
 
 wavbreaker_SOURCES = cdda.c sample.c wav.c wavbreaker.c about.c \

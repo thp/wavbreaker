@@ -23,10 +23,11 @@
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
+#include "gettext.h"
 #include "wavbreaker.h"
 
 #define COPYRIGHT "Copyright (C) 2002-2006 Timothy Robinson\nCopyright (C) 2006-2007 Thomas Perl"
-#define APPDESCRIPTION "A tool to split a wave file up into multiple waves."
+#define APPDESCRIPTION _("A tool to split a wave file up into multiple waves.")
 #define URL "http://thpinfo.com/2006/wavbreaker/"
 
 #define AUTHOR_A "Timothy Robinson <tdrobinson@huli.org>"

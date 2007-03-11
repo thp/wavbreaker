@@ -25,6 +25,8 @@
 #include "wavbreaker.h"
 #include "browsedir.h"
 
+#include "gettext.h"
+
 static GtkWidget *window;
 
 static char *saveas_dirname = NULL; 
@@ -125,7 +127,7 @@ void saveas_show(GtkWidget *parent_window)
     gtk_container_add(GTK_CONTAINER(vbox), table);
     gtk_widget_show(table);
 
-    message_label = gtk_label_new("Enter the dirname to save files:");
+    message_label = gtk_label_new(_("Enter the dirname to save files:"));
     gtk_misc_set_alignment(GTK_MISC(message_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), message_label,
             0, 2, 0, 1, GTK_FILL, 0, 5, 0);
@@ -138,7 +140,7 @@ void saveas_show(GtkWidget *parent_window)
             0, 1, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     gtk_widget_show(saveas_dirname_entry);
 
-    browse_button = gtk_button_new_with_label("Browse");
+    browse_button = gtk_button_new_with_label(_("Browse"));
     gtk_table_attach(GTK_TABLE(table), browse_button,
         1, 2, 1, 2, GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(browse_button), "clicked",

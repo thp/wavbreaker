@@ -23,6 +23,8 @@
 #include "popupmessage.h"
 #include "nosound.h"
 
+#include "gettext.h"
+
 #ifdef HAVE_ALSA
 #include "alsaaudio.h"
 #endif
@@ -50,7 +52,7 @@
 
 static GtkWidget *window;
 
-static int config_file_version = 0;
+static int config_file_version = 1;
 
 /* Function pointers to the currently selected audio driver. */
 static int audio_driver_type = -1;
@@ -59,14 +61,13 @@ static GtkWidget *combo_box = NULL;
 
 /* oss audio driver options */
 static char *oss_output_device = NULL;
-static GtkWidget *oss_output_device_entry = NULL;
 
 /* alsa audio driver options */
 static char *alsa_output_device = NULL;
-static GtkWidget *alsa_output_device_entry = NULL;
 
 /* default audio driver options */
 static GtkWidget *output_device_entry = NULL;
+static GtkWidget *output_device_label = NULL;
 
 /* Output directory for wave files. */
 static int use_outputdir = 0;
@@ -74,7 +75,6 @@ static GtkWidget *use_outputdir_toggle = NULL;
 static char *outputdir = NULL;
 static GtkWidget *outputdir_entry = NULL;
 static GtkWidget *browse_button = NULL;
-static GtkWidget *outputdir_label = NULL;
 
 /* Etree filename suffix */
 /* Filename suffix (not extension) for wave files. */
@@ -84,6 +84,10 @@ static GtkWidget *use_etree_filename_suffix_toggle = NULL;
 static char *etree_filename_suffix = NULL;
 static GtkWidget *etree_filename_suffix_label = NULL;
 static GtkWidget *etree_filename_suffix_entry = NULL;
+
+/* Radio buttons */
+static GtkWidget *radio1 = NULL;
+static GtkWidget *radio2 = NULL;
 
 /* Prepend File Number for wave files. */
 static int prepend_file_number = 0;
@@ -173,7 +177,7 @@ void set_nosound_driver() {
 }
 
 void warn_nosound_set() {
-    popupmessage_show(window, "The audio driver in the configuration file is invalid.  The \"No Sound\" audio driver has been set.\n\nEverything will function as normal, but no sound will play.\n\nYou may change the audio driver in the Edit/Preferences menu.");
+    popupmessage_show( NULL, _("Audio output disabled"), _("If you want to enable audio output, please select a audio driver in the preferences dialog."));
 }
 
 void set_audio_function_pointers_with_index(int index)
@@ -218,8 +222,25 @@ void set_audio_function_pointers_with_index(int index)
 
 void set_audio_function_pointers()
 {
+    if (get_audio_driver_type() == OSS) {
+        set_audio_oss_options_output_device(gtk_entry_get_text(
+            GTK_ENTRY(output_device_entry)));
+    } else if (get_audio_driver_type() == ALSA) {
+        set_audio_alsa_options_output_device(gtk_entry_get_text(
+            GTK_ENTRY(output_device_entry)));
+    }
+
     set_audio_function_pointers_with_index(gtk_combo_box_get_active(
                 GTK_COMBO_BOX(combo_box)));
+
+    if (get_audio_driver_type() == NOSOUND) {
+        gtk_widget_hide( output_device_label);
+        gtk_widget_hide( output_device_entry);
+    } else {
+        gtk_widget_show( output_device_label);
+        gtk_widget_show( output_device_entry);
+        gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
+    }
 }
 
 void default_audio_function_pointers()
@@ -271,14 +292,6 @@ void set_audio_alsa_options_output_device(const char *val) {
 
 void default_audio_alsa_options_output_device() {
     set_audio_alsa_options_output_device("plughw:0,0");
-}
-
-/* jack audio driver options */
-
-void audio_options_window_cancel_clicked(GtkWidget *widget, gpointer user_data)
-{
-    GtkWidget *main_window = GTK_WIDGET(user_data);
-    gtk_widget_destroy(main_window);
 }
 
 /* generic audio driver functions */
@@ -342,78 +355,6 @@ int appconfig_get_ask_really_quit()
 void appconfig_set_ask_really_quit(int x)
 {
     ask_really_quit = x;
-}
-
-void audio_options_window_ok_clicked(GtkWidget *widget, gpointer user_data)
-{
-    GtkWidget *main_window = GTK_WIDGET(user_data);
-    if (get_audio_driver_type() == OSS) {
-        set_audio_oss_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(output_device_entry)));
-    } else if (get_audio_driver_type() == ALSA) {
-        set_audio_alsa_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(output_device_entry)));
-    }
-    gtk_widget_destroy(main_window);
-}
-
-void audio_options_window_show(GtkWidget *main_window)
-{
-    GtkWidget *audio_options_window;
-    GtkWidget *vbox;
-    GtkWidget *hbbox;
-    GtkWidget *label;
-    GtkWidget *hseparator;
-    GtkWidget *button;
-
-    audio_options_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_widget_realize(audio_options_window);
-    gtk_window_set_modal(GTK_WINDOW(audio_options_window), TRUE);
-    gtk_window_set_transient_for(GTK_WINDOW(audio_options_window),
-            GTK_WINDOW(window));
-    gtk_window_set_type_hint(GTK_WINDOW(audio_options_window),
-        GDK_WINDOW_TYPE_HINT_DIALOG);
-    gtk_window_set_position(GTK_WINDOW(audio_options_window),
-        GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(audio_options_window->window, GDK_FUNC_MOVE);
-
-    vbox = gtk_vbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(audio_options_window), vbox);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-    gtk_widget_show(vbox);
-
-    label = gtk_label_new("Output Device: ");
-    gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
-    gtk_widget_show(label);
-
-    output_device_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
-    gtk_entry_set_width_chars(GTK_ENTRY(output_device_entry), 10);
-    gtk_box_pack_start(GTK_BOX(vbox), output_device_entry, FALSE, TRUE, 5);
-    gtk_widget_show(output_device_entry);
-
-    hseparator = gtk_hseparator_new();
-    gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
-    gtk_widget_show(hseparator);
-
-    hbbox = gtk_hbutton_box_new();
-    gtk_container_add(GTK_CONTAINER(vbox), hbbox);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
-    gtk_widget_show(hbbox);
-
-    button = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-    gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(button), "clicked",
-        (GtkSignalFunc)audio_options_window_cancel_clicked, audio_options_window);
-    gtk_widget_show(button);
-
-    button = gtk_button_new_from_stock(GTK_STOCK_OK);
-    gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(button), "clicked",
-        (GtkSignalFunc)audio_options_window_ok_clicked, audio_options_window);
-    gtk_widget_show(button);
-
-    gtk_widget_show(audio_options_window);
 }
 
 int get_use_outputdir()
@@ -547,13 +488,11 @@ static void use_outputdir_toggled(GtkWidget *widget, gpointer user_data)
         // disable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, FALSE);
         gtk_widget_set_sensitive(browse_button, FALSE);
-        gtk_widget_set_sensitive(outputdir_label, FALSE);
         set_use_outputdir("0");
     } else {
         // enable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, TRUE);
         gtk_widget_set_sensitive(browse_button, TRUE);
-        gtk_widget_set_sensitive(outputdir_label, TRUE);
         set_use_outputdir("1");
     }
 }
@@ -564,6 +503,23 @@ static void use_etree_filename_suffix_toggled(GtkWidget *widget, gpointer user_d
         set_use_etree_filename_suffix("0");
     } else {
         set_use_etree_filename_suffix("1");
+    }
+}
+
+static void radio_buttons_toggled(GtkWidget *widget, gpointer user_data)
+{
+    if( GTK_TOGGLE_BUTTON(radio1)->active == TRUE) {
+        gtk_widget_set_sensitive( prepend_file_number_toggle, TRUE);
+        gtk_widget_set_sensitive( etree_filename_suffix_entry, TRUE);
+        gtk_widget_set_sensitive( etree_filename_suffix_label, TRUE);
+        gtk_widget_set_sensitive( etree_cd_length_entry, FALSE);
+        gtk_widget_set_sensitive( etree_cd_length_label, FALSE);
+    } else {
+        gtk_widget_set_sensitive( prepend_file_number_toggle, FALSE);
+        gtk_widget_set_sensitive( etree_filename_suffix_entry, FALSE);
+        gtk_widget_set_sensitive( etree_filename_suffix_label, FALSE);
+        gtk_widget_set_sensitive( etree_cd_length_entry, TRUE);
+        gtk_widget_set_sensitive( etree_cd_length_label, TRUE);
     }
 }
 
@@ -606,7 +562,7 @@ static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
 static void open_select_outputdir() {
     GtkWidget *dialog;
 
-    dialog = gtk_file_chooser_dialog_new("Select Output Directory",
+    dialog = gtk_file_chooser_dialog_new(_("Select Output Directory"),
         GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
         GTK_RESPONSE_ACCEPT, NULL);
@@ -624,23 +580,22 @@ static void open_select_outputdir() {
     gtk_widget_destroy(dialog);
 }
 
-static void cancel_button_clicked(GtkWidget *widget, gpointer user_data)
-{
-    appconfig_hide(user_data);
-    appconfig_read_file();
-}
-
 static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 {
     set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
     set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
 
-    set_audio_function_pointers();
-    /*
-    printf("audio output driver: %d\n",
-        gtk_combo_box_get_active(GTK_COMBO_BOX(combo_box)));
-        */
+    set_audio_function_pointers_with_index(gtk_combo_box_get_active(
+                GTK_COMBO_BOX(combo_box)));
+
+    if (get_audio_driver_type() == OSS) {
+        set_audio_oss_options_output_device(gtk_entry_get_text(
+            GTK_ENTRY(output_device_entry)));
+    } else if (get_audio_driver_type() == ALSA) {
+        set_audio_alsa_options_output_device(gtk_entry_get_text(
+            GTK_ENTRY(output_device_entry)));
+    }
 
     track_break_rename( FALSE);
     appconfig_hide(GTK_WIDGET(user_data));
@@ -653,12 +608,11 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *table;
     GtkWidget *hbbox;
     GtkWidget *outputdev_label;
-    GtkWidget *hseparator;
-    GtkWidget *audio_configure_button;
-    GtkWidget *ok_button, *cancel_button;
+    GtkWidget *ok_button;
     GtkWidget *label;
 
-    GtkWidget *radio1, *radio2;
+    GtkWidget *notebook;
+
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_realize(window);
@@ -666,126 +620,108 @@ void appconfig_show(GtkWidget *main_window)
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+    gdk_window_set_functions( window->window, GDK_FUNC_MOVE);
+    gtk_window_set_title( GTK_WINDOW(window), _("wavbreaker Preferences"));
 
     /* create the vbox for the first tab */
-    vbox = gtk_vbox_new(FALSE, 0);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-    gtk_container_add(GTK_CONTAINER(window), vbox);
-    gtk_widget_show(vbox);
+    vbox = gtk_vbox_new(FALSE, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+    gtk_container_add( GTK_CONTAINER(window), vbox);
+
+    notebook = gtk_notebook_new();
+    gtk_container_add( GTK_CONTAINER(vbox), notebook);
 
     /* Selectable Output Directory */
-    table = gtk_table_new(2, 3, FALSE);
-    gtk_container_add(GTK_CONTAINER(vbox), table);
-    gtk_widget_show(table);
+    table = gtk_table_new(2, 2, FALSE);
+    gtk_container_set_border_width(GTK_CONTAINER(table), 10);
+    gtk_table_set_row_spacings( GTK_TABLE(table), 5);
+    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("General")));
 
-    use_outputdir_toggle = gtk_check_button_new_with_label("Use Selectable Output Directory");
+    use_outputdir_toggle = gtk_check_button_new_with_label(_("Save output files in folder:"));
     gtk_table_attach(GTK_TABLE(table), use_outputdir_toggle,
         0, 2, 0, 1, GTK_FILL, 0, 5, 0);
     g_signal_connect(GTK_OBJECT(use_outputdir_toggle), "toggled",
         G_CALLBACK(use_outputdir_toggled), NULL);
-    gtk_widget_show(use_outputdir_toggle);
-
-    outputdir_label = gtk_label_new("Wave File Output Directory:");
-    gtk_misc_set_alignment(GTK_MISC(outputdir_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), outputdir_label,
-        0, 2, 1, 2, GTK_FILL, 0, 5, 0);
-    gtk_widget_show(outputdir_label);
 
     outputdir_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(outputdir_entry), outputdir);
     gtk_entry_set_width_chars(GTK_ENTRY(outputdir_entry), 40);
     gtk_table_attach(GTK_TABLE(table), outputdir_entry,
-        0, 1, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-    gtk_widget_show(outputdir_entry);
+        0, 1, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
 
-    browse_button = gtk_button_new_with_label("Browse");
+    browse_button = gtk_button_new_with_label(_("Browse"));
     gtk_table_attach(GTK_TABLE(table), browse_button,
-        1, 2, 2, 3, GTK_FILL, 0, 5, 0);
+        1, 2, 1, 2, GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(browse_button), "clicked",
             (GtkSignalFunc)browse_button_clicked, window);
-    gtk_widget_show(browse_button);
 
     /* Etree Filename Suffix */
 
-    hseparator = gtk_hseparator_new();
-    gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
-    gtk_widget_show(hseparator);
-
     table = gtk_table_new(4, 10, FALSE);
-    gtk_container_add(GTK_CONTAINER(vbox), table);
-    gtk_widget_show(table);
+    gtk_container_set_border_width(GTK_CONTAINER(table), 10);
+    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("File Naming")));
 
-    radio1 = gtk_radio_button_new_with_label(NULL, "Use Standard Numbering Scheme");
+    radio1 = gtk_radio_button_new_with_label(NULL, _("Standard (##)"));
     gtk_table_attach(GTK_TABLE(table), radio1, 0, 3, 0, 1, GTK_FILL, 0, 5, 2);
+    g_signal_connect(GTK_OBJECT(radio1), "toggled",
+        G_CALLBACK(radio_buttons_toggled), NULL);
 
     label = gtk_label_new("   ");
     gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), label,
             0, 1, 2, 3, GTK_FILL, 0, 5, 2);
-    gtk_widget_show(label);
 
-    prepend_file_number_toggle = gtk_check_button_new_with_label("Prepend File Number");
+    prepend_file_number_toggle = gtk_check_button_new_with_label(_("Prepend number before filename"));
     gtk_table_attach(GTK_TABLE(table), prepend_file_number_toggle,
-            1, 3, 1, 2, GTK_FILL, 0, 5, 0);
+            1, 3, 2, 3, GTK_FILL, 0, 5, 0);
     g_signal_connect(GTK_OBJECT(prepend_file_number_toggle), "toggled",
         G_CALLBACK(prepend_file_number_toggled), NULL);
-    gtk_widget_show(prepend_file_number_toggle);
 
-    etree_filename_suffix_label = gtk_label_new("Filename/Number Separator:");
+    etree_filename_suffix_label = gtk_label_new(_("Separator:"));
     gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
-            1, 2, 2, 3, GTK_FILL, 0, 5, 2);
-    gtk_widget_show(etree_filename_suffix_label);
+            1, 2, 1, 2, GTK_FILL, 0, 5, 2);
 
     etree_filename_suffix_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry,
-            2, 3, 2, 3, GTK_EXPAND | GTK_FILL, 0, 5, 2);
-    gtk_widget_show(etree_filename_suffix_entry);
+            2, 3, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 2);
 
     radio2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio1),
-            "Use Etree Style Filename Scheme (d#t##)");
+            _("etree.org (d#t##)"));
     gtk_table_attach(GTK_TABLE(table), radio2, 0, 3, 3, 4, GTK_FILL, 0, 5, 2);
 
-    etree_cd_length_label = gtk_label_new("CD Length:");
+    etree_cd_length_label = gtk_label_new(_("CD Length:"));
     gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
             1, 2, 5, 6, GTK_FILL, 0, 5, 2);
-    gtk_widget_show(etree_cd_length_label);
 
     etree_cd_length_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_cd_length_entry), etree_cd_length);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry,
             2, 3, 5, 6, GTK_EXPAND | GTK_FILL, 0, 5, 2);
-    gtk_widget_show(etree_cd_length_entry);
-
-    hseparator = gtk_hseparator_new();
-    gtk_table_attach(GTK_TABLE(table), hseparator,
-            0, 3, 6, 7, GTK_FILL, 0, 0, 5);
-    gtk_widget_show(hseparator);
 
     /* Audio Output Device */
-    table = gtk_table_new(3, 1, FALSE);
-    gtk_container_add(GTK_CONTAINER(vbox), table);
-    gtk_widget_show(table);
+    table = gtk_table_new(2, 2, FALSE);
+    gtk_table_set_row_spacings( GTK_TABLE(table), 10);
+    gtk_container_set_border_width(GTK_CONTAINER(table), 10);
+    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("Audio Device")));
 
-    outputdev_label = gtk_label_new("Audio Device:");
+    outputdev_label = gtk_label_new(_("Audio Device:"));
     gtk_misc_set_alignment(GTK_MISC(outputdev_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), outputdev_label,
             0, 1, 0, 1, GTK_FILL, 0, 5, 0);
-    gtk_widget_show(outputdev_label);
 
     combo_box = gtk_combo_box_new_text ();
 
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "No Sound");
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), _("Disable audio output"));
 #ifdef HAVE_OSS
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "OSS");
 #endif
 #ifdef HAVE_ALSA
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Alsa");
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "ALSA (recommended)");
 #endif
 #ifdef HAVE_JACK
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack");
@@ -795,51 +731,36 @@ void appconfig_show(GtkWidget *main_window)
             1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(combo_box), "changed",
             (GtkSignalFunc)set_audio_function_pointers, NULL);
-    gtk_widget_show(combo_box);
 
-    audio_configure_button = gtk_button_new_with_label("Configure");
+    output_device_label = gtk_label_new(_("Output device:"));
+    gtk_misc_set_alignment( GTK_MISC(output_device_label), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(table), output_device_label,
+            0, 1, 1, 2, GTK_FILL, 0, 5, 0);
 
-    gtk_table_attach(GTK_TABLE(table), audio_configure_button,
-            2, 3, 0, 1, GTK_FILL, 0, 5, 0);
-    //gtk_container_add(GTK_CONTAINER(vbox), combo_box);
-    //gtk_box_pack_start(GTK_BOX(vbox), combo_box, FALSE, TRUE, 5);
-    g_signal_connect(G_OBJECT(audio_configure_button), "clicked",
-            (GtkSignalFunc)audio_options_window_show, window);
-    gtk_widget_show(audio_configure_button);
+    output_device_entry = gtk_entry_new();
+    gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
+    gtk_table_attach(GTK_TABLE(table), output_device_entry,
+            1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+
 
     /* OK and Cancel Buttons */
-    hseparator = gtk_hseparator_new();
-    gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
-    gtk_widget_show(hseparator);
-
     hbbox = gtk_hbutton_box_new();
     gtk_container_add(GTK_CONTAINER(vbox), hbbox);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing(GTK_BOX(hbbox), 10);
-    gtk_widget_show(hbbox);
 
-    cancel_button = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-    gtk_box_pack_end(GTK_BOX(hbbox), cancel_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(cancel_button), "clicked",
-        (GtkSignalFunc)cancel_button_clicked, window);
-    gtk_widget_show(cancel_button);
-
-    ok_button = gtk_button_new_from_stock(GTK_STOCK_OK);
+    ok_button = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
     gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
     g_signal_connect(G_OBJECT(ok_button), "clicked",
         (GtkSignalFunc)ok_button_clicked, window);
-    gtk_widget_show(ok_button);
 
     g_signal_connect(GTK_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
-    gtk_widget_show(radio1);
-    gtk_widget_show(radio2);
 
     if (get_use_outputdir()) {
         // enable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, TRUE);
         gtk_widget_set_sensitive(browse_button, TRUE);
-        gtk_widget_set_sensitive(outputdir_label, TRUE);
 
         //gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), TRUE);
         // set directly so the toggled event is not emitted
@@ -848,7 +769,6 @@ void appconfig_show(GtkWidget *main_window)
         // disable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, FALSE);
         gtk_widget_set_sensitive(browse_button, FALSE);
-        gtk_widget_set_sensitive(outputdir_label, FALSE);
 
         //gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), FALSE);
         // set directly so the toggled event is not emitted
@@ -871,7 +791,9 @@ void appconfig_show(GtkWidget *main_window)
         GTK_TOGGLE_BUTTON(radio2)->active = FALSE;
     }
 
-    gtk_widget_show(window);
+    gtk_widget_show_all(window);
+    set_audio_function_pointers();
+    radio_buttons_toggled( NULL, NULL);
 }
 
 static int appconfig_read_file() {
@@ -1193,10 +1115,7 @@ int appconfig_write_file() {
     */
 
     xmlIndentTreeOutput = 1;
-    /*
-    xmlThrDefIndentTreeOutput(1);
-    xmlKeepBlanksDefault(0);
-    */
+
     if (! xmlSaveFormatFile(get_config_filename(), doc, 1)) {
         fprintf(stderr, "error writing config file: %s", get_config_filename());
         xmlFreeNodeList(root);
@@ -1217,7 +1136,7 @@ void do_config_file_version_conversions() {
     set_config_file_version(1);
 }
 
-void appconfig_init()
+int appconfig_init( void* data)
 {
     default_config_filename();
 
@@ -1232,6 +1151,8 @@ void appconfig_init()
         default_all_strings();
         do_config_file_version_conversions();
     }
+
+    return 0;
 }
 
 void default_all_strings() {

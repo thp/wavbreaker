@@ -1,3 +1,5 @@
-SUBDIRS = src images
+SUBDIRS = po src images
 
-EXTRA_DIST = CONTRIBUTORS
+EXTRA_DIST = config.rpath m4/ChangeLog  CONTRIBUTORS
+
+ACLOCAL_AMFLAGS = -I m4

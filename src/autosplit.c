@@ -25,6 +25,8 @@
 #include "sample.h"
 #include "wavbreaker.h"
 
+#include "gettext.h"
+
 static GtkWidget *window;
 
 static char *autosplit_time = NULL; 
@@ -132,12 +134,12 @@ void autosplit_show(GtkWidget *main_window)
     gtk_container_add(GTK_CONTAINER(vbox), table);
     gtk_widget_show(table);
 
-    message_label = gtk_label_new("Enter the time for autosplit:");
+    message_label = gtk_label_new(_("Enter the time for autosplit:"));
     gtk_misc_set_alignment(GTK_MISC(message_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), message_label, 0, 1, 0, 1, GTK_FILL, 0, 5, 0);
     gtk_widget_show(message_label);
 
-    message_label = gtk_label_new("Example (5min, 32sec, 12subsec):");
+    message_label = gtk_label_new(_("Example (5min, 32sec, 12subsec):"));
     gtk_misc_set_alignment(GTK_MISC(message_label), 0, 0.5);
     gtk_table_attach(GTK_TABLE(table), message_label, 0, 1, 1, 2, GTK_FILL, 0, 5, 0);
     gtk_widget_show(message_label);

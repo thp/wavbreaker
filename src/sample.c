@@ -89,13 +89,14 @@ gint sample_get_playing()
     return playing;
 }
 
-void sample_init()
+int sample_init( void* data)
 {
     mutex = g_mutex_new();
     if (mutex == NULL) {
         perror("Return from g_mutex_init was NULL");
         exit(1);
     }
+    return 0;
 }
 
 static gpointer play_thread(gpointer thread_data)

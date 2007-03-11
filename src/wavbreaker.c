@@ -16,6 +16,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -32,7 +36,9 @@
 #include "autosplit.h"
 #include "saveas.h"
 #include "popupmessage.h"
-//#include "cellrendererspin.h"
+
+#include <locale.h>
+#include "gettext.h"
 
 #define APPNAME "wavbreaker"
 
@@ -345,7 +351,7 @@ track_break_create_list_gui()
     column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_toggle_new();
     g_signal_connect(G_OBJECT(renderer), "toggled", G_CALLBACK(track_break_write_toggled), store);
-    gtk_tree_view_column_set_title(column, "Write");
+    gtk_tree_view_column_set_title(column, _("Write"));
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_add_attribute(column, renderer, "active", COLUMN_WRITE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
@@ -356,7 +362,7 @@ track_break_create_list_gui()
     column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
     g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
-    gtk_tree_view_column_set_title(column, "File Name                               ");
+    gtk_tree_view_column_set_title(column, _("File Name"));
     gtk_tree_view_column_pack_start(column, renderer, TRUE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_FILENAME);
     gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
@@ -373,7 +379,7 @@ track_break_create_list_gui()
     g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_start_time_edited), store);
     gtk_tree_view_column_set_cell_data_func(column, renderer, cell_data_func_gpa, NULL, NULL);
     */
-    gtk_tree_view_column_set_title(column, "Time");
+    gtk_tree_view_column_set_title(column, _("Time"));
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_TIME);
     //gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
@@ -384,7 +390,7 @@ track_break_create_list_gui()
     /* File Duration Column */
     column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_column_set_title(column, "Duration");
+    gtk_tree_view_column_set_title(column, _("Duration"));
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_DURATION);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
@@ -394,7 +400,7 @@ track_break_create_list_gui()
     /* File Offset Column */
     column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    gtk_tree_view_column_set_title(column, "Offset");
+    gtk_tree_view_column_set_title(column, _("Offset"));
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_OFFSET);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
@@ -431,11 +437,11 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 
     menu = gtk_menu_new();
 
-    delete_item = gtk_menu_item_new_with_label("Remove Selected Track Break");
+    delete_item = gtk_menu_item_new_with_label(_("Remove Selected Track Break"));
     g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
     gtk_widget_show(delete_item);
 
-    jump_item = gtk_menu_item_new_with_label("Jump to Selected Track Break");
+    jump_item = gtk_menu_item_new_with_label(_("Jump to Selected Track Break"));
     g_signal_connect(G_OBJECT(jump_item), "activate", G_CALLBACK(jump_to_track_break), NULL);
     gtk_widget_show(jump_item);
 
@@ -939,7 +945,7 @@ file_write_progress_idle_func(gpointer data) {
         gtk_widget_show(filename_label);
         str[0] = '\0';
         tmp_str[0] = '\0';
-        strcat(str, "Writing: ");
+        strcat(str, _("Writing: "));
 
         str_ptr = basename(write_info.cur_filename);
         if (str_ptr != NULL) {
@@ -947,7 +953,7 @@ file_write_progress_idle_func(gpointer data) {
         } else {
             strcat(str, write_info.cur_filename);
         }
-        sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
+        sprintf(tmp_str, _(" (%d of %d)"), write_info.cur_file,
                 write_info.num_files);
         strcat(str, tmp_str);
         gtk_label_set_text(GTK_LABEL(filename_label), str);
@@ -976,14 +982,14 @@ file_write_progress_idle_func(gpointer data) {
 
         str[0] = '\0';
         tmp_str[0] = '\0';
-        strcat(str, "Writing: ");
+        strcat(str, _("Writing: "));
         str_ptr = basename(write_info.cur_filename);
         if (str_ptr != NULL) {
             strcat(str, str_ptr);
         } else {
             strcat(str, write_info.cur_filename);
         }
-        sprintf(tmp_str, " (%d of %d)", write_info.cur_file,
+        sprintf(tmp_str, _(" (%d of %d)"), write_info.cur_file,
                 write_info.num_files);
         strcat(str, tmp_str);
         gtk_label_set_text(GTK_LABEL(filename_label), str);
@@ -1065,7 +1071,7 @@ file_open_progress_idle_func(gpointer data) {
         gtk_widget_show(filename_label);
 
         tmp_str[0] = '\0';
-        strcat(tmp_str, "Opening: ");
+        strcat(tmp_str, _("Opening: "));
         strcat(tmp_str, basename(sample_filename));
 
         gtk_label_set_text(GTK_LABEL(filename_label), tmp_str);
@@ -1121,7 +1127,7 @@ file_open_progress_idle_func(gpointer data) {
 static void open_file() {
     if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
         char *message = sample_get_error_message();
-        popupmessage_show(main_window, message);
+        popupmessage_show(main_window, _("Error opening file"), message);
         g_free(message);
         return;
     }
@@ -1197,7 +1203,7 @@ void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data) {
 static void open_select_file() {
     GtkWidget *dialog;
 
-    dialog = gtk_file_chooser_dialog_new("Open File", GTK_WINDOW(main_window),
+    dialog = gtk_file_chooser_dialog_new(_("Open File"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
     if (sample_filename != NULL) {
@@ -1752,12 +1758,12 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     if (event->button == 3) {
         menu = gtk_menu_new();
 
-        add_item = gtk_menu_item_new_with_label("Add Track Break");
+        add_item = gtk_menu_item_new_with_label(_("Add Track Break"));
         g_signal_connect(G_OBJECT(add_item), "activate",
             G_CALLBACK(menu_add_track_break), NULL);
         gtk_widget_show(add_item);
 
-        jump_item = gtk_menu_item_new_with_label("Jump to Cursor Marker");
+        jump_item = gtk_menu_item_new_with_label(_("Jump to Cursor Marker"));
         g_signal_connect(G_OBJECT(jump_item), "activate",
             G_CALLBACK(jump_to_cursor_marker), NULL);
         gtk_widget_show(jump_item);
@@ -1883,7 +1889,6 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     char *toc_filename;
     char *ptr = NULL;
     char *data_filename = NULL;
-    char msg[128];
 
     if (sample_filename == NULL) {
        return;
@@ -1911,13 +1916,12 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     data_filename = basename(sample_filename);
        
     write_err = toc_write_file(toc_filename, data_filename, track_break_list);
-    if (write_err) {
-        sprintf(msg, "Export TOC to %s: FAILED!", toc_filename);
+    if( write_err) {
+        popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
     } else {
-        sprintf(msg, "Export TOC to %s: Successful", toc_filename);
+        popupmessage_show( main_window, _("TOC export successful"), _("The track breaks have been exported to a TOC file that can be used to burn a CD from the wave file."));
     }
 
-    popupmessage_show(main_window, msg);
     g_free(toc_filename);
 }
 
@@ -1991,7 +1995,7 @@ void wavbreaker_quit() {
 
 static void check_really_quit()
 {
-    if (appconfig_get_ask_really_quit()) {
+    if( sample_filename != NULL && appconfig_get_ask_really_quit()) {
         reallyquit_show(main_window);
     } else {
         wavbreaker_quit();
@@ -2046,6 +2050,10 @@ int main(int argc, char **argv)
     GtkWidget *button_hbox;
     GtkWidget *label;
 
+    setlocale( LC_ALL, "");
+    textdomain( PACKAGE);
+    bindtextdomain( PACKAGE, LOCALEDIR);
+
     g_thread_init(NULL);
     gdk_threads_init();
     gtk_init(&argc, &argv);
@@ -2094,34 +2102,34 @@ int main(int argc, char **argv)
     /* Button Toolbar */
     toolbar = gtk_toolbar_new();
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
-                             "Open New Wave File", NULL,
+                             _("Open New Wave File"), NULL,
                              G_CALLBACK(menu_open_file), main_window, -1);
     gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
-                             "Save Track Breaks", NULL,
+                             _("Save Track Breaks"), NULL,
                              G_CALLBACK(menu_save), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE_AS,
-                             "Save Track Breaks To Dir", NULL,
+                             _("Save Track Breaks To Dir"), NULL,
                              G_CALLBACK(menu_save_as), main_window, -1);
     gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
-                             "AutoSplit", NULL,
+                             _("AutoSplit"), NULL,
                              G_CALLBACK(menu_autosplit), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CDROM,
-                             "Export to TOC", NULL,
+                             _("Export to TOC"), NULL,
                              G_CALLBACK(menu_export), main_window, -1);
     gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
-                             "Play from cursor", NULL,
+                             _("Play from cursor"), NULL,
                              G_CALLBACK(menu_play), main_window, -1);
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
-                             "Stop playback", NULL,
+                             _("Stop playback"), NULL,
                              G_CALLBACK(menu_stop), main_window, -1);
 
     gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
     gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
-                             "Quit wavbreaker", NULL,
+                             _("Quit wavbreaker"), NULL,
                              G_CALLBACK(menu_quit), main_window, -1);
 
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
@@ -2291,7 +2299,7 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
     gtk_widget_show(icon);
 
-    label = gtk_label_new("Add");
+    label = gtk_label_new(_("Add"));
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
     gtk_widget_show(label);
 
@@ -2310,7 +2318,7 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
     gtk_widget_show(icon);
 
-    label = gtk_label_new("Remove");
+    label = gtk_label_new(_("Remove"));
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
     gtk_widget_show(label);
 
@@ -2329,7 +2337,7 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
     gtk_widget_show(icon);
 
-    label = gtk_label_new("Auto-Rename");
+    label = gtk_label_new(_("Auto-Rename"));
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
     gtk_widget_show(label);
 
@@ -2361,16 +2369,18 @@ int main(int argc, char **argv)
 
     write_info.cur_filename = NULL;
 
-    sample_init();
-    appconfig_init();
-    if (appconfig_get_main_window_width() > 0) {
+    /*if (appconfig_get_main_window_width() > 0) {
         gtk_window_resize(GTK_WINDOW(main_window),
                 appconfig_get_main_window_width(),
                 appconfig_get_main_window_height());
         gtk_paned_set_position(GTK_PANED(vpane1), appconfig_get_vpane1_position());
         gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
-    }
+    }*/
+
     gtk_widget_show(main_window);
+
+    g_idle_add( (GSourceFunc)sample_init, NULL);
+    g_idle_add( (GSourceFunc)appconfig_init, NULL);
 
     handle_arguments( argc, argv);
 

@@ -19,6 +19,6 @@
 #ifndef POPUPMESSAGE_H
 #define POPUPMESSAGE_H
 
-void popupmessage_show(GtkWidget *, const char *);
+void popupmessage_show(GtkWidget *, const char *, const char *);
 
 #endif /* POPUPMESSAGE_H */

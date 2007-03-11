@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-03-11 19:48+0100\n"
+"POT-Creation-Date: 2007-03-11 20:31+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,4 +18,194 @@ msgstr ""
 
 #: src/about.c:30
 msgid "A tool to split a wave file up into multiple waves."
+msgstr ""
+
+#: src/appconfig.c:178
+msgid ""
+"The audio driver in the configuration file is invalid.  The \"No Sound\" "
+"audio driver has been set.\n"
+"\n"
+"Everything will function as normal, but no sound will play.\n"
+"\n"
+"You may change the audio driver in the Edit/Preferences menu."
+msgstr ""
+
+#: src/appconfig.c:387
+msgid "Output Device:"
+msgstr ""
+
+#: src/appconfig.c:611 src/browsedir.c:50
+msgid "Select Output Directory"
+msgstr ""
+
+#: src/appconfig.c:684
+msgid "Use Selectable Output Directory"
+msgstr ""
+
+#: src/appconfig.c:691
+msgid "Wave File Output Directory:"
+msgstr ""
+
+#: src/appconfig.c:704 src/saveas.c:143
+msgid "Browse"
+msgstr ""
+
+#: src/appconfig.c:721
+msgid "Use Standard Numbering Scheme"
+msgstr ""
+
+#: src/appconfig.c:730
+msgid "Prepend File Number"
+msgstr ""
+
+#: src/appconfig.c:737
+msgid "Filename/Number Separator:"
+msgstr ""
+
+#: src/appconfig.c:751
+msgid "Use Etree Style Filename Scheme (d#t##)"
+msgstr ""
+
+#: src/appconfig.c:754
+msgid "CD Length:"
+msgstr ""
+
+#: src/appconfig.c:777
+msgid "Audio Device:"
+msgstr ""
+
+#: src/appconfig.c:785
+msgid "No Sound"
+msgstr ""
+
+#: src/appconfig.c:802
+msgid "Configure"
+msgstr ""
+
+#: src/autosplit.c:137
+msgid "Enter the time for autosplit:"
+msgstr ""
+
+#: src/autosplit.c:142
+msgid "Example (5min, 32sec, 12subsec):"
+msgstr ""
+
+#: src/overwritedialog.c:100
+msgid ""
+" already exists.\n"
+"\n"
+"Do you want to overwrite the existing file?"
+msgstr ""
+
+#: src/overwritedialog.c:105
+msgid "Overwrite all files"
+msgstr ""
+
+#: src/reallyquit.c:28
+msgid "Quit wavbreaker?"
+msgstr ""
+
+#: src/reallyquit.c:29
+msgid "If you quit wavbreaker now, any unsaved chunks will be lost."
+msgstr ""
+
+#: src/saveas.c:130
+msgid "Enter the dirname to save files:"
+msgstr ""
+
+#: src/wavbreaker.c:354
+msgid "Write"
+msgstr ""
+
+#: src/wavbreaker.c:365
+msgid "File Name"
+msgstr ""
+
+#: src/wavbreaker.c:382
+msgid "Time"
+msgstr ""
+
+#: src/wavbreaker.c:393
+msgid "Duration"
+msgstr ""
+
+#: src/wavbreaker.c:403
+msgid "Offset"
+msgstr ""
+
+#: src/wavbreaker.c:440
+msgid "Remove Selected Track Break"
+msgstr ""
+
+#: src/wavbreaker.c:444
+msgid "Jump to Selected Track Break"
+msgstr ""
+
+#: src/wavbreaker.c:948 src/wavbreaker.c:985
+msgid "Writing: "
+msgstr ""
+
+#: src/wavbreaker.c:956 src/wavbreaker.c:992
+#, c-format
+msgid " (%d of %d)"
+msgstr ""
+
+#: src/wavbreaker.c:1074
+msgid "Opening: "
+msgstr ""
+
+#: src/wavbreaker.c:1206
+msgid "Open File"
+msgstr ""
+
+#: src/wavbreaker.c:1761
+msgid "Add Track Break"
+msgstr ""
+
+#: src/wavbreaker.c:1766
+msgid "Jump to Cursor Marker"
+msgstr ""
+
+#: src/wavbreaker.c:2107
+msgid "Open New Wave File"
+msgstr ""
+
+#: src/wavbreaker.c:2111
+msgid "Save Track Breaks"
+msgstr ""
+
+#: src/wavbreaker.c:2114
+msgid "Save Track Breaks To Dir"
+msgstr ""
+
+#: src/wavbreaker.c:2118
+msgid "AutoSplit"
+msgstr ""
+
+#: src/wavbreaker.c:2121
+msgid "Export to TOC"
+msgstr ""
+
+#: src/wavbreaker.c:2126
+msgid "Play from cursor"
+msgstr ""
+
+#: src/wavbreaker.c:2129
+msgid "Stop playback"
+msgstr ""
+
+#: src/wavbreaker.c:2134
+msgid "Quit wavbreaker"
+msgstr ""
+
+#: src/wavbreaker.c:2304
+msgid "Add"
+msgstr ""
+
+#: src/wavbreaker.c:2323
+msgid "Remove"
+msgstr ""
+
+#: src/wavbreaker.c:2342
+msgid "Auto-Rename"
 msgstr ""

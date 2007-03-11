@@ -21,6 +21,8 @@
 
 #include "browsedir.h"
 
+#include "gettext.h"
+
 #include <config.h>
 
 static GtkWidget *parent_window = NULL;
@@ -45,7 +47,7 @@ static void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
 static void open_select_outputdir() {
     GtkWidget *dialog;
 
-    dialog = gtk_file_chooser_dialog_new("Select Output Directory",
+    dialog = gtk_file_chooser_dialog_new(_("Select Output Directory"),
             GTK_WINDOW(parent_window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
             GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
             GTK_RESPONSE_ACCEPT, NULL);

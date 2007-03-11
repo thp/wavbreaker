@@ -1,3 +1,10 @@
+2007-03-11  gettextize  <bug-gnu-gettext@gnu.org>
+
+	* Makefile.am (SUBDIRS): Add po.
+	(ACLOCAL_AMFLAGS): New variable.
+	(EXTRA_DIST): Add config.rpath, m4/ChangeLog.
+	* configure.in (AC_CONFIG_FILES): Add po/Makefile.in.
+
 2007-03-11 17:15  Thomas Perl <thp@perli.net>
 
 	* *, src/*: Clean-up of unneeded files, use automake-1.9 instead of

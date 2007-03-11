@@ -6,8 +6,8 @@
 #
 
 echo -n "Cleaning up..."
-make distclean
-rm -rf aclocal.m4 autom4te.cache config.h.in config.h config.status configure depcomp INSTALL install-sh missing
+make distclean || make clean
+rm -rf aclocal.m4 autom4te.cache config.h.in config.h config.status configure depcomp INSTALL install-sh missing po/stamp-po
 
 find . -name 'Makefile.in' | xargs rm -f
 find . -name 'Makefile' | xargs rm -f
@@ -18,7 +18,7 @@ if [ "$1" == "clean" ]; then
 fi
 
 echo -n "Running automake stuff..."
-aclocal
+aclocal -I m4
 autoheader
 automake --add-missing --copy
 automake
