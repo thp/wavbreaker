@@ -7,7 +7,7 @@
 
 echo -n "Cleaning up..."
 make distclean || make clean
-rm -rf aclocal.m4 autom4te.cache config.h.in config.h config.status configure depcomp INSTALL install-sh missing po/stamp-po
+rm -rf aclocal.m4 autom4te.cache config.h.in config.h config.status configure depcomp INSTALL install-sh missing po/stamp-po po/*.gmo
 
 find . -name 'Makefile.in' | xargs rm -f
 find . -name 'Makefile' | xargs rm -f
