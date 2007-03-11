@@ -20,13 +20,24 @@ fi
 echo -n "Running automake stuff..."
 aclocal
 autoheader
-automake --add-missing
+automake --add-missing --copy
 automake
 autoconf
 echo "done."
 
+if [ "$1" == "release" ]; then
+    VERSION=`grep ^PACKAGE_VERSION= configure | cut -d\' -f2`
+    mkdir -p .release_tmp/wavbreaker-$VERSION
+    cp -rpv * .release_tmp/wavbreaker-$VERSION/
+    tar czvf wavbreaker-$VERSION.tar.gz --exclude=.svn -C .release_tmp wavbreaker-$VERSION
+    rm -rf .release_tmp
+    echo "--> wavbreaker-$VERSION.tar.gz"
+    exit 0
+fi
+
 if [ "$1" == "configure" ]; then
     shift
     ./configure $*
+    exit 0
 fi
 
