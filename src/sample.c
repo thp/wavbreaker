@@ -466,6 +466,7 @@ write_thread(gpointer data)
             } else if ((audio_type == CDDA) && (!strstr(filename, ".dat"))) {
                 strcat(filename, ".dat");
             }
+            write_info->pct_done = 0.0;
             write_info->cur_file++;
             if (write_info->cur_filename != NULL) {
                 free(write_info->cur_filename);

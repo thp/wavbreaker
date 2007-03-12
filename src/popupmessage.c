@@ -29,15 +29,17 @@ void popupmessage_show( GtkWidget *main_window, const char *message, const char 
 {
     GtkMessageDialog *dialog;
     gint result;
+    gint buttons_type = GTK_BUTTONS_OK;
 
     if( main_window == NULL) {
         main_window = wavbreaker_get_main_window();
+        buttons_type = GTK_BUTTONS_CLOSE;
     }
 
     dialog = gtk_message_dialog_new( main_window,
                                      GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
                                      GTK_MESSAGE_INFO,
-                                     GTK_BUTTONS_OK,
+                                     buttons_type,
                                      message);
 
     gtk_message_dialog_format_secondary_text( dialog, description);

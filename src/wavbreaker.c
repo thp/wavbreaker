@@ -20,6 +20,7 @@
 #  include <config.h>
 #endif
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -69,6 +70,7 @@ static gulong cursor_marker;
 static gulong play_marker;
 static int pixmap_offset;
 static char *sample_filename = NULL;
+struct stat sample_stat;
 static gboolean overwrite_track_names = FALSE;
 
 static guint idle_func_num;
@@ -895,11 +897,13 @@ file_write_progress_idle_func(gpointer data) {
     static GtkWidget *window;
     static GtkWidget *pbar;
     static GtkWidget *vbox;
-    static GtkWidget *filename_label;
-    static char tmp_str[1024];
-    static char str[1024];
+    static GtkWidget *label;
+    static GtkWidget *status_label;
+    static char tmp_str[6144];
+    static char str[6144];
     char *str_ptr;
     static int cur_file_displayed = 0;
+    static double fraction;
 
     if (write_info.check_file_exists) {
         gdk_threads_enter();
@@ -935,34 +939,37 @@ file_write_progress_idle_func(gpointer data) {
                 GTK_WIN_POS_CENTER_ON_PARENT);
         gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
 
+
         vbox = gtk_vbox_new(FALSE, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
-        gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-        gtk_widget_show(vbox);
+        gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
-        filename_label = gtk_label_new(NULL);
-        gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
-        gtk_widget_show(filename_label);
-        str[0] = '\0';
         tmp_str[0] = '\0';
-        strcat(str, _("Writing: "));
+        strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
+        strcat( tmp_str, _("Splitting wave file"));
+        strcat( tmp_str, "</span>");
 
-        str_ptr = basename(write_info.cur_filename);
-        if (str_ptr != NULL) {
-            strcat(str, str_ptr);
-        } else {
-            strcat(str, write_info.cur_filename);
-        }
-        sprintf(tmp_str, _(" (%d of %d)"), write_info.cur_file,
-                write_info.num_files);
-        strcat(str, tmp_str);
-        gtk_label_set_text(GTK_LABEL(filename_label), str);
+        label = gtk_label_new( NULL);
+        gtk_label_set_markup( GTK_LABEL(label), tmp_str);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
+
+        label = gtk_label_new( _("The selected track breaks are now written to disk. This can take some time."));
+        gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         pbar = gtk_progress_bar_new();
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
-        gtk_widget_show(pbar);
 
-        gtk_widget_show(window);
+        status_label = gtk_label_new( NULL);
+        gtk_misc_set_alignment( GTK_MISC(status_label), 0.0, 0.5);
+        gtk_label_set_ellipsize( GTK_LABEL(status_label), PANGO_ELLIPSIZE_MIDDLE);
+        gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
+
+        gtk_widget_show_all(window);
+        cur_file_displayed = -1;
+
         gdk_threads_leave();
     }
 
@@ -973,6 +980,13 @@ file_write_progress_idle_func(gpointer data) {
         gtk_widget_destroy(window);
         window = NULL;
 
+        if( write_info.num_files > 1) {
+            sprintf( tmp_str, _("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
+        } else {
+            sprintf( tmp_str, _("The file %s has been split into one part."), basename( sample_filename));
+        }
+        popupmessage_show( NULL, _("Operation successful"), tmp_str);
+
         gdk_threads_leave();
         return FALSE;
     }
@@ -980,27 +994,36 @@ file_write_progress_idle_func(gpointer data) {
     if (cur_file_displayed != write_info.cur_file) {
         gdk_threads_enter();
 
-        str[0] = '\0';
-        tmp_str[0] = '\0';
-        strcat(str, _("Writing: "));
-        str_ptr = basename(write_info.cur_filename);
-        if (str_ptr != NULL) {
-            strcat(str, str_ptr);
-        } else {
-            strcat(str, write_info.cur_filename);
+        str_ptr = basename( write_info.cur_filename);
+
+        if( str_ptr == NULL) {
+            str_ptr = write_info.cur_filename;
         }
-        sprintf(tmp_str, _(" (%d of %d)"), write_info.cur_file,
-                write_info.num_files);
-        strcat(str, tmp_str);
-        gtk_label_set_text(GTK_LABEL(filename_label), str);
+
+        sprintf( str, _("Writing %s"), str_ptr);
+        sprintf( tmp_str, "<i>%s</i>", str);
+        gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
+
+        cur_file_displayed = write_info.cur_file;
 
         gdk_threads_leave();
     }
 
     gdk_threads_enter();
-    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar),
-            write_info.pct_done);
+
+    fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
+
+    if( write_info.num_files > 1) {
+        sprintf( tmp_str, _("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
+    } else {
+        sprintf( tmp_str, _("%d of 1 part written"), write_info.cur_file-1);
+    }
+    gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
+
     gdk_threads_leave();
+
+    usleep( 100000);
 
     return TRUE;
 }
@@ -1044,8 +1067,10 @@ file_open_progress_idle_func(gpointer data) {
     static GtkWidget *window;
     static GtkWidget *pbar;
     static GtkWidget *vbox;
-    static GtkWidget *filename_label;
-    static char tmp_str[1024];
+    static GtkWidget *label;
+    static char tmp_str[6144];
+    static char tmp_str2[6144];
+    static int current, size;
 
     if (window == NULL) {
         gdk_threads_enter();
@@ -1063,24 +1088,36 @@ file_open_progress_idle_func(gpointer data) {
 
         vbox = gtk_vbox_new(FALSE, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
-        gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-        gtk_widget_show(vbox);
-
-        filename_label = gtk_label_new(NULL);
-        gtk_box_pack_start(GTK_BOX(vbox), filename_label, FALSE, TRUE, 5);
-        gtk_widget_show(filename_label);
+        gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
         tmp_str[0] = '\0';
-        strcat(tmp_str, _("Opening: "));
-        strcat(tmp_str, basename(sample_filename));
+        strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
+        strcat( tmp_str, _("Analyzing waveform"));
+        strcat( tmp_str, "</span>");
 
-        gtk_label_set_text(GTK_LABEL(filename_label), tmp_str);
+        label = gtk_label_new( NULL);
+        gtk_label_set_markup( GTK_LABEL(label), tmp_str);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
+
+        label = gtk_label_new( _("The waveform data of the selected file is being analyzed and processed. This can take some time."));
+        gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         pbar = gtk_progress_bar_new();
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
-        gtk_widget_show(pbar);
 
-        gtk_widget_show(window);
+        sprintf( tmp_str, _("Analyzing %s"), basename( sample_filename));
+        sprintf( tmp_str2, "<i>%s</i>", tmp_str);
+
+        label = gtk_label_new( NULL);
+        gtk_label_set_markup( GTK_LABEL(label), tmp_str2);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_label_set_ellipsize( GTK_LABEL(label), PANGO_ELLIPSIZE_END);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
+
+        gtk_widget_show_all(window);
         gdk_threads_leave();
     }
 
@@ -1091,26 +1128,23 @@ file_open_progress_idle_func(gpointer data) {
         gtk_widget_destroy(window);
         window = NULL;
 
-    /* --------------------------------------------------- */
-    /* Reset things because we have a new file             */
-    /* --------------------------------------------------- */
+        /* --------------------------------------------------- */
+        /* Reset things because we have a new file             */
+        /* --------------------------------------------------- */
+ 
+        cursor_marker = 0;
+        track_break_clear_list();
+        track_break_add_entry();
+ 
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_spinner_adj), 0);
+        gtk_widget_queue_draw(scrollbar);
 
-    cursor_marker = 0;
-    track_break_clear_list();
-    track_break_add_entry();
+        /* TODO: Remove FIX !!!!!!!!!!! */
+        configure_event(draw, NULL, NULL);
+        redraw();
 
-    gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
-    gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_spinner_adj), 0);
-    gtk_widget_queue_draw(scrollbar);
-
-//    gdk_window_process_all_updates();
-
-/* TODO: Remove FIX !!!!!!!!!!! */
-    configure_event(draw, NULL, NULL);
-
-    redraw();
-
-/* --------------------------------------------------- */
+        /* --------------------------------------------------- */
 
         gdk_threads_leave();
 
@@ -1118,8 +1152,14 @@ file_open_progress_idle_func(gpointer data) {
 
     } else {
         gdk_threads_enter();
+        size = sample_stat.st_size/(1024*1024);
+        current = size*progress_pct;
+        sprintf( tmp_str, _("%d of %d MB analyzed"), current, size);
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
+        gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
         gdk_threads_leave();
+
+        usleep( 100000);
         return TRUE;
     }
 }
@@ -1229,6 +1269,7 @@ void set_sample_filename(const char *f) {
         sample_close_file();
     }
     sample_filename = g_strdup(f);
+    stat( sample_filename, &sample_stat);
 }
 
 /*
@@ -1919,7 +1960,7 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     if( write_err) {
         popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
     } else {
-        popupmessage_show( main_window, _("TOC export successful"), _("The track breaks have been exported to a TOC file that can be used to burn a CD from the wave file."));
+        popupmessage_show( NULL, _("TOC export successful"), _("The track breaks have been exported to a TOC file that can be used to burn a CD from the wave file."));
     }
 
     g_free(toc_filename);
