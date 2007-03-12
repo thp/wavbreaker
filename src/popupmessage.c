@@ -21,14 +21,12 @@
 
 void popupmessage_hide( GtkDialog *dialog, int response_id, gpointer user_data)
 {
-    GtkWidget *window = GTK_WIDGET(user_data);
-    gtk_widget_destroy(window);
+    gtk_widget_destroy( GTK_WIDGET(user_data));
 }
 
 void popupmessage_show( GtkWidget *main_window, const char *message, const char *description)
 {
-    GtkMessageDialog *dialog;
-    gint result;
+    GtkWidget *dialog;
     gint buttons_type = GTK_BUTTONS_OK;
 
     if( main_window == NULL) {
@@ -36,16 +34,16 @@ void popupmessage_show( GtkWidget *main_window, const char *message, const char 
         buttons_type = GTK_BUTTONS_CLOSE;
     }
 
-    dialog = gtk_message_dialog_new( main_window,
+    dialog = gtk_message_dialog_new( GTK_WINDOW(main_window),
                                      GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
                                      GTK_MESSAGE_INFO,
                                      buttons_type,
                                      message);
 
-    gtk_message_dialog_format_secondary_text( dialog, description);
+    gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(dialog), description);
 
     g_signal_connect( G_OBJECT(dialog), "response", (GtkSignalFunc)popupmessage_hide, dialog);
 
-    gtk_widget_show_all( dialog);
+    gtk_widget_show_all( GTK_WIDGET(dialog));
 }
 

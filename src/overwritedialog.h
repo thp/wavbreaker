@@ -19,6 +19,6 @@
 #ifndef OVERWRITEDIALOG_H
 #define OVERWRITEDIALOG_H
 
-void overwritedialog_show(GtkWidget *, const char *);
+void overwritedialog_show(GtkWidget *, WriteInfo *);
 
 #endif /* OVERWRITEDIALOG_H */

@@ -79,7 +79,6 @@ static GtkWidget *browse_button = NULL;
 /* Etree filename suffix */
 /* Filename suffix (not extension) for wave files. */
 static int use_etree_filename_suffix = 0;
-static GtkWidget *use_etree_filename_suffix_toggle = NULL;
 
 static char *etree_filename_suffix = NULL;
 static GtkWidget *etree_filename_suffix_label = NULL;
@@ -98,9 +97,6 @@ static char *etree_cd_length = NULL;
 static GtkWidget *etree_cd_length_label = NULL;
 static GtkWidget *etree_cd_length_entry = NULL;
 
-/* Device file for audio output. */
-static char *outputdev = NULL;
-
 /* Config Filename */
 static char *config_filename = NULL;
 
@@ -116,7 +112,6 @@ static int ask_really_quit = 1;
 /* function prototypes */
 static int appconfig_read_file();
 static void default_all_strings();
-static void open_select_outputdir_2();
 static void open_select_outputdir();
 
 static char *get_audio_nosound_options_output_device();
@@ -300,6 +295,9 @@ char *audio_options_get_output_device()
     } else if (get_audio_driver_type()  == ALSA) {
         return get_audio_alsa_options_output_device();
     }
+
+    /* Wrong setting - return empty string */
+    return "";
 }
 
 int appconfig_get_main_window_width()
@@ -530,23 +528,6 @@ static void prepend_file_number_toggled(GtkWidget *widget, gpointer user_data)
 static void appconfig_hide(GtkWidget *main_window)
 {
     gtk_widget_destroy(main_window);
-}
-
-static void filesel_ok_clicked(GtkWidget *widget, gpointer user_data)
-{
-    GtkFileSelection *filesel = GTK_FILE_SELECTION(user_data);
-
-    gtk_entry_set_text(GTK_ENTRY(outputdir_entry),
-        gtk_file_selection_get_filename(filesel));
-
-    //printf("file: %s\n", gtk_file_selection_get_filename(filesel));
-
-    gtk_widget_destroy(user_data);
-}
-
-static void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
-{
-    gtk_widget_destroy(user_data);
 }
 
 static void browse_button_clicked(GtkWidget *widget, gpointer user_data)
@@ -1138,8 +1119,6 @@ void appconfig_init()
     } else {
         default_all_strings();
     }
-
-    return 0;
 }
 
 void default_all_strings() {

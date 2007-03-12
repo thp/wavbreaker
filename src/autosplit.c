@@ -108,10 +108,8 @@ void autosplit_show(GtkWidget *main_window)
     GtkWidget *table;
     GtkWidget *hbbox;
     GtkWidget *message_label;
-    GtkWidget *outputdev_label;
     GtkWidget *hseparator;
     GtkWidget *ok_button, *cancel_button;
-    GtkWidget *browse_button;
 
     if (autosplit_time == NULL) {
         autosplit_time = g_strdup("5:00.00");

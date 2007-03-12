@@ -37,7 +37,6 @@ int main(int argc, char *argv[])
     char *merge_filename;
     int num_files;
     char **filenames;
-    struct stat stat_buf;
 
     if (argc > 1 && strcmp(argv[1], "-o") == 0) {
         if (argc < 5) {

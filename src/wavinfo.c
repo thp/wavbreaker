@@ -24,28 +24,25 @@
 
 int main(int argc, char *argv[])
 {
-	WaveHeader wavHdr;
-	ChunkHeader chunkHdr;
-	FormatChunk fmtChunk;
-	char str[128];
-	FILE *fp;
-	int i;
+    int i;
+    
+    if( argc < 2) {
+        printf( "Usage: %s [file1.wav] [...]\n", basename( argv[0]));
+        return 1;
+    }
+    
+    for( i = 1; i < argc; i++) {
+        SampleInfo sampleInfo;
+    
+        printf( "Header info for: %s\n", argv[i]);
+    
+        if( wav_read_header( argv[i], &sampleInfo, 1) != 0) {
+            printf( wav_get_error_message());
+        }
 
-	if (argc < 2) {
-		printf("must pass filename of wave file.\n");
-		return 1;
-	}
-
-	for (i = 1; i < argc; i++) {
-		SampleInfo sampleInfo;
-
-		printf("Header info for: %s\n", argv[i]);
-
-		if (wav_read_header(argv[i], &sampleInfo, 1) != 0) {
-			printf(wav_get_error_message());
-		}
-		printf("\n");
-	}
-
-	return 0;
+        printf("\n");
+    }
+    
+    return 0;
 }
+

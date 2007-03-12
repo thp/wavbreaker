@@ -37,6 +37,9 @@
 #include "autosplit.h"
 #include "saveas.h"
 #include "popupmessage.h"
+#include "overwritedialog.h"
+#include "toc.h"
+#include "reallyquit.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -600,8 +603,6 @@ track_break_delete_entry()
     GtkTreeSelection *selection;
     GtkTreeModel *model;
     GList *list;
-    gchar str_tmp[1024];
-    gchar *str_ptr;
 
     if (sample_filename == NULL) {
         return;
@@ -677,7 +678,6 @@ void
 track_break_add_to_model(gpointer data, gpointer user_data)
 {
     GtkTreeIter iter;
-    GtkTreeIter sibling;
     GtkTreePath *path;
     gchar path_str[8];
     TrackBreak *track_break = (TrackBreak *)data;
@@ -724,7 +724,7 @@ guint track_break_find_offset()
     gchar *filename;
 
     if (sample_filename == NULL) {
-        return;
+        return 0;
     }
 
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
@@ -752,11 +752,8 @@ guint track_break_find_offset()
 
 void track_break_add_entry()
 {
-    gint list_pos = 0;
     TrackBreak *track_break = NULL;
     CursorData cursor_data;
-    gchar str_tmp[1024];
-    gchar *str_ptr;
 
     if (sample_filename == NULL) {
         return;
@@ -889,8 +886,6 @@ void track_break_start_time_edited(GtkCellRendererText *cell,
                                    const gchar *new_text,
                                    gpointer user_data)
 {
-    GtkTreeModel *model = GTK_TREE_MODEL(user_data);
-    GtkTreeIter iter;
     GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
     TrackBreak *track_break;
     guint list_pos;
@@ -939,7 +934,7 @@ file_write_progress_idle_func(gpointer data) {
         }
         write_info.sync_check_file_overwrite_to_write_progress = 1;
         write_info.check_file_exists = 0;
-        overwritedialog_show(wavbreaker_get_main_window(), &write_info);
+        overwritedialog_show( wavbreaker_get_main_window(), &write_info);
 
         gdk_threads_leave();
 
@@ -1831,9 +1826,10 @@ void reset_sample_display(guint midpoint)
 
 static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
 {
-    if (sample_get_playing()) {
-        return;
+    if( sample_get_playing()) {
+        return FALSE;
     }
+
     pixmap_offset = adj->value;
 
     redraw();
@@ -1919,7 +1915,6 @@ printf("end time: %d\n", end_time);
 }
 
 static void offset_to_time(guint time, gchar *str) {
-    char buf[1024];
     int min, sec, subsec;
 
     if (time > 0) {
@@ -2009,17 +2004,16 @@ void wavbreaker_write_files(char *dirname) {
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     int write_err = -1;
-    char *ptr = NULL;
     char *data_filename = NULL;
 
-    GtkFileChooserDialog *dialog;
+    GtkWidget *dialog;
 
     if (sample_filename == NULL) {
        return;
     }
 
-    dialog = (GtkFileChooserDialog*)gtk_file_chooser_dialog_new( _("Select name for TOC file to export"),
-                                          (GtkWindow*)main_window,
+    dialog = gtk_file_chooser_dialog_new( _("Select name for TOC file to export"),
+                                          GTK_WINDOW(main_window),
                                           GTK_FILE_CHOOSER_ACTION_SAVE,
                                           GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, 
                                           GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,

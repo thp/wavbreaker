@@ -20,12 +20,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
-int check_file_exists(char *filename)
+int check_file_exists( const char *filename)
 {
-    int ret;
     struct stat stat_buf;
 
-    if (stat(filename, &stat_buf) == 0) {
+    if( stat( filename, &stat_buf) == 0) {
         return 1;
     }
 

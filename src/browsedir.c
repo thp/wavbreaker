@@ -29,37 +29,24 @@ static GtkWidget *parent_window = NULL;
 static void (*callback_set_func)(const char *) = NULL;
 static char *(*callback_get_func)() = NULL;
 
-static void filesel_ok_clicked(GtkWidget *widget, gpointer user_data)
-{
-    GtkFileSelection *filesel = GTK_FILE_SELECTION(user_data);
-
-    //printf("file: %s\n", gtk_file_selection_get_filename(filesel));
-    callback_set_func((char *)gtk_file_selection_get_filename(filesel));
-
-    gtk_widget_destroy(user_data);
-}
-
-static void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data)
-{
-    gtk_widget_destroy(user_data);
-}
 
 static void open_select_outputdir() {
     GtkWidget *dialog;
+    char *filename;
 
-    dialog = gtk_file_chooser_dialog_new(_("Select Output Directory"),
-            GTK_WINDOW(parent_window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-            GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
-            GTK_RESPONSE_ACCEPT, NULL);
-    gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), callback_get_func());
+    dialog = gtk_file_chooser_dialog_new( _("Select Output Directory"),
+                                          GTK_WINDOW(parent_window),
+                                          GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                          NULL);
 
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *filename;
+    gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), callback_get_func());
 
-        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-//        printf("filename: %s\n", filename);
-        callback_set_func(filename);
-        g_free(filename);
+    if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
+        callback_set_func( filename);
+        g_free( filename);
     }
 
     gtk_widget_destroy(dialog);

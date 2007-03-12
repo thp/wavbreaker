@@ -45,10 +45,10 @@ void saveas_set_dirname(const char *val)
 
 void saveas_show(GtkWidget *parent_window)
 {
-    GtkFileChooserDialog *dialog;
+    GtkWidget *dialog;
 
     dialog = gtk_file_chooser_dialog_new( _("Select folder to save wave files"),
-                                          parent_window,
+                                          GTK_WINDOW(parent_window),
                                           GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
                                           GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, 
                                           GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
@@ -60,7 +60,7 @@ void saveas_show(GtkWidget *parent_window)
 
     gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), saveas_get_dirname());
 
-    if( gtk_dialog_run( dialog) == GTK_RESPONSE_ACCEPT) {
+    if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         saveas_set_dirname( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
         wavbreaker_write_files( saveas_get_dirname());
     }

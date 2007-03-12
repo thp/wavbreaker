@@ -43,7 +43,6 @@ static unsigned long sample_start = 0;
 static int playing = 0;
 static gboolean kill_play_thread = FALSE;
 static int audio_type;
-static int audio_fd;
 
 static char *sample_file = NULL;
 static FILE *read_sample_fp = NULL;
@@ -187,8 +186,6 @@ static gpointer play_thread(gpointer thread_data)
 
 int play_sample(gulong startpos, gulong *play_marker)
 {       
-    int ret;
-
     g_mutex_lock(mutex);
     if (playing) {
         g_mutex_unlock(mutex);
@@ -412,7 +409,6 @@ write_thread(gpointer data)
     int index;
     unsigned long start_pos, end_pos;
     char filename[1024];
-    char str_tmp[1024];
 
     write_info->num_files = 0;
     write_info->cur_file = 0;

@@ -19,6 +19,6 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-int check_file_exists(const char *);
+int check_file_exists( const char *);
 
 #endif /* FILEUTILS_H */

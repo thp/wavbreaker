@@ -34,9 +34,11 @@ void appconfig_show(GtkWidget *);
 int appconfig_write_file();
 void appconfig_init();
 
+int get_use_outputdir();
 char *get_outputdir();
 AudioFunctionPointers *get_audio_function_pointers();
 int get_use_etree_filename_suffix();
+int get_prepend_file_number();
 char *get_etree_filename_suffix();
 char *get_etree_cd_length();
 
@@ -48,6 +50,7 @@ int appconfig_get_vpane1_position();
 void appconfig_set_vpane1_position(int x);
 int appconfig_get_vpane2_position();
 void appconfig_set_vpane2_position(int x);
+int appconfig_get_ask_really_quit();
 
 char *audio_options_get_output_device();
 void set_audio_oss_options_output_device(const char *);

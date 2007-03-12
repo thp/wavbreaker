@@ -32,7 +32,7 @@ void reallyquit_show(GtkWidget *main_window)
         main_window = wavbreaker_get_main_window();
     }
 
-    dialog = gtk_message_dialog_new( (GtkWindow*)main_window,
+    dialog = (GtkMessageDialog*)gtk_message_dialog_new( GTK_WINDOW(main_window),
                                      GTK_DIALOG_DESTROY_WITH_PARENT,
                                      GTK_MESSAGE_QUESTION,
                                      GTK_BUTTONS_YES_NO,
@@ -47,7 +47,7 @@ void reallyquit_show(GtkWidget *main_window)
             wavbreaker_quit();
             break;
         default:
-            gtk_widget_destroy( dialog);
+            gtk_widget_destroy( GTK_WIDGET( dialog));
             break;
     }
 }
