@@ -96,7 +96,6 @@ void sample_init()
         perror("Return from g_mutex_init was NULL");
         exit(1);
     }
-    return 0;
 }
 
 static gpointer play_thread(gpointer thread_data)

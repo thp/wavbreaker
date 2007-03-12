@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=wavbreaker
+Comment=A tool to split wave files into multiple chunks
+Exec=wavbreaker
+Icon=wavbreaker.png
+Terminal=false
+Type=Application
+Categories=Application;AudioVideo;Audio;
