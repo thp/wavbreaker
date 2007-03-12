@@ -176,10 +176,6 @@ void set_nosound_driver() {
     set_audio_get_outputdev(get_audio_nosound_options_output_device);
 }
 
-void warn_nosound_set() {
-    popupmessage_show( NULL, _("Audio output disabled"), _("If you want to enable audio output, please select a audio driver in the preferences dialog."));
-}
-
 void set_audio_function_pointers_with_index(int index)
 {
 
@@ -214,7 +210,6 @@ void set_audio_function_pointers_with_index(int index)
             set_nosound_driver();
             break;
         default:
-            warn_nosound_set();
             set_nosound_driver();
             break;
     }
@@ -1129,14 +1124,7 @@ int appconfig_write_file() {
     return 0;
 }
 
-void do_config_file_version_conversions() {
-    if (get_config_file_version() == 0) {
-        set_audio_function_pointers_with_index(get_audio_driver_type() + 1);
-    }
-    set_config_file_version(1);
-}
-
-int appconfig_init( void* data)
+void appconfig_init()
 {
     default_config_filename();
 
@@ -1144,12 +1132,11 @@ int appconfig_init( void* data)
      * See if we can read and write the config file,
      * then try to read in the values.
      */
-    if (access(get_config_filename(), W_OK | F_OK) || appconfig_read_file()) {
+    if( access( get_config_filename(), W_OK | F_OK) || appconfig_read_file()) {
         default_all_strings();
         appconfig_write_file();
     } else {
         default_all_strings();
-        do_config_file_version_conversions();
     }
 
     return 0;

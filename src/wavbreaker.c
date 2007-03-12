@@ -56,15 +56,40 @@ static GtkWidget *draw;
 static GtkWidget *draw_summary;
 static GtkWidget *statusbar;
 
+static GtkWidget *tb_open;
+static GtkWidget *tb_save;
+static GtkWidget *tb_save_as;
+static GtkWidget *tb_split;
+static GtkWidget *tb_export;
+static GtkWidget *tb_playback;
+static GtkWidget *tb_quit;
+
 static GtkAdjustment *cursor_marker_spinner_adj;
 
 static GraphData graphData;
 
-GdkColor sample_colors[10];
+#define SAMPLE_COLORS 10
+#define SAMPLE_SHADES 3
+
+GdkColor sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
 GdkColor bg_color;
+GdkColor zoom_color;
 GdkColor axis_color;
 GdkColor cursor_marker_color;
 GdkColor play_marker_color;
+
+const int sample_colors_values[SAMPLE_COLORS][3] = {
+    { 15, 184, 225 },
+    { 255, 0, 0 },
+    { 0, 255, 0 },
+    { 255, 255, 0 },
+    { 0, 255, 255 },
+    { 255, 0, 255 },
+    { 255, 128, 128 },
+    { 128, 128, 255 },
+    { 128, 255, 128 },
+    { 128, 50, 200 }
+};
 
 static gulong cursor_marker;
 static gulong play_marker;
@@ -944,9 +969,11 @@ file_write_progress_idle_func(gpointer data) {
         gtk_container_add(GTK_CONTAINER(window), vbox);
         gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
+        gtk_window_set_title( GTK_WINDOW(window), _("Splitting wave file"));
+
         tmp_str[0] = '\0';
         strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
-        strcat( tmp_str, _("Splitting wave file"));
+        strcat( tmp_str, gtk_window_get_title( GTK_WINDOW(window)));
         strcat( tmp_str, "</span>");
 
         label = gtk_label_new( NULL);
@@ -1090,9 +1117,11 @@ file_open_progress_idle_func(gpointer data) {
         gtk_container_add(GTK_CONTAINER(window), vbox);
         gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
+        gtk_window_set_title( GTK_WINDOW(window), _("Analyzing waveform"));
+
         tmp_str[0] = '\0';
         strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
-        strcat( tmp_str, _("Analyzing waveform"));
+        strcat( tmp_str, gtk_window_get_title( GTK_WINDOW( window)));
         strcat( tmp_str, "</span>");
 
         label = gtk_label_new( NULL);
@@ -1171,6 +1200,12 @@ static void open_file() {
         g_free(message);
         return;
     }
+
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_save), TRUE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_save_as), TRUE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_split), TRUE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_export), TRUE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_playback), TRUE);
 
     menu_stop(NULL, NULL);
 
@@ -1251,7 +1286,7 @@ static void open_select_file() {
             dirname(sample_filename));
     }
 
-    if (gtk_dialog_run(GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT) {
+    if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -1295,6 +1330,8 @@ static void draw_sample(GtkWidget *widget)
     int i;
     GdkGC *gc;
 
+    int shade;
+
     int count;
     int index;
     GList *tbl;
@@ -1318,7 +1355,7 @@ static void draw_sample(GtkWidget *widget)
 
     /* clear sample_pixmap before drawing */
 
-    gdk_gc_set_foreground(gc, &bg_color);
+    gdk_gc_set_foreground(gc, &zoom_color);
     gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
     xaxis = height / 2;
@@ -1375,12 +1412,21 @@ static void draw_sample(GtkWidget *widget)
             if (tb_cur != NULL) {
                 if (i + pixmap_offset > tb_cur->offset) {
                     count++;
+                } else {
+                    /* already found */
+                    break;
                 }
             }
         }
 
-        gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
-        gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
+        //gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % SAMPLE_COLORS][0]);
+        //gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
+
+        for( shade=0; shade<SAMPLE_SHADES; shade++) {
+            gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            gdk_draw_line(sample_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
+            gdk_draw_line(sample_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
+        }
     }
 
     /* draw axis */
@@ -1514,6 +1560,9 @@ static void draw_summary_pixmap(GtkWidget *widget)
     int scale;
     int i, k;
     int leftover_count, loop_end, array_offset;
+    int shade;
+    int poly_left;
+    int poly_right;
 
     GdkGC *gc;
     int count;
@@ -1521,11 +1570,23 @@ static void draw_summary_pixmap(GtkWidget *widget)
     GList *tbl;
     TrackBreak *tb_cur;
 
+    GdkPoint poly_points[4];
+
     width = widget->allocation.width;
     height = widget->allocation.height; 
     if (summary_pixmap) {
         gdk_pixmap_unref(summary_pixmap);
     }
+
+    poly_left = 0;
+    poly_right = width;
+
+    poly_points[0].x = 0;
+    poly_points[0].y = height;
+    poly_points[1].x = width;
+    poly_points[1].y = height;
+    poly_points[2].y = height*5/6;
+    poly_points[3].y = height*5/6;
 
     summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
 
@@ -1592,7 +1653,7 @@ printf("x_scale_leftover: %d\n", x_scale_leftover);
 printf("x_scale_mod: %d\n", x_scale_mod);
 */
 
-leftover_count = 0;
+    leftover_count = 0;
 
     for (i = 0; i < width && i < graphData.numSamples; i++) {
         min = max = 0;
@@ -1646,24 +1707,38 @@ leftover_count = 0;
             }
         }
 
-        gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % 10]);
+        /* draw reverse background */
+        if( i * x_scale + leftover_count >= pixmap_offset &&
+            i * x_scale + leftover_count < pixmap_offset+width) {
 
-        if (i * x_scale + leftover_count >= pixmap_offset &&
-                   i * x_scale + leftover_count < pixmap_offset + width) {
-
-            /* draw reverse background */
-            gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
+            gdk_gc_set_foreground( gc, &zoom_color);
             gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
 
-            /* draw reverse foreground */
-            gdk_gc_set_foreground(gc, &bg_color);
-            gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+            if( poly_left < i) {
+                poly_left = i;
+            }
 
-        } else {
-            gdk_gc_set_foreground(gc, &sample_colors[(count -1) % 10]);
-            gdk_draw_line(summary_pixmap, gc, i, y_min, i, y_max);
+            if( poly_right > i) {
+                poly_right = i;
+            }
         }
+
+
+        for( shade=0; shade<SAMPLE_SHADES; shade++) {
+            gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            gdk_draw_line(summary_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
+            gdk_draw_line(summary_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
+        }
+
     }
+
+    poly_points[2].x = poly_right;
+    poly_points[3].x = poly_left;
+
+    gdk_gc_set_foreground( gc, &zoom_color);
+    gdk_draw_polygon( summary_pixmap, gc, TRUE, poly_points, 4);
+
+
 //printf("leftover_count: %d\n", leftover_count);
 
     //cleanup
@@ -1880,11 +1955,14 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     switch (play_sample(cursor_marker, &play_marker)) {
         case 0:
             idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
+            gtk_tool_button_set_stock_id( GTK_TOOL_BUTTON(tb_playback), GTK_STOCK_MEDIA_STOP);
             break;
         case 1:
             printf("error in play_sample\n");
             break;
         case 2:
+            menu_stop( NULL, NULL);
+            gtk_tool_button_set_stock_id( GTK_TOOL_BUTTON(tb_playback), GTK_STOCK_MEDIA_PLAY);
 //            printf("already playing\n");
 //            menu_stop(NULL, NULL);
 //            play_sample(cursor_marker, &play_marker);
@@ -1902,19 +1980,23 @@ static void menu_stop(GtkWidget *widget, gpointer user_data)
 
 static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-    if (sample_filename == NULL) {
+    if( sample_filename == NULL) {
         return;
     }
 
-    if (get_use_outputdir()) {
-        wavbreaker_write_files(get_outputdir());
+    if( get_use_outputdir()) {
+        wavbreaker_write_files( get_outputdir());
     } else {
-        wavbreaker_write_files(".");
+        wavbreaker_write_files( ".");
     }
 }
 
 static void menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
+    if( sample_filename == NULL) {
+        return;
+    }
+
     saveas_show(main_window);
 }
 
@@ -1927,43 +2009,34 @@ void wavbreaker_write_files(char *dirname) {
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     int write_err = -1;
-    char *toc_filename;
     char *ptr = NULL;
     char *data_filename = NULL;
+
+    GtkFileChooserDialog *dialog;
 
     if (sample_filename == NULL) {
        return;
     }
 
-    toc_filename = g_malloc(strlen(sample_filename) + 5);
+    dialog = (GtkFileChooserDialog*)gtk_file_chooser_dialog_new( _("Select name for TOC file to export"),
+                                          (GtkWindow*)main_window,
+                                          GTK_FILE_CHOOSER_ACTION_SAVE,
+                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, 
+                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                          NULL);
 
-    strcpy(toc_filename, sample_filename);
-    ptr = strstr(toc_filename, ".wav");
-    if (ptr == NULL) {
-        int n = strlen(toc_filename);
-        toc_filename[n] = '.';
-        toc_filename[n+1] = 't';
-        toc_filename[n+2] = 'o';
-        toc_filename[n+3] = 'c';
-        toc_filename[n+4] = 0;
-    } else {
-        ptr++;
-        ptr[0] = 't';
-        ptr[1] = 'o';
-        ptr[2] = 'c';
-        ptr[3] = 0;
+    if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        data_filename = basename(sample_filename);
+        write_err = toc_write_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER( dialog)), data_filename, track_break_list);
+
+        if( write_err) {
+            popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
+        } else {
+            popupmessage_show( NULL, _("TOC export successful"), _("The track breaks have been exported to a TOC file that can be used to burn a CD from the wave file."));
+        }
     }
 
-    data_filename = basename(sample_filename);
-       
-    write_err = toc_write_file(toc_filename, data_filename, track_break_list);
-    if( write_err) {
-        popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
-    } else {
-        popupmessage_show( NULL, _("TOC export successful"), _("The track breaks have been exported to a TOC file that can be used to burn a CD from the wave file."));
-    }
-
-    g_free(toc_filename);
+    gtk_widget_destroy( GTK_WIDGET(dialog));
 }
 
 void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
@@ -2005,7 +2078,9 @@ menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget)
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-    autosplit_show(main_window);
+    if( sample_filename != NULL) {
+        autosplit_show(main_window);
+    }
 }
 
 static void
@@ -2091,6 +2166,10 @@ int main(int argc, char **argv)
     GtkWidget *button_hbox;
     GtkWidget *label;
 
+    int i;
+    int x;
+    unsigned int factor_color, factor_white;
+
     setlocale( LC_ALL, "");
     textdomain( PACKAGE);
     bindtextdomain( PACKAGE, LOCALEDIR);
@@ -2115,7 +2194,6 @@ int main(int argc, char **argv)
 
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_container_add(GTK_CONTAINER(main_window), vbox);
-    gtk_widget_show(vbox);
 
     /* Menu Items */
     accel_group = gtk_accel_group_new();
@@ -2138,49 +2216,71 @@ int main(int argc, char **argv)
     menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
 
     gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
-    gtk_widget_show(menu_widget);
 
     /* Button Toolbar */
     toolbar = gtk_toolbar_new();
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_OPEN,
-                             _("Open New Wave File"), NULL,
-                             G_CALLBACK(menu_open_file), main_window, -1);
-    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE,
-                             _("Save Track Breaks"), NULL,
-                             G_CALLBACK(menu_save), main_window, -1);
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_SAVE_AS,
-                             _("Save Track Breaks To Dir"), NULL,
-                             G_CALLBACK(menu_save_as), main_window, -1);
-    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CUT,
-                             _("AutoSplit"), NULL,
-                             G_CALLBACK(menu_autosplit), main_window, -1);
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_CDROM,
-                             _("Export to TOC"), NULL,
-                             G_CALLBACK(menu_export), main_window, -1);
-    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
 
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_PLAY,
-                             _("Play from cursor"), NULL,
-                             G_CALLBACK(menu_play), main_window, -1);
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_MEDIA_STOP,
-                             _("Stop playback"), NULL,
-                             G_CALLBACK(menu_stop), main_window, -1);
+/*static GtkWidget *tb_open;
+static GtkWidget *tb_playback;
+static GtkWidget *tb_quit;*/
 
-    gtk_toolbar_append_space(GTK_TOOLBAR(toolbar));
-    gtk_toolbar_insert_stock(GTK_TOOLBAR(toolbar), GTK_STOCK_QUIT,
-                             _("Quit wavbreaker"), NULL,
-                             G_CALLBACK(menu_quit), main_window, -1);
+    tb_open = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_OPEN);
+    g_signal_connect( tb_open, "clicked", G_CALLBACK(menu_open_file), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_open), -1);
+
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
+    
+    tb_save = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_SAVE);
+    g_signal_connect( tb_save, "clicked", G_CALLBACK(menu_save), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_save), -1);
+    
+    tb_save_as = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_SAVE_AS);
+    gtk_tool_button_set_label( GTK_TOOL_BUTTON(tb_save_as), _("Save to..."));
+    g_signal_connect( tb_save_as, "clicked", G_CALLBACK(menu_save_as), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_save_as), -1);
+
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
+    
+    tb_split = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_CUT);
+    gtk_tool_button_set_label( GTK_TOOL_BUTTON(tb_split), _("Auto-Split"));
+    g_signal_connect( tb_split, "clicked", G_CALLBACK(menu_autosplit), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_split), -1);
+
+    tb_export = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_CDROM);
+    gtk_tool_button_set_label( GTK_TOOL_BUTTON(tb_export), _("Export to TOC"));
+    g_signal_connect( tb_export, "clicked", G_CALLBACK(menu_export), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_export), -1);
+
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
+    
+    tb_playback = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_MEDIA_PLAY);
+    g_signal_connect( tb_playback, "clicked", G_CALLBACK(menu_play), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_playback), -1);
+
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
+    
+    tb_quit = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_QUIT);
+    g_signal_connect( tb_quit, "clicked", G_CALLBACK(menu_quit), main_window);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_quit), -1);
+
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_save), FALSE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_save_as), FALSE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_split), FALSE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_export), FALSE);
+    gtk_widget_set_sensitive( GTK_WIDGET(tb_playback), FALSE);
 
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
-    gtk_widget_show(toolbar);
 
     /* Set default colors up */
     bg_color.red   = 255*(65535/255);
     bg_color.green = 255*(65535/255);
     bg_color.blue  = 255*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &bg_color);
+
+    zoom_color.red   = 240*(65535/255);
+    zoom_color.green = 240*(65535/255);
+    zoom_color.blue  = 240*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &zoom_color);
 
     axis_color.red   = 0*(65535/255);
     axis_color.green = 0*(65535/255);
@@ -2197,70 +2297,28 @@ int main(int argc, char **argv)
     play_marker_color.blue  =   0*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &play_marker_color);
 
-    sample_colors[0].red   =  15*(65535/255);
-    sample_colors[0].green = 184*(65535/255);
-    sample_colors[0].blue  = 225*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[0]);
-
-    sample_colors[1].red   = 255*(65535/255);
-    sample_colors[1].green = 0*(65535/255);
-    sample_colors[1].blue  = 0*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[1]);
-
-    sample_colors[2].red   = 0*(65535/255);
-    sample_colors[2].green = 255*(65535/255);
-    sample_colors[2].blue  = 0*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[2]);
-
-    sample_colors[3].red   = 255*(65535/255);
-    sample_colors[3].green = 255*(65535/255);
-    sample_colors[3].blue  = 0*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[3]);
-
-    sample_colors[4].red   = 0*(65535/255);
-    sample_colors[4].green = 255*(65535/255);
-    sample_colors[4].blue  = 255*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[4]);
-
-    sample_colors[5].red   = 255*(65535/255);
-    sample_colors[5].green = 0*(65535/255);
-    sample_colors[5].blue  = 255*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[5]);
-
-    sample_colors[6].red   = 255*(65535/255);
-    sample_colors[6].green = 128*(65535/255);
-    sample_colors[6].blue  = 128*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[6]);
-
-    sample_colors[7].red   = 128*(65535/255);
-    sample_colors[7].green = 128*(65535/255);
-    sample_colors[7].blue  = 255*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[7]);
-
-    sample_colors[8].red   = 128*(65535/255);
-    sample_colors[8].green = 255*(65535/255);
-    sample_colors[8].blue  = 128*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[8]);
-
-    sample_colors[9].red   = 128*(65535/255);
-    sample_colors[9].green = 50*(65535/255);
-    sample_colors[9].blue  = 200*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &sample_colors[9]);
+    for( i=0; i<SAMPLE_COLORS; i++) {
+        for( x=0; x<SAMPLE_SHADES; x++) {
+            factor_white = 0.4*(65535*x/(256*SAMPLE_SHADES));
+            factor_color = 65535/256-factor_white;
+            sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+255*factor_white;
+            sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+255*factor_white;
+            sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+255*factor_white;
+            gdk_color_alloc( gtk_widget_get_colormap(main_window), &sample_colors[i][x]);
+        }
+    }
 
     /* paned view */
     vpane1 = gtk_vpaned_new();
     gtk_box_pack_start(GTK_BOX(vbox), vpane1, TRUE, TRUE, 0);
-    gtk_widget_show(vpane1);
 
     /* vbox for the vpane */
     vpane_vbox = gtk_vbox_new(FALSE, 0);
     gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
-    gtk_widget_show(vpane_vbox);
 
     /* paned view */
     vpane2 = gtk_vpaned_new();
     gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
-    gtk_widget_show(vpane2);
 
     /* The summary_pixmap drawing area */
     draw_summary = gtk_drawing_area_new();
@@ -2278,11 +2336,9 @@ int main(int argc, char **argv)
 
     frame = gtk_frame_new(NULL);
     gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
-    gtk_widget_show(frame);
 
     gtk_container_add(GTK_CONTAINER(frame), draw_summary);
     gtk_paned_add1(GTK_PANED(vpane2), frame);
-    gtk_widget_show(draw_summary);
 
     /* The sample_pixmap drawing area */
     draw = gtk_drawing_area_new();
@@ -2300,87 +2356,10 @@ int main(int argc, char **argv)
 
     frame = gtk_frame_new(NULL);
     gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
-    gtk_widget_show(frame);
 
     gtk_container_add(GTK_CONTAINER(frame), draw);
     gtk_paned_add2(GTK_PANED(vpane2), frame);
 //    gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
-    gtk_widget_show(draw);
-
-/* Add cursor marker spinner and track break add and delete buttons */
-    hbox = gtk_hbox_new(FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vpane_vbox), hbox, FALSE, FALSE, 0);
-    gtk_widget_show(hbox);
-
-    cursor_marker_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 74.0);
-    cursor_marker_spinner = gtk_spin_button_new(cursor_marker_spinner_adj, 1.0, 0);
-    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_spinner, FALSE, FALSE, 0);
-    g_signal_connect(G_OBJECT(cursor_marker_spinner_adj), "value-changed",
-             G_CALLBACK(cursor_marker_spinner_changed), NULL);
-    gtk_widget_show(cursor_marker_spinner);
-
-    hbbox = gtk_hbutton_box_new();
-    gtk_box_pack_start(GTK_BOX(hbox), hbbox, FALSE, FALSE, 0);
-    gtk_box_set_spacing(GTK_BOX(hbbox), 5);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_START);
-    gtk_widget_show(hbbox);
-
-    /* add track break button */
-    button = gtk_button_new();
-    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 0);
-    g_signal_connect(G_OBJECT(button), "clicked",
-             G_CALLBACK(menu_add_track_break), NULL);
-    gtk_widget_show(button);
-
-    button_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(button), button_hbox);
-    gtk_widget_show(button_hbox);
-
-    icon = gtk_image_new_from_stock( GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
-    gtk_widget_show(icon);
-
-    label = gtk_label_new(_("Add"));
-    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
-    gtk_widget_show(label);
-
-    /* delete track break button */
-    button = gtk_button_new();
-    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
-    g_signal_connect(G_OBJECT(button), "clicked",
-             G_CALLBACK(menu_delete_track_break), NULL);
-    gtk_widget_show(button);
-
-    button_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(button), button_hbox);
-    gtk_widget_show(button_hbox);
-
-    icon = gtk_image_new_from_stock( GTK_STOCK_REMOVE, GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
-    gtk_widget_show(icon);
-
-    label = gtk_label_new(_("Remove"));
-    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
-    gtk_widget_show(label);
-
-    /* rename track breaks button */
-    button = gtk_button_new();
-    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
-    g_signal_connect(G_OBJECT(button), "clicked",
-             G_CALLBACK(menu_rename), NULL);
-    gtk_widget_show(button);
-
-    button_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(button), button_hbox);
-    gtk_widget_show(button_hbox);
-
-    icon = gtk_image_new_from_stock( GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
-    gtk_widget_show(icon);
-
-    label = gtk_label_new(_("Auto-Rename"));
-    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
-    gtk_widget_show(label);
 
 /* Add scrollbar */
     adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
@@ -2389,43 +2368,107 @@ int main(int argc, char **argv)
 
     scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
     gtk_box_pack_start(GTK_BOX(vpane_vbox), scrollbar, FALSE, TRUE, 0);
-    gtk_widget_show(scrollbar);
+
 
 /* vbox for the list */
-    list_vbox = gtk_vbox_new(FALSE, 0);
+    list_vbox = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(list_vbox), 5);
     gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, FALSE, TRUE);
-    gtk_widget_show(list_vbox);
+
+/* Add cursor marker spinner and track break add and delete buttons */
+    hbox = gtk_hbox_new(FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(list_vbox), hbox, FALSE, FALSE, 0);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new( _("Cursor position:")), FALSE, FALSE, 0);
+
+    cursor_marker_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 74.0);
+    cursor_marker_spinner = gtk_spin_button_new(cursor_marker_spinner_adj, 1.0, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_spinner_changed), NULL);
+
+    hbbox = gtk_hbutton_box_new();
+    gtk_box_pack_start(GTK_BOX(hbox), hbbox, FALSE, FALSE, 0);
+    gtk_box_set_spacing(GTK_BOX(hbbox), 5);
+    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_START);
+    gtk_box_set_homogeneous(GTK_BOX(hbbox), FALSE);
+
+    /* add track break button */
+    button = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_add_track_break), NULL);
+
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(button), button_hbox);
+
+    icon = gtk_image_new_from_stock( GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
+
+    label = gtk_label_new(_("Add"));
+    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+
+    /* delete track break button */
+    button = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_delete_track_break), NULL);
+
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(button), button_hbox);
+
+    icon = gtk_image_new_from_stock( GTK_STOCK_REMOVE, GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
+
+    label = gtk_label_new(_("Remove"));
+    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+
+    /* rename track breaks button */
+    button = gtk_button_new();
+    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_rename), NULL);
+
+    button_hbox = gtk_hbox_new(FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(button), button_hbox);
+
+    icon = gtk_image_new_from_stock( GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
+
+    label = gtk_label_new(_("Auto-Rename"));
+    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
 
 /* Track Break List */
     tbl_widget = track_break_create_list_gui();
     gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
-    gtk_widget_show(tbl_widget);
 
 /* Status Bar */
     statusbar = gtk_statusbar_new();
     gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, TRUE, 0);
-    gtk_widget_show(statusbar);
 
 /* Finish up */
 
     write_info.cur_filename = NULL;
 
-    /*if (appconfig_get_main_window_width() > 0) {
+    appconfig_init();
+    sample_init();
+
+    if( appconfig_get_main_window_width() > 0) {
         gtk_window_resize(GTK_WINDOW(main_window),
                 appconfig_get_main_window_width(),
                 appconfig_get_main_window_height());
         gtk_paned_set_position(GTK_PANED(vpane1), appconfig_get_vpane1_position());
         gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
-    }*/
+    }
 
-    gtk_widget_show(main_window);
-
-    g_idle_add( (GSourceFunc)sample_init, NULL);
-    g_idle_add( (GSourceFunc)appconfig_init, NULL);
+    gtk_widget_show_all(main_window);
 
     handle_arguments( argc, argv);
 
-    if (!g_thread_supported ()) g_thread_init (NULL);
+    if( !g_thread_supported()) {
+        g_thread_init( NULL);
+    }
+
     gdk_threads_enter();
     gtk_main();
     gdk_threads_leave();

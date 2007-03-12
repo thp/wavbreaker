@@ -89,7 +89,7 @@ gint sample_get_playing()
     return playing;
 }
 
-int sample_init( void* data)
+void sample_init()
 {
     mutex = g_mutex_new();
     if (mutex == NULL) {

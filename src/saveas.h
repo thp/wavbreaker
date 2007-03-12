@@ -20,8 +20,5 @@
 #define SAVEAS_H
 
 void saveas_show(GtkWidget *);
-char *saveas_get_dirname();
-void saveas_set_dirname(const char *);
-void saveas_set_dirname_entry(const char *);
 
 #endif /* SAVEAS_H */

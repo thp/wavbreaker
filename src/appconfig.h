@@ -32,7 +32,7 @@ struct AudioFunctionPointers_ {
 
 void appconfig_show(GtkWidget *);
 int appconfig_write_file();
-int appconfig_init( void*);
+void appconfig_init();
 
 char *get_outputdir();
 AudioFunctionPointers *get_audio_function_pointers();
