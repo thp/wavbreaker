@@ -2173,8 +2173,7 @@ int main(int argc, char **argv)
     gtk_init(&argc, &argv);
 
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-    gtk_window_set_default_icon_from_file( WAVBREAKER_ICON, NULL);
+    gtk_window_set_default_icon_name( PACKAGE);
 
     set_title( NULL);
 

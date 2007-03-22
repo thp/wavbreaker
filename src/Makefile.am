@@ -1,5 +1,5 @@
-INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) -DICONDIR="\"$(datadir)/pixmaps/\""
-CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
+INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir)
+AM_CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DICONDIR="\"$(datadir)/pixmaps/\""
 
 localedir = $(datadir)/locale
 DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@
