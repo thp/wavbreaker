@@ -53,5 +53,6 @@ void about_show(GtkWidget *main_window)
         gtk_about_dialog_set_logo( about, icon);
 
         gtk_dialog_run( (GtkDialog*)about);
+        gtk_widget_destroy( about);
 }
 

@@ -48,6 +48,7 @@ char * sample_get_audio_dev();
 
 char * sample_get_sample_file();
 
+int sample_is_playing();
 int play_sample(gulong, gulong *);
 void stop_sample();
 int sample_open_file(const char *, GraphData *, double *);

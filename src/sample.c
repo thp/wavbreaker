@@ -184,6 +184,11 @@ static gpointer play_thread(gpointer thread_data)
     return NULL;
 }
 
+int sample_is_playing()
+{
+    return playing;
+}
+
 int play_sample(gulong startpos, gulong *play_marker)
 {       
     g_mutex_lock(mutex);

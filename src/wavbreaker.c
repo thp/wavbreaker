@@ -1946,6 +1946,12 @@ static void update_status() {
 
 static void menu_play(GtkWidget *widget, gpointer user_data)
 {
+    if( sample_is_playing()) {
+        menu_stop( NULL, NULL);
+        gtk_tool_button_set_stock_id( GTK_TOOL_BUTTON(tb_playback), GTK_STOCK_MEDIA_PLAY);
+        return;
+    }
+
     play_marker = cursor_marker;
     switch (play_sample(cursor_marker, &play_marker)) {
         case 0:
