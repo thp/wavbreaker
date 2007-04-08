@@ -59,13 +59,30 @@ static GtkWidget *draw;
 static GtkWidget *draw_summary;
 static GtkWidget *statusbar;
 
-static GtkWidget *tb_open;
-static GtkWidget *tb_save;
-static GtkWidget *tb_save_as;
-static GtkWidget *tb_split;
-static GtkWidget *tb_export;
-static GtkWidget *tb_playback;
-static GtkWidget *tb_quit;
+/* Actions for wavbreaker */
+static GtkAction *action_open;
+static GtkAction *action_save;
+static GtkAction *action_save_to;
+static GtkAction *action_preferences;
+static GtkAction *action_quit;
+
+static GtkToggleAction *action_view_toolbar;
+
+static GtkAction *action_add_break;
+static GtkAction *action_remove_break;
+static GtkAction *action_jump_break;
+static GtkAction *action_rename;
+static GtkAction *action_split;
+static GtkAction *action_export;
+static GtkAction *action_jump_cursor;
+static GtkAction *action_playback;
+
+static GtkAction *action_about;
+
+static GtkActionGroup *action_group;
+static GtkAccelGroup *accel_group;
+
+static GtkWidget *toolbar;
 
 static GtkAdjustment *cursor_marker_spinner_adj;
 
@@ -211,6 +228,9 @@ static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
+menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
 menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
@@ -245,29 +265,6 @@ offset_to_duration(guint, guint, gchar *);
 
 static void
 update_status();
-
-static GtkItemFactoryEntry menu_items[] = {
-  { "/_File",      NULL,         0,              0, "<Branch>"},
-  { "/File/_Open...", "<control>O", menu_open_file, 0, "<StockItem>", GTK_STOCK_OPEN},
-  { "/File/sep1",  NULL,         NULL,           0, "<Separator>"},
-  { "/File/_Save", "<control>S", menu_save,      0, "<StockItem>", GTK_STOCK_SAVE},
-  { "/File/Save _as...", "<shift><control>S", menu_save_as,      0, "<StockItem>", GTK_STOCK_SAVE_AS},
-  { "/File/sep2",  NULL,         NULL,           0, "<Separator>"},
-  { "/File/_Quit", "<control>Q", menu_quit,      0, "<StockItem>", GTK_STOCK_QUIT},
-
-  { "/_Edit",             NULL, 0,           0, "<Branch>" },
-  { "/Edit/_Add break", "<control>B", menu_add_track_break, 0, "<StockItem>", GTK_STOCK_ADD },
-  { "/Edit/_Remove break", "<control>X", menu_delete_track_break, 0, "<StockItem>", GTK_STOCK_REMOVE },
-  { "/Edit/_Rename all breaks", "<control>R", menu_rename, 0, "<StockItem>", GTK_STOCK_EDIT },
-  { "/Edit/sep3",  NULL,         NULL,           0, "<Separator>"},
-  { "/Edit/_AutoSplit", "<control>A", menu_autosplit, 0, "<StockItem>", GTK_STOCK_CUT },
-  { "/Edit/_Export TOC", "<control>E", menu_export, 0, "<StockItem>", GTK_STOCK_CDROM },
-  { "/Edit/sep4",  NULL,         NULL,           0, "<Separator>"},
-  { "/Edit/_Preferences", "<control>P", menu_config, 0, "<StockItem>", GTK_STOCK_PREFERENCES },
-
-  { "/_Help",       NULL, 0,          0, "<Branch>" },
-  { "/Help/_About", NULL, menu_about, 0, "<StockItem>", GTK_STOCK_ABOUT },
-};
 
 /*
 static char *status_message = NULL;
@@ -458,7 +455,6 @@ static gboolean
 track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
     GtkWidget *menu;
-    GtkWidget *item;
 
     if (event->button != 3) {
         return FALSE;
@@ -466,19 +462,8 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 
     menu = gtk_menu_new();
 
-    item = gtk_image_menu_item_new_with_label(_("Remove selected track break"));
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
-        gtk_image_new_from_stock(GTK_STOCK_REMOVE, GTK_ICON_SIZE_MENU));
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-    g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
-    gtk_widget_show(item);
-
-    item = gtk_image_menu_item_new_with_label(_("Jump to selected track break"));
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
-        gtk_image_new_from_stock(GTK_STOCK_JUMP_TO, GTK_ICON_SIZE_MENU));
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-    g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(jump_to_track_break), NULL);
-    gtk_widget_show(item);
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_remove_break));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_jump_break));
 
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event->button, event->time);
 
@@ -1197,11 +1182,16 @@ static void open_file() {
         return;
     }
 
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_save), TRUE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_save_as), TRUE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_split), TRUE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_export), TRUE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_playback), TRUE);
+    gtk_action_set_sensitive( action_save, TRUE);
+    gtk_action_set_sensitive( action_save_to, TRUE);
+    gtk_action_set_sensitive( action_add_break, TRUE);
+    gtk_action_set_sensitive( action_remove_break, TRUE);
+    gtk_action_set_sensitive( action_jump_break, TRUE);
+    gtk_action_set_sensitive( action_jump_cursor, TRUE);
+    gtk_action_set_sensitive( action_rename, TRUE);
+    gtk_action_set_sensitive( action_split, TRUE);
+    gtk_action_set_sensitive( action_export, TRUE);
+    gtk_action_set_sensitive( action_playback, TRUE);
 
     menu_stop(NULL, NULL);
 
@@ -1872,7 +1862,6 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
     GtkWidget *menu;
-    GtkWidget *item;
 
     if (event->x + pixmap_offset > graphData.numSamples) {
         return TRUE;
@@ -1884,19 +1873,8 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     if (event->button == 3) {
         menu = gtk_menu_new();
 
-        item = gtk_image_menu_item_new_with_label(_("Add track break"));
-        gtk_image_menu_item_set_image( GTK_IMAGE_MENU_ITEM(item),
-            gtk_image_new_from_stock( GTK_STOCK_ADD, GTK_ICON_SIZE_MENU));
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-        g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(menu_add_track_break), NULL);
-        gtk_widget_show(item);
-
-        item = gtk_image_menu_item_new_with_label(_("Jump to cursor marker"));
-        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
-            gtk_image_new_from_stock( GTK_STOCK_JUMP_TO, GTK_ICON_SIZE_MENU));
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-        g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(jump_to_cursor_marker), NULL);
-        gtk_widget_show(item);
+        gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_add_break));
+        gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_jump_cursor));
 
         gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event->button, event->time);
 
@@ -1962,7 +1940,8 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
 {
     if( sample_is_playing()) {
         menu_stop( NULL, NULL);
-        gtk_tool_button_set_stock_id( GTK_TOOL_BUTTON(tb_playback), GTK_STOCK_MEDIA_PLAY);
+        g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
+        g_object_set( action_playback, "label", _("Play"), NULL);
         return;
     }
 
@@ -1970,14 +1949,16 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     switch (play_sample(cursor_marker, &play_marker)) {
         case 0:
             idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
-            gtk_tool_button_set_stock_id( GTK_TOOL_BUTTON(tb_playback), GTK_STOCK_MEDIA_STOP);
+            g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_STOP, NULL);
+            g_object_set( action_playback, "label", _("Stop"), NULL);
             break;
         case 1:
             printf("error in play_sample\n");
             break;
         case 2:
             menu_stop( NULL, NULL);
-            gtk_tool_button_set_stock_id( GTK_TOOL_BUTTON(tb_playback), GTK_STOCK_MEDIA_PLAY);
+            g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
+            g_object_set( action_playback, "label", _("Play"), NULL);
 //            printf("already playing\n");
 //            menu_stop(NULL, NULL);
 //            play_sample(cursor_marker, &play_marker);
@@ -2078,6 +2059,18 @@ menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 }
 
 static void
+menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    if( gtk_toggle_action_get_active( GTK_TOGGLE_ACTION(action_view_toolbar))) {
+        gtk_widget_show_all( toolbar);
+        appconfig_set_show_toolbar( 1);
+    } else {
+        gtk_widget_hide_all( toolbar);
+        appconfig_set_show_toolbar( 0);
+    }
+}
+
+static void
 menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     about_show(main_window);
@@ -2138,6 +2131,89 @@ GtkWidget *wavbreaker_get_main_window()
 }
 
 
+void init_actions()
+{
+    action_group = gtk_action_group_new( APPNAME);
+
+    action_open = gtk_action_new( "open", _("_Open"), _("Open a wave file"), GTK_STOCK_OPEN);
+    g_signal_connect( action_open, "activate", G_CALLBACK(menu_open_file), NULL);
+    gtk_action_set_accel_group( action_open, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_open, "<control>O");
+
+    action_save = gtk_action_new( "save", _("_Save"), _("Save track breaks"), GTK_STOCK_SAVE);
+    g_signal_connect( action_save, "activate", G_CALLBACK(menu_save), NULL);
+    gtk_action_set_accel_group( action_save, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_save, "<control>S");
+    gtk_action_set_sensitive( action_save, FALSE);
+
+    action_save_to = gtk_action_new( "save-to", _("Save to..."), _("Save track breaks to folder"), GTK_STOCK_SAVE_AS);
+    g_signal_connect( action_save_to, "activate", G_CALLBACK(menu_save_as), NULL);
+    gtk_action_set_accel_group( action_save_to, accel_group);
+    gtk_action_set_sensitive( action_save_to, FALSE);
+
+    action_preferences = gtk_action_new( "preferences", _("Preferences"), _("Configure wavbreaker"), GTK_STOCK_PREFERENCES);
+    g_signal_connect( action_preferences, "activate", G_CALLBACK(menu_config), NULL);
+    gtk_action_set_accel_group( action_preferences, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_preferences, "<control>P");
+
+    action_quit = gtk_action_new( "quit", _("Quit"), _("Close wavbreaker"), GTK_STOCK_QUIT);
+    g_signal_connect( action_quit, "activate", G_CALLBACK(menu_quit), NULL);
+    gtk_action_set_accel_group( action_quit, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_quit, "<control>Q");
+
+    action_view_toolbar = gtk_toggle_action_new( "view-toolbar", _("Display toolbar"), _("Show or hide the main window toolbar"), NULL);
+    g_signal_connect( action_view_toolbar, "activate", G_CALLBACK(menu_view_toolbar), NULL);
+    gtk_action_set_accel_group( GTK_ACTION(action_view_toolbar), accel_group);
+    gtk_action_group_add_action_with_accel( action_group, GTK_ACTION(action_view_toolbar), "<control>T");
+    gtk_toggle_action_set_active( action_view_toolbar, appconfig_get_show_toolbar()?TRUE:FALSE);
+
+    action_add_break = gtk_action_new( "add-break", _("Add track break"), _("Add track break at cursor position"), GTK_STOCK_ADD);
+    g_signal_connect( action_add_break, "activate", G_CALLBACK(menu_add_track_break), NULL);
+    gtk_action_set_accel_group( action_add_break, accel_group);
+    gtk_action_set_sensitive( action_add_break, FALSE);
+
+    action_remove_break = gtk_action_new( "remove-break", _("Remove track break"), _("Remove selected track break"), GTK_STOCK_REMOVE);
+    g_signal_connect( action_remove_break, "activate", G_CALLBACK(menu_delete_track_break), NULL);
+    gtk_action_set_accel_group( action_remove_break, accel_group);
+    gtk_action_set_sensitive( action_remove_break, FALSE);
+
+    action_jump_break = gtk_action_new( "jump-break", _("Jump to track break"), _("Set cursor position to track break"), GTK_STOCK_JUMP_TO);
+    g_signal_connect( action_jump_break, "activate", G_CALLBACK(jump_to_track_break), NULL);
+    gtk_action_set_accel_group( action_jump_break, accel_group);
+    gtk_action_set_sensitive( action_jump_break, FALSE);
+
+    action_jump_cursor = gtk_action_new( "jump-cursor", _("Jump to cursor marker"), _("Set view to cursor marker"), GTK_STOCK_JUMP_TO);
+    g_signal_connect( action_jump_cursor, "activate", G_CALLBACK(jump_to_cursor_marker), NULL);
+    gtk_action_set_accel_group( action_jump_cursor, accel_group);
+    gtk_action_set_sensitive( action_jump_cursor, FALSE);
+
+    action_rename = gtk_action_new( "rename", _("Rename track breaks"), _("Automatically rename all track breaks"), GTK_STOCK_EDIT);
+    g_signal_connect( action_rename, "activate", G_CALLBACK(menu_rename), NULL);
+    gtk_action_set_accel_group( action_rename, accel_group);
+    gtk_action_set_sensitive( action_rename, FALSE);
+
+    action_split = gtk_action_new( "split", _("Auto-Split"), _("Split into chunks with specified size"), GTK_STOCK_CUT);
+    g_signal_connect( action_split, "activate", G_CALLBACK(menu_autosplit), NULL);
+    gtk_action_set_accel_group( action_split, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_split, "<control>A");
+    gtk_action_set_sensitive( action_split, FALSE);
+
+    action_export = gtk_action_new( "export", _("Export to TOC"), _("Export to CD-ROM TOC file for burning"), GTK_STOCK_CDROM);
+    g_signal_connect( action_export, "activate", G_CALLBACK(menu_export), NULL);
+    gtk_action_set_accel_group( action_export, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_export, "<control>E");
+    gtk_action_set_sensitive( action_export, FALSE);
+
+    action_playback = gtk_action_new( "playback", _("Play"), _("Start/Stop playback of media"), GTK_STOCK_MEDIA_PLAY);
+    g_signal_connect( action_playback, "activate", G_CALLBACK(menu_play), NULL);
+    gtk_action_set_accel_group( action_playback, accel_group);
+    gtk_action_set_sensitive( action_playback, FALSE);
+
+    action_about = gtk_action_new( "about", _("About"), _("Show information about " APPNAME), GTK_STOCK_ABOUT);
+    g_signal_connect( action_about, "activate", G_CALLBACK(menu_about), NULL);
+    gtk_action_set_accel_group( action_about, accel_group);
+}
+
 /*
  *-------------------------------------------------------------------------
  * Main Window Events
@@ -2164,10 +2240,9 @@ int main(int argc, char **argv)
     GtkWidget *vbox;
     GtkWidget *tbl_widget;
     GtkWidget *menu_widget;
-    GtkWidget *toolbar;
+    GtkWidget *submenu;
+    GtkWidget *menu_item;
     GtkWidget *icon;
-    GtkAccelGroup *accel_group;      
-    GtkItemFactory *item_factory;
 
     GtkWidget *vpane_vbox;
     GtkWidget *list_vbox;
@@ -2192,6 +2267,8 @@ int main(int argc, char **argv)
     gdk_threads_init();
     gtk_init(&argc, &argv);
 
+    appconfig_init();
+
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_icon_name( PACKAGE);
 
@@ -2210,77 +2287,69 @@ int main(int argc, char **argv)
 
     /* Menu Items */
     accel_group = gtk_accel_group_new();
-    gtk_window_add_accel_group(GTK_WINDOW(main_window), accel_group);
-    g_object_unref(accel_group);
+    gtk_window_add_accel_group( GTK_WINDOW(main_window), accel_group);
+    init_actions();
 
-    item_factory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<main>",
-                                        accel_group);
+    menu_widget = gtk_menu_bar_new();
 
-    /* Set up item factory to go away with the window */
-    g_object_ref (item_factory);
-    gtk_object_sink (GTK_OBJECT (item_factory));
-    g_object_set_data_full(G_OBJECT(main_window), "<main>", item_factory,
-                          (GDestroyNotify)g_object_unref);
+    menu_item = gtk_menu_item_new_with_mnemonic( _("_File"));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
+    submenu = gtk_menu_new();
+    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_open));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_to));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_preferences));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_quit));
 
-    /* create menu items */
-    gtk_item_factory_create_items(item_factory, G_N_ELEMENTS(menu_items),
-                                  menu_items, main_window);
+    menu_item = gtk_menu_item_new_with_mnemonic( _("_Edit"));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
+    submenu = gtk_menu_new();
+    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_add_break));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_remove_break));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_rename));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_playback));
 
-    menu_widget = gtk_item_factory_get_widget(item_factory, "<main>");
+    menu_item = gtk_menu_item_new_with_mnemonic( _("_View"));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
+    submenu = gtk_menu_new();
+    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_toolbar)));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_break));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_cursor));
+
+    menu_item = gtk_menu_item_new_with_mnemonic( _("_Help"));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
+    submenu = gtk_menu_new();
+    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_about));
 
     gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
 
     /* Button Toolbar */
     toolbar = gtk_toolbar_new();
 
-/*static GtkWidget *tb_open;
-static GtkWidget *tb_playback;
-static GtkWidget *tb_quit;*/
-
-    tb_open = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_OPEN);
-    g_signal_connect( tb_open, "clicked", G_CALLBACK(menu_open_file), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_open), -1);
-
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_open)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    
-    tb_save = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_SAVE);
-    g_signal_connect( tb_save, "clicked", G_CALLBACK(menu_save), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_save), -1);
-    
-    tb_save_as = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_SAVE_AS);
-    gtk_tool_button_set_label( GTK_TOOL_BUTTON(tb_save_as), _("Save to..."));
-    g_signal_connect( tb_save_as, "clicked", G_CALLBACK(menu_save_as), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_save_as), -1);
-
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save)), -1);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save_to)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    
-    tb_split = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_CUT);
-    gtk_tool_button_set_label( GTK_TOOL_BUTTON(tb_split), _("Auto-Split"));
-    g_signal_connect( tb_split, "clicked", G_CALLBACK(menu_autosplit), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_split), -1);
-
-    tb_export = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_CDROM);
-    gtk_tool_button_set_label( GTK_TOOL_BUTTON(tb_export), _("Export to TOC"));
-    g_signal_connect( tb_export, "clicked", G_CALLBACK(menu_export), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_export), -1);
-
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_split)), -1);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    
-    tb_playback = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_MEDIA_PLAY);
-    g_signal_connect( tb_playback, "clicked", G_CALLBACK(menu_play), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_playback), -1);
-
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_playback)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    
-    tb_quit = (GtkWidget*)gtk_tool_button_new_from_stock( GTK_STOCK_QUIT);
-    g_signal_connect( tb_quit, "clicked", G_CALLBACK(menu_quit), main_window);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(tb_quit), -1);
-
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_save), FALSE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_save_as), FALSE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_split), FALSE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_export), FALSE);
-    gtk_widget_set_sensitive( GTK_WIDGET(tb_playback), FALSE);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_quit)), -1);
 
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
 
@@ -2463,7 +2532,6 @@ static GtkWidget *tb_quit;*/
 
     write_info.cur_filename = NULL;
 
-    appconfig_init();
     sample_init();
 
     if( appconfig_get_main_window_width() > 0) {
@@ -2475,6 +2543,12 @@ static GtkWidget *tb_quit;*/
     }
 
     gtk_widget_show_all(main_window);
+
+    if( appconfig_get_show_toolbar()) {
+        gtk_widget_show_all( GTK_WIDGET(toolbar));
+    } else {
+        gtk_widget_hide_all( GTK_WIDGET(toolbar));
+    }
 
     handle_arguments( argc, argv);
 

@@ -51,6 +51,9 @@ void appconfig_set_vpane1_position(int x);
 int appconfig_get_vpane2_position();
 void appconfig_set_vpane2_position(int x);
 int appconfig_get_ask_really_quit();
+void appconfig_set_ask_really_quit(int x);
+int appconfig_get_show_toolbar();
+void appconfig_set_show_toolbar(int x);
 
 char *audio_options_get_output_device();
 void set_audio_oss_options_output_device(const char *);

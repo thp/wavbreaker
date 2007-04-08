@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-03-11 23:59+0100\n"
+"POT-Creation-Date: 2007-04-08 12:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,84 +17,74 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/about.c:30
-msgid "A tool to split a wave file up into multiple waves."
+msgid "Split a wave file into multiple chunks"
 msgstr ""
 
-#: src/appconfig.c:180
-msgid "Audio output disabled"
-msgstr ""
-
-#: src/appconfig.c:180
-msgid ""
-"If you want to enable audio output, please select a audio driver in the "
-"preferences dialog."
-msgstr ""
-
-#: src/appconfig.c:565 src/browsedir.c:50
+#: src/appconfig.c:553 src/browsedir.c:37
 msgid "Select Output Directory"
 msgstr ""
 
-#: src/appconfig.c:624
+#: src/appconfig.c:612
 msgid "wavbreaker Preferences"
 msgstr ""
 
-#: src/appconfig.c:638
+#: src/appconfig.c:626
 msgid "General"
 msgstr ""
 
-#: src/appconfig.c:640
+#: src/appconfig.c:628
 msgid "Save output files in folder:"
 msgstr ""
 
-#: src/appconfig.c:652 src/saveas.c:143
+#: src/appconfig.c:640
 msgid "Browse"
 msgstr ""
 
-#: src/appconfig.c:662
+#: src/appconfig.c:650
 msgid "File Naming"
 msgstr ""
 
-#: src/appconfig.c:664
+#: src/appconfig.c:652
 msgid "Standard (##)"
 msgstr ""
 
-#: src/appconfig.c:674
+#: src/appconfig.c:662
 msgid "Prepend number before filename"
 msgstr ""
 
-#: src/appconfig.c:680
+#: src/appconfig.c:668
 msgid "Separator:"
 msgstr ""
 
-#: src/appconfig.c:692
+#: src/appconfig.c:680
 msgid "etree.org (d#t##)"
 msgstr ""
 
-#: src/appconfig.c:695
+#: src/appconfig.c:683
 msgid "CD Length:"
 msgstr ""
 
-#: src/appconfig.c:710
+#: src/appconfig.c:698
 msgid "Audio Device"
 msgstr ""
 
-#: src/appconfig.c:712
+#: src/appconfig.c:700
 msgid "Audio Device:"
 msgstr ""
 
-#: src/appconfig.c:719
+#: src/appconfig.c:707
 msgid "Disable audio output"
 msgstr ""
 
-#: src/appconfig.c:735
+#: src/appconfig.c:723
 msgid "Output device:"
 msgstr ""
 
-#: src/autosplit.c:137
+#: src/autosplit.c:135
 msgid "Enter the time for autosplit:"
 msgstr ""
 
-#: src/autosplit.c:142
+#: src/autosplit.c:140
 msgid "Example (5min, 32sec, 12subsec):"
 msgstr ""
 
@@ -117,125 +107,278 @@ msgstr ""
 msgid "If you quit wavbreaker now, any unsaved chunks will be lost."
 msgstr ""
 
-#: src/saveas.c:130
-msgid "Enter the dirname to save files:"
+#: src/saveas.c:50
+msgid "Select folder to save wave files"
 msgstr ""
 
-#: src/wavbreaker.c:354
+#: src/wavbreaker.c:381
 msgid "Write"
 msgstr ""
 
-#: src/wavbreaker.c:365
+#: src/wavbreaker.c:392
 msgid "File Name"
 msgstr ""
 
-#: src/wavbreaker.c:382
+#: src/wavbreaker.c:409
 msgid "Time"
 msgstr ""
 
-#: src/wavbreaker.c:393
+#: src/wavbreaker.c:420
 msgid "Duration"
 msgstr ""
 
-#: src/wavbreaker.c:403
+#: src/wavbreaker.c:430
 msgid "Offset"
 msgstr ""
 
-#: src/wavbreaker.c:440
-msgid "Remove Selected Track Break"
+#: src/wavbreaker.c:953
+msgid "Splitting wave file"
 msgstr ""
 
-#: src/wavbreaker.c:444
-msgid "Jump to Selected Track Break"
+#: src/wavbreaker.c:965
+msgid ""
+"The selected track breaks are now written to disk. This can take some time."
 msgstr ""
 
-#: src/wavbreaker.c:948 src/wavbreaker.c:985
-msgid "Writing: "
-msgstr ""
-
-#: src/wavbreaker.c:956 src/wavbreaker.c:992
+#: src/wavbreaker.c:992
 #, c-format
-msgid " (%d of %d)"
+msgid "The file %s has been split into %d parts."
 msgstr ""
 
-#: src/wavbreaker.c:1074
-msgid "Opening: "
+#: src/wavbreaker.c:994
+#, c-format
+msgid "The file %s has been split into one part."
 msgstr ""
 
-#: src/wavbreaker.c:1130
+#: src/wavbreaker.c:996
+msgid "Operation successful"
+msgstr ""
+
+#: src/wavbreaker.c:1011
+#, c-format
+msgid "Writing %s"
+msgstr ""
+
+#: src/wavbreaker.c:1026
+#, c-format
+msgid "%d of %d parts written"
+msgstr ""
+
+#: src/wavbreaker.c:1028
+#, c-format
+msgid "%d of 1 part written"
+msgstr ""
+
+#: src/wavbreaker.c:1101
+msgid "Analyzing waveform"
+msgstr ""
+
+#: src/wavbreaker.c:1113
+msgid ""
+"The waveform data of the selected file is being analyzed and processed. This "
+"can take some time."
+msgstr ""
+
+#: src/wavbreaker.c:1121
+#, c-format
+msgid "Analyzing %s"
+msgstr ""
+
+#: src/wavbreaker.c:1167
+#, c-format
+msgid "%d of %d MB analyzed"
+msgstr ""
+
+#: src/wavbreaker.c:1180
 msgid "Error opening file"
 msgstr ""
 
-#: src/wavbreaker.c:1206
+#: src/wavbreaker.c:1271
+msgid "All files"
+msgstr ""
+
+#: src/wavbreaker.c:1275
+msgid "Supported files"
+msgstr ""
+
+#: src/wavbreaker.c:1278
 msgid "Open File"
 msgstr ""
 
-#: src/wavbreaker.c:1761
-msgid "Add Track Break"
+#: src/wavbreaker.c:1944 src/wavbreaker.c:1961 src/wavbreaker.c:2207
+msgid "Play"
 msgstr ""
 
-#: src/wavbreaker.c:1766
-msgid "Jump to Cursor Marker"
+#: src/wavbreaker.c:1953
+msgid "Stop"
 msgstr ""
 
-#: src/wavbreaker.c:1920
+#: src/wavbreaker.c:2016
+msgid "Select name for TOC file to export"
+msgstr ""
+
+#: src/wavbreaker.c:2028
 msgid "Export failed"
 msgstr ""
 
-#: src/wavbreaker.c:1920
+#: src/wavbreaker.c:2028
 msgid "There has been an error exporting track breaks to the TOC file."
 msgstr ""
 
-#: src/wavbreaker.c:1922
+#: src/wavbreaker.c:2030
 msgid "TOC export successful"
 msgstr ""
 
-#: src/wavbreaker.c:1922
+#: src/wavbreaker.c:2030
 msgid ""
 "The track breaks have been exported to a TOC file that can be used to burn a "
 "CD from the wave file."
 msgstr ""
 
-#: src/wavbreaker.c:2105
-msgid "Open New Wave File"
+#: src/wavbreaker.c:2138
+msgid "_Open"
 msgstr ""
 
-#: src/wavbreaker.c:2109
-msgid "Save Track Breaks"
+#: src/wavbreaker.c:2138
+msgid "Open a wave file"
 msgstr ""
 
-#: src/wavbreaker.c:2112
-msgid "Save Track Breaks To Dir"
+#: src/wavbreaker.c:2143
+msgid "_Save"
 msgstr ""
 
-#: src/wavbreaker.c:2116
-msgid "AutoSplit"
+#: src/wavbreaker.c:2143
+msgid "Save track breaks"
 msgstr ""
 
-#: src/wavbreaker.c:2119
+#: src/wavbreaker.c:2149
+msgid "Save to..."
+msgstr ""
+
+#: src/wavbreaker.c:2149
+msgid "Save track breaks to folder"
+msgstr ""
+
+#: src/wavbreaker.c:2154
+msgid "Preferences"
+msgstr ""
+
+#: src/wavbreaker.c:2154
+msgid "Configure wavbreaker"
+msgstr ""
+
+#: src/wavbreaker.c:2159
+msgid "Quit"
+msgstr ""
+
+#: src/wavbreaker.c:2159
+msgid "Close wavbreaker"
+msgstr ""
+
+#: src/wavbreaker.c:2164
+msgid "Display toolbar"
+msgstr ""
+
+#: src/wavbreaker.c:2164
+msgid "Show or hide the main window toolbar"
+msgstr ""
+
+#: src/wavbreaker.c:2170
+msgid "Add track break"
+msgstr ""
+
+#: src/wavbreaker.c:2170
+msgid "Add track break at cursor position"
+msgstr ""
+
+#: src/wavbreaker.c:2175
+msgid "Remove track break"
+msgstr ""
+
+#: src/wavbreaker.c:2175
+msgid "Remove selected track break"
+msgstr ""
+
+#: src/wavbreaker.c:2180
+msgid "Jump to track break"
+msgstr ""
+
+#: src/wavbreaker.c:2180
+msgid "Set cursor position to track break"
+msgstr ""
+
+#: src/wavbreaker.c:2185
+msgid "Jump to cursor marker"
+msgstr ""
+
+#: src/wavbreaker.c:2185
+msgid "Set view to cursor marker"
+msgstr ""
+
+#: src/wavbreaker.c:2190
+msgid "Rename track breaks"
+msgstr ""
+
+#: src/wavbreaker.c:2190
+msgid "Automatically rename all track breaks"
+msgstr ""
+
+#: src/wavbreaker.c:2195
+msgid "Auto-Split"
+msgstr ""
+
+#: src/wavbreaker.c:2195
+msgid "Split into chunks with specified size"
+msgstr ""
+
+#: src/wavbreaker.c:2201
 msgid "Export to TOC"
 msgstr ""
 
-#: src/wavbreaker.c:2124
-msgid "Play from cursor"
+#: src/wavbreaker.c:2201
+msgid "Export to CD-ROM TOC file for burning"
 msgstr ""
 
-#: src/wavbreaker.c:2127
-msgid "Stop playback"
+#: src/wavbreaker.c:2207
+msgid "Start/Stop playback of media"
 msgstr ""
 
-#: src/wavbreaker.c:2132
-msgid "Quit wavbreaker"
+#: src/wavbreaker.c:2212
+msgid "About"
 msgstr ""
 
-#: src/wavbreaker.c:2302
+#: src/wavbreaker.c:2212
+msgid "Show information about "
+msgstr ""
+
+#: src/wavbreaker.c:2295
+msgid "_File"
+msgstr ""
+
+#: src/wavbreaker.c:2308
+msgid "_Edit"
+msgstr ""
+
+#: src/wavbreaker.c:2322
+msgid "_View"
+msgstr ""
+
+#: src/wavbreaker.c:2331
+msgid "_Help"
+msgstr ""
+
+#: src/wavbreaker.c:2464
+msgid "Cursor position:"
+msgstr ""
+
+#: src/wavbreaker.c:2490
 msgid "Add"
 msgstr ""
 
-#: src/wavbreaker.c:2321
+#: src/wavbreaker.c:2505
 msgid "Remove"
 msgstr ""
 
-#: src/wavbreaker.c:2340
+#: src/wavbreaker.c:2520
 msgid "Auto-Rename"
 msgstr ""

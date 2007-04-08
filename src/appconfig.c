@@ -109,6 +109,9 @@ static int vpane2_position = -1;
 /* Ask user if the user really wants to quit wavbreaker. */
 static int ask_really_quit = 1;
 
+/* Show toolbar in main window */
+static int show_toolbar = 1;
+
 /* function prototypes */
 static int appconfig_read_file();
 static void default_all_strings();
@@ -348,6 +351,15 @@ int appconfig_get_ask_really_quit()
 void appconfig_set_ask_really_quit(int x)
 {
     ask_really_quit = x;
+}
+
+int appconfig_get_show_toolbar() {
+    return show_toolbar;
+}
+
+void appconfig_set_show_toolbar(int x)
+{
+    show_toolbar = x;
 }
 
 int get_use_outputdir()
@@ -873,6 +885,11 @@ static int appconfig_read_file() {
             nkey = atoi((char *)key);
             appconfig_set_ask_really_quit(nkey);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "show_toolbar"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi((char *)key);
+            appconfig_set_show_toolbar(nkey);
+            xmlFree(key);
         }
         cur = cur->next;
     }
@@ -1076,6 +1093,18 @@ int appconfig_write_file() {
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
         fprintf(stderr, "error creating ask_really_quit node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_show_toolbar());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"show_toolbar",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating show_toolbar node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
