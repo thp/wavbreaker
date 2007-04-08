@@ -458,8 +458,7 @@ static gboolean
 track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
     GtkWidget *menu;
-    GtkWidget *delete_item;
-    GtkWidget *jump_item;
+    GtkWidget *item;
 
     if (event->button != 3) {
         return FALSE;
@@ -467,19 +466,21 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
 
     menu = gtk_menu_new();
 
-    delete_item = gtk_menu_item_new_with_label(_("Remove Selected Track Break"));
-    g_signal_connect(G_OBJECT(delete_item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
-    gtk_widget_show(delete_item);
+    item = gtk_image_menu_item_new_with_label(_("Remove selected track break"));
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
+        gtk_image_new_from_stock(GTK_STOCK_REMOVE, GTK_ICON_SIZE_MENU));
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(menu_delete_track_break), NULL);
+    gtk_widget_show(item);
 
-    jump_item = gtk_menu_item_new_with_label(_("Jump to Selected Track Break"));
-    g_signal_connect(G_OBJECT(jump_item), "activate", G_CALLBACK(jump_to_track_break), NULL);
-    gtk_widget_show(jump_item);
+    item = gtk_image_menu_item_new_with_label(_("Jump to selected track break"));
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
+        gtk_image_new_from_stock(GTK_STOCK_JUMP_TO, GTK_ICON_SIZE_MENU));
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(jump_to_track_break), NULL);
+    gtk_widget_show(item);
 
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), delete_item);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), jump_item);
-
-    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 
-              event->button, event->time);
+    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event->button, event->time);
 
     return FALSE;
 }
@@ -1273,13 +1274,29 @@ void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data) {
 static void open_select_file() {
     GtkWidget *dialog;
 
+    GtkFileFilter *filter_all;
+    GtkFileFilter *filter_supported;
+
+    filter_all = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_all, _("All files"));
+    gtk_file_filter_add_pattern( filter_all, "*");
+
+    filter_supported = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_supported, _("Supported files"));
+    gtk_file_filter_add_pattern( filter_supported, "*.wav");
+
     dialog = gtk_file_chooser_dialog_new(_("Open File"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+
     if (sample_filename != NULL) {
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
             dirname(sample_filename));
     }
+
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
+    gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename;
@@ -1587,8 +1604,6 @@ static void draw_summary_pixmap(GtkWidget *widget)
 
     if (!summary_pixmap) {
         printf("summary_pixmap is NULL\n");
-        //cleanup
-        g_object_unref(gc);
         return;
     }
 
@@ -1857,8 +1872,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
     GtkWidget *menu;
-    GtkWidget *add_item;
-    GtkWidget *jump_item;
+    GtkWidget *item;
 
     if (event->x + pixmap_offset > graphData.numSamples) {
         return TRUE;
@@ -1870,21 +1884,21 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     if (event->button == 3) {
         menu = gtk_menu_new();
 
-        add_item = gtk_menu_item_new_with_label(_("Add Track Break"));
-        g_signal_connect(G_OBJECT(add_item), "activate",
-            G_CALLBACK(menu_add_track_break), NULL);
-        gtk_widget_show(add_item);
+        item = gtk_image_menu_item_new_with_label(_("Add track break"));
+        gtk_image_menu_item_set_image( GTK_IMAGE_MENU_ITEM(item),
+            gtk_image_new_from_stock( GTK_STOCK_ADD, GTK_ICON_SIZE_MENU));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+        g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(menu_add_track_break), NULL);
+        gtk_widget_show(item);
 
-        jump_item = gtk_menu_item_new_with_label(_("Jump to Cursor Marker"));
-        g_signal_connect(G_OBJECT(jump_item), "activate",
-            G_CALLBACK(jump_to_cursor_marker), NULL);
-        gtk_widget_show(jump_item);
+        item = gtk_image_menu_item_new_with_label(_("Jump to cursor marker"));
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item),
+            gtk_image_new_from_stock( GTK_STOCK_JUMP_TO, GTK_ICON_SIZE_MENU));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+        g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(jump_to_cursor_marker), NULL);
+        gtk_widget_show(item);
 
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), add_item);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), jump_item);
-
-        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
-            event->button, event->time);
+        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event->button, event->time);
 
         redraw();
         return TRUE;
