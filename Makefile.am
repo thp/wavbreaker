@@ -1,4 +1,4 @@
-SUBDIRS = po src images
+SUBDIRS = doc po src images
 
 desktopdir = $(datarootdir)/applications/
 desktop_DATA = wavbreaker.desktop

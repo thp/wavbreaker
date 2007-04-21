@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(wavbreaker, 0.7.8)
+AC_INIT(wavbreaker, 0.7.9)
 AC_CONFIG_SRCDIR(src/wavbreaker.h)
 AM_INIT_AUTOMAKE(1.9)
 AM_CONFIG_HEADER(config.h)
@@ -79,7 +79,8 @@ AC_SUBST(WAVBREAKER_LIBS)
 
 AC_CONFIG_FILES([Makefile po/Makefile.in
                  images/Makefile
-                 src/Makefile])
+                 src/Makefile
+                 doc/Makefile])
 
 echo "TDR: $WAVBREAKER_LIBS"
 
