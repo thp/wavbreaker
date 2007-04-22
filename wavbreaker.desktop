@@ -10,3 +10,4 @@ Icon=wavbreaker
 Terminal=false
 Type=Application
 Categories=Application;AudioVideo;Audio;
+MimeType=audio/x-wav

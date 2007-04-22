@@ -75,6 +75,8 @@ static GtkAction *action_rename;
 static GtkAction *action_split;
 static GtkAction *action_export;
 static GtkAction *action_jump_cursor;
+static GtkAction *action_save_breaks;
+static GtkAction *action_load_breaks;
 static GtkAction *action_playback;
 
 static GtkAction *action_about;
@@ -93,6 +95,7 @@ static GraphData graphData;
 
 GdkColor sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
 GdkColor bg_color;
+GdkColor nowrite_color;
 GdkColor zoom_color;
 GdkColor axis_color;
 GdkColor cursor_marker_color;
@@ -165,8 +168,13 @@ void track_break_setup_filename(gpointer data, gpointer user_data);
 void track_break_rename( gboolean overwrite);
 void track_break_add_to_model(gpointer data, gpointer user_data);
 void track_break_add_entry();
+void track_break_add_offset( char* filename, guint offset);
 void track_break_set_durations();
 void track_break_set_duration(gpointer data, gpointer user_data);
+
+int track_breaks_save_to_file( char* filename);
+int track_breaks_load_from_file( char* filename);
+void track_break_write_file( gpointer data, gpointer user_data);
 
 /* File Functions */
 void filesel_ok_clicked(GtkWidget *widget, gpointer data);
@@ -217,6 +225,12 @@ menu_open_file(gpointer callback_data, guint callback_action,
                GtkWidget *widget);
 static void
 menu_delete_track_break(GtkWidget *widget, gpointer user_data);
+
+static void
+menu_save_track_breaks(GtkWidget *widget, gpointer user_data);
+
+static void
+menu_load_track_breaks(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -772,6 +786,45 @@ void track_break_add_entry()
     track_break_rename( FALSE);
 }
 
+void track_break_add_offset( char* filename, guint offset)
+{
+    TrackBreak *track_break = NULL;
+
+    if (sample_filename == NULL) {
+        return;
+    }
+
+    if( offset > graphData.numSamples) {
+        if( filename != NULL) {
+            printf( "Offset for %s is too big, skipping.\n", filename);
+        }
+        return;
+    }
+
+    if( !(track_break = (TrackBreak *)g_malloc(sizeof(TrackBreak)))) {
+        printf("couldn't malloc enough memory for track_break\n");
+        return;
+    }
+
+    track_break->editable = TRUE;
+    track_break->offset = offset;
+    offset_to_time( track_break->offset, track_break->time);
+
+    if( filename != NULL) {
+        track_break->write = 1;
+        track_break->filename = g_strdup( filename);
+    } else {
+        track_break->write = 0;
+        track_break->filename = NULL;
+    }
+
+    track_break_list = g_list_insert_sorted( track_break_list, track_break,
+                                             track_break_sort);
+
+    track_break_set_durations();
+    track_break_rename( FALSE);
+}
+
 void track_break_set_durations() {
     g_list_foreach(track_break_list, track_break_set_duration, NULL);
     gtk_list_store_clear(store);
@@ -841,6 +894,7 @@ void track_break_write_toggled(GtkWidget *widget,
                        track_break->write, -1);
 
     gtk_tree_path_free(path);
+    redraw();
 }
 
 void track_break_filename_edited(GtkCellRendererText *cell,
@@ -975,7 +1029,7 @@ file_write_progress_idle_func(gpointer data) {
         gtk_label_set_ellipsize( GTK_LABEL(status_label), PANGO_ELLIPSIZE_MIDDLE);
         gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
 
-        gtk_widget_show_all(window);
+        gtk_widget_show_all(GTK_WIDGET(window));
         cur_file_displayed = -1;
 
         gdk_threads_leave();
@@ -1127,7 +1181,7 @@ file_open_progress_idle_func(gpointer data) {
         gtk_label_set_ellipsize( GTK_LABEL(label), PANGO_ELLIPSIZE_END);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
-        gtk_widget_show_all(window);
+        gtk_widget_show_all(GTK_WIDGET(window));
         gdk_threads_leave();
     }
 
@@ -1191,6 +1245,8 @@ static void open_file() {
     gtk_action_set_sensitive( action_rename, TRUE);
     gtk_action_set_sensitive( action_split, TRUE);
     gtk_action_set_sensitive( action_export, TRUE);
+    gtk_action_set_sensitive( action_save_breaks, TRUE);
+    gtk_action_set_sensitive( action_load_breaks, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
 
     menu_stop(NULL, NULL);
@@ -1279,11 +1335,6 @@ static void open_select_file() {
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
 
-    if (sample_filename != NULL) {
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
-            dirname(sample_filename));
-    }
-
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
@@ -1335,6 +1386,7 @@ static void draw_sample(GtkWidget *widget)
     int shade;
 
     int count;
+    int is_write;
     int index;
     GList *tbl;
     TrackBreak *tb_cur;
@@ -1407,12 +1459,14 @@ static void draw_sample(GtkWidget *widget)
         /* find the track break we are drawing now */
 
         count = 0;
+        is_write = 0;
         tb_cur = NULL;
         for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
             index = g_list_position(track_break_list, tbl);
             tb_cur = g_list_nth_data(track_break_list, index);
             if (tb_cur != NULL) {
                 if (i + pixmap_offset > tb_cur->offset) {
+                    is_write = tb_cur->write;
                     count++;
                 } else {
                     /* already found */
@@ -1425,7 +1479,11 @@ static void draw_sample(GtkWidget *widget)
         //gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            if( is_write) {
+                gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            } else {
+                gdk_gc_set_foreground(gc, &nowrite_color);
+            }
             gdk_draw_line(sample_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             gdk_draw_line(sample_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
         }
@@ -1568,6 +1626,7 @@ static void draw_summary_pixmap(GtkWidget *widget)
 
     GdkGC *gc;
     int count;
+    int is_write;
     int index;
     GList *tbl;
     TrackBreak *tb_cur;
@@ -1696,12 +1755,14 @@ printf("x_scale_mod: %d\n", x_scale_mod);
         /* DEBUG CODE END */
 
         count = 0;
+        is_write = 0;
         tb_cur = NULL;
         for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
             index = g_list_position(track_break_list, tbl);
             tb_cur = g_list_nth_data(track_break_list, index);
             if (tb_cur != NULL) {
                 if (array_offset > tb_cur->offset) {
+                    is_write = tb_cur->write;
                     count++;
                 }
             }
@@ -1725,7 +1786,11 @@ printf("x_scale_mod: %d\n", x_scale_mod);
 
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            if( is_write) {
+                gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            } else {
+                gdk_gc_set_foreground(gc, &nowrite_color);
+            }
             gdk_draw_line(summary_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             gdk_draw_line(summary_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
         }
@@ -1735,8 +1800,9 @@ printf("x_scale_mod: %d\n", x_scale_mod);
     poly_points[2].x = poly_right;
     poly_points[3].x = poly_left;
 
-    gdk_gc_set_foreground( gc, &zoom_color);
-    gdk_draw_polygon( summary_pixmap, gc, TRUE, poly_points, 4);
+    // TODO: fix the polygon calculation and draw below waveform
+    //gdk_gc_set_foreground( gc, &zoom_color);
+    //gdk_draw_polygon( summary_pixmap, gc, TRUE, poly_points, 4);
 
 
 //printf("leftover_count: %d\n", leftover_count);
@@ -2039,6 +2105,86 @@ void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
     track_break_delete_entry();
 }
 
+void menu_save_track_breaks(GtkWidget *widget, gpointer user_data)
+{
+    GtkWidget *dialog;
+    GtkFileFilter *filter_all;
+    GtkFileFilter *filter_supported;
+    gchar* filename = NULL;
+
+    filename = g_strdup( sample_filename);
+    strcpy( filename + strlen( filename) - 3, "txt");
+
+    filter_all = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_all, _("All files"));
+    gtk_file_filter_add_pattern( filter_all, "*");
+
+    filter_supported = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_supported, _("Text files"));
+    gtk_file_filter_add_pattern( filter_supported, "*.txt");
+
+    dialog = gtk_file_chooser_dialog_new(_("Save track breaks to file"), GTK_WINDOW(main_window),
+        GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+        GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
+    gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
+
+    gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(dialog), basename( filename));
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(dialog), dirname( filename));
+
+    if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        track_breaks_save_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
+    }
+
+    if( filename != NULL) {
+        g_free( filename);
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
+void menu_load_track_breaks(GtkWidget *widget, gpointer user_data)
+{
+    GtkWidget *dialog;
+    GtkFileFilter *filter_all;
+    GtkFileFilter *filter_supported;
+    gchar* filename = NULL;
+
+    filename = g_strdup( sample_filename);
+    strcpy( filename + strlen( filename) - 3, "txt");
+
+
+    filter_all = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_all, _("All files"));
+    gtk_file_filter_add_pattern( filter_all, "*");
+
+    filter_supported = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_supported, _("Text files"));
+    gtk_file_filter_add_pattern( filter_supported, "*.txt");
+
+    dialog = gtk_file_chooser_dialog_new(_("Load track breaks from file"), GTK_WINDOW(main_window),
+        GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+        GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
+    gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
+
+    gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), filename);
+
+    if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        track_breaks_load_from_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
+    }
+
+    if( filename != NULL) {
+        g_free( filename);
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
 void menu_add_track_break(GtkWidget *widget, gpointer user_data)
 {
     track_break_add_entry();
@@ -2062,10 +2208,14 @@ static void
 menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     if( gtk_toggle_action_get_active( GTK_TOGGLE_ACTION(action_view_toolbar))) {
-        gtk_widget_show_all( toolbar);
+        if( toolbar) {
+            gtk_widget_show_all( GTK_WIDGET(toolbar));
+        }
         appconfig_set_show_toolbar( 1);
     } else {
-        gtk_widget_hide_all( toolbar);
+        if( toolbar) {
+            gtk_widget_hide_all( GTK_WIDGET(toolbar));
+        }
         appconfig_set_show_toolbar( 0);
     }
 }
@@ -2204,6 +2354,16 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, action_export, "<control>E");
     gtk_action_set_sensitive( action_export, FALSE);
 
+    action_save_breaks = gtk_action_new( "save-breaks", _("_Save offsets to text file"), _("Save track breaks to text file"), GTK_STOCK_SAVE);
+    g_signal_connect( action_save_breaks, "activate", G_CALLBACK(menu_save_track_breaks), NULL);
+    gtk_action_set_accel_group( action_save_breaks, accel_group);
+    gtk_action_set_sensitive( action_save_breaks, FALSE);
+
+    action_load_breaks = gtk_action_new( "load-breaks", _("_Load offsets from text file"), _("Load track breaks from text file"), GTK_STOCK_OPEN);
+    g_signal_connect( action_load_breaks, "activate", G_CALLBACK(menu_load_track_breaks), NULL);
+    gtk_action_set_accel_group( action_load_breaks, accel_group);
+    gtk_action_set_sensitive( action_load_breaks, FALSE);
+
     action_playback = gtk_action_new( "playback", _("Play"), _("Start/Stop playback of media"), GTK_STOCK_MEDIA_PLAY);
     g_signal_connect( action_playback, "activate", G_CALLBACK(menu_play), NULL);
     gtk_action_set_accel_group( action_playback, accel_group);
@@ -2317,6 +2477,9 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_breaks));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_breaks));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_playback));
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_View"));
@@ -2354,18 +2517,23 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
 
     /* Set default colors up */
-    bg_color.red   = 255*(65535/255);
-    bg_color.green = 255*(65535/255);
+    bg_color.red   =
+    bg_color.green =
     bg_color.blue  = 255*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &bg_color);
 
-    zoom_color.red   = 240*(65535/255);
-    zoom_color.green = 240*(65535/255);
+    nowrite_color.red   = 
+    nowrite_color.green =
+    nowrite_color.blue  = 220*(65535/255);
+    gdk_color_alloc(gtk_widget_get_colormap(main_window), &nowrite_color);
+
+    zoom_color.red   =
+    zoom_color.green =
     zoom_color.blue  = 240*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &zoom_color);
 
-    axis_color.red   = 0*(65535/255);
-    axis_color.green = 0*(65535/255);
+    axis_color.red   =
+    axis_color.green =
     axis_color.blue  = 0*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &axis_color);
 
@@ -2542,7 +2710,7 @@ int main(int argc, char **argv)
         gtk_paned_set_position(GTK_PANED(vpane2), appconfig_get_vpane2_position());
     }
 
-    gtk_widget_show_all(main_window);
+    gtk_widget_show_all( GTK_WIDGET(main_window));
 
     if( appconfig_get_show_toolbar()) {
         gtk_widget_show_all( GTK_WIDGET(toolbar));
@@ -2562,6 +2730,88 @@ int main(int argc, char **argv)
 
     appconfig_write_file();
 
+    return 0;
+}
+
+int track_breaks_save_to_file( char* filename) {
+    FILE *fp;
+
+    fp = fopen( filename, "w");
+    if( !fp) {
+        fprintf( stderr, "Error opening %s.\n", filename);
+    }
+
+    fprintf( fp, "\n; Created by " PACKAGE " " VERSION "\n; http://thpinfo.com/2006/wavbreaker/tb-file-format.txt\n\n");
+
+    g_list_foreach( track_break_list, track_break_write_file, fp);
+
+    fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_filename);
+
+    fclose( fp);
+
+    return 0;
+}
+
+void track_break_write_file( gpointer data, gpointer user_data) {
+    FILE* fp = (FILE*)user_data;
+    TrackBreak* track_break = (TrackBreak*)data;
+
+    if( track_break->write) {
+        fprintf( fp, "%d=%s\n", track_break->offset, track_break->filename);
+    } else {
+        fprintf( fp, "%d\n", track_break->offset);
+    }
+}
+
+int track_breaks_load_from_file( char* filename) {
+    FILE* fp;
+    char tmp[1024];
+    char* ptr;
+    char* fname;
+    int c;
+
+    fp = fopen( filename, "r");
+    if( !fp) {
+        fprintf( stderr, "Error opening %s.\n", filename);
+        return 1;
+    }
+
+    track_break_clear_list();
+
+    ptr = tmp;
+    while( !feof( fp)) {
+        c = fgetc( fp);
+        if( c == EOF)
+            break;
+
+        if( c == '\n') {
+            *ptr = '\0';
+            if( ptr != tmp && tmp[0] != ';') {
+                fname = strchr( tmp, '=');
+                if( fname == NULL) {
+                    //DEBUG: printf( "Empty cut at %d\n", atoi( tmp));
+                    track_break_add_offset( NULL, atoi( tmp));
+                } else {
+                    *(fname++) = '\0';
+                    while( *fname == ' ')
+                        fname++;
+                    //DEBUG: printf( "Cut at %d for %s\n", atoi( tmp), fname);
+                    track_break_add_offset( fname, atoi( tmp));
+                }
+            }
+            ptr = tmp;
+        } else {
+            *ptr = c;
+            ptr++;
+            if( ptr > tmp+1024) {
+                fprintf( stderr, "Error parsing file.\n");
+                fclose( fp);
+                return 1;
+            }
+        }
+    }
+
+    fclose( fp);
     return 0;
 }
 
