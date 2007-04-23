@@ -1,0 +1,387 @@
+# translation of pt.po to português
+# Copyright (C) YEAR Thomas Perl
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Jose Jorge <jjorge@free.fr>, 2007.
+msgid ""
+msgstr ""
+"Project-Id-Version: pt\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-04-08 12:01+0200\n"
+"PO-Revision-Date: 2007-04-23 22:25+0200\n"
+"Last-Translator: Jose Jorge <jjorge@free.fr>\n"
+"Language-Team: português <pt@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#: src/about.c:30
+msgid "Split a wave file into multiple chunks"
+msgstr "Dividir um ficheiro wave em partes múltiplas"
+
+#: src/appconfig.c:553 src/browsedir.c:37
+msgid "Select Output Directory"
+msgstr "Seleccionar a Pasta de Saída"
+
+#: src/appconfig.c:612
+msgid "wavbreaker Preferences"
+msgstr "Preferências do wavbreaker"
+
+#: src/appconfig.c:626
+msgid "General"
+msgstr "Geral"
+
+#: src/appconfig.c:628
+msgid "Save output files in folder:"
+msgstr "Gravar os ficheiros de saída na pasta:"
+
+#: src/appconfig.c:640
+msgid "Browse"
+msgstr "Escolher"
+
+#: src/appconfig.c:650
+msgid "File Naming"
+msgstr "Nomear os Ficheiros"
+
+#: src/appconfig.c:652
+msgid "Standard (##)"
+msgstr "Standard (##)"
+
+#: src/appconfig.c:662
+msgid "Prepend number before filename"
+msgstr "Meter o número antes do nome do ficheiro"
+
+#: src/appconfig.c:668
+msgid "Separator:"
+msgstr "Separador:"
+
+#: src/appconfig.c:680
+msgid "etree.org (d#t##)"
+msgstr "etree.org (d#t##)"
+
+#: src/appconfig.c:683
+msgid "CD Length:"
+msgstr "Duração do CD:"
+
+#: src/appconfig.c:698
+msgid "Audio Device"
+msgstr "Dispositivo Áudio"
+
+#: src/appconfig.c:700
+msgid "Audio Device:"
+msgstr "Dispositivo Áudio:"
+
+#: src/appconfig.c:707
+msgid "Disable audio output"
+msgstr "Desactivar a saída áudio "
+
+#: src/appconfig.c:723
+msgid "Output device:"
+msgstr "Dispositivo de saída:"
+
+#: src/autosplit.c:135
+msgid "Enter the time for autosplit:"
+msgstr "Escreva o tempo para o corte automático:"
+
+#: src/autosplit.c:140
+msgid "Example (5min, 32sec, 12subsec):"
+msgstr "Exemplo (5min, 32sec, 12subsec):"
+
+#: src/overwritedialog.c:100
+msgid ""
+" already exists.\n"
+"\n"
+"Do you want to overwrite the existing file?"
+msgstr ""
+" já existe.\n"
+"\n"
+"Deseja sobrepor o ficheiro?"
+
+#: src/overwritedialog.c:105
+msgid "Overwrite all files"
+msgstr "Sobrepor todos os ficheiros"
+
+#: src/reallyquit.c:28
+msgid "Quit wavbreaker?"
+msgstr "Sair do wavbreaker?"
+
+#: src/reallyquit.c:29
+msgid "If you quit wavbreaker now, any unsaved chunks will be lost."
+msgstr "Se fechar wavbreaker agora, todos as partes não gravadas serão perdidas."
+
+#: src/saveas.c:50
+msgid "Select folder to save wave files"
+msgstr "Seleccionar a pasta onde gravar os ficheiros wave"
+
+#: src/wavbreaker.c:381
+msgid "Write"
+msgstr "Escrever"
+
+#: src/wavbreaker.c:392
+msgid "File Name"
+msgstr "Nome do Ficheiro"
+
+#: src/wavbreaker.c:409
+msgid "Time"
+msgstr "Tempo"
+
+#: src/wavbreaker.c:420
+msgid "Duration"
+msgstr "Duração"
+
+#: src/wavbreaker.c:430
+msgid "Offset"
+msgstr "Posição"
+
+#: src/wavbreaker.c:953
+msgid "Splitting wave file"
+msgstr "A dividir o ficheiro wave"
+
+#: src/wavbreaker.c:965
+msgid "The selected track breaks are now written to disk. This can take some time."
+msgstr "Os cortes pedidos estão agora a ser escritos no disco. Isto pode levar algum tempo."
+
+#: src/wavbreaker.c:992
+#, c-format
+msgid "The file %s has been split into %d parts."
+msgstr "O ficheiro %s foi cortado em %d partes."
+
+#: src/wavbreaker.c:994
+#, c-format
+msgid "The file %s has been split into one part."
+msgstr "O ficheiro %s foi cortado em uma parte."
+
+#: src/wavbreaker.c:996
+msgid "Operation successful"
+msgstr "Operação conseguida"
+
+#: src/wavbreaker.c:1011
+#, c-format
+msgid "Writing %s"
+msgstr "A escrever %s"
+
+#: src/wavbreaker.c:1026
+#, c-format
+msgid "%d of %d parts written"
+msgstr "%d das %d partes escritas"
+
+#: src/wavbreaker.c:1028
+#, c-format
+msgid "%d of 1 part written"
+msgstr "%d de uma parte escrito"
+
+#: src/wavbreaker.c:1101
+msgid "Analyzing waveform"
+msgstr "A analisar a onda sonora"
+
+#: src/wavbreaker.c:1113
+msgid ""
+"The waveform data of the selected file is being analyzed and processed. This "
+"can take some time."
+msgstr "A onda sonora do ficheiro seleccionado está sendo analisada e processada. Isto pode levar algum tempo."
+
+#: src/wavbreaker.c:1121
+#, c-format
+msgid "Analyzing %s"
+msgstr "A analisar %s"
+
+#: src/wavbreaker.c:1167
+#, c-format
+msgid "%d of %d MB analyzed"
+msgstr "%d de %d MB analisados"
+
+#: src/wavbreaker.c:1180
+msgid "Error opening file"
+msgstr "Erro ao abrir o ficheiro"
+
+#: src/wavbreaker.c:1271
+msgid "All files"
+msgstr "Todos os ficheiros"
+
+#: src/wavbreaker.c:1275
+msgid "Supported files"
+msgstr "Ficheiros suportados"
+
+#: src/wavbreaker.c:1278
+msgid "Open File"
+msgstr "Abrir um Ficheiro"
+
+#: src/wavbreaker.c:1944 src/wavbreaker.c:1961 src/wavbreaker.c:2207
+msgid "Play"
+msgstr "Reproduzir"
+
+#: src/wavbreaker.c:1953
+msgid "Stop"
+msgstr "Parar"
+
+#: src/wavbreaker.c:2016
+msgid "Select name for TOC file to export"
+msgstr "Seleccionar o nome do ficheiro TOC a exportar"
+
+#: src/wavbreaker.c:2028
+msgid "Export failed"
+msgstr "A exportação falhou"
+
+#: src/wavbreaker.c:2028
+msgid "There has been an error exporting track breaks to the TOC file."
+msgstr "Ocorreu um erro ao exportar as marcas de separação no ficheiro TOC."
+
+#: src/wavbreaker.c:2030
+msgid "TOC export successful"
+msgstr "Exporte do TOC conseguido"
+
+#: src/wavbreaker.c:2030
+msgid ""
+"The track breaks have been exported to a TOC file that can be used to burn a "
+"CD from the wave file."
+msgstr "As marcas de separação foram exportadas no ficheiro TOC que pode servir para gravar um CD a partir do ficheiro."
+
+#: src/wavbreaker.c:2138
+msgid "_Open"
+msgstr "_Abrir"
+
+#: src/wavbreaker.c:2138
+msgid "Open a wave file"
+msgstr "Abrir um ficheiro wave"
+
+#: src/wavbreaker.c:2143
+msgid "_Save"
+msgstr "_Gravar"
+
+#: src/wavbreaker.c:2143
+msgid "Save track breaks"
+msgstr "Gravar as separações de pista"
+
+#: src/wavbreaker.c:2149
+msgid "Save to..."
+msgstr "Gravar sob..."
+
+#: src/wavbreaker.c:2149
+msgid "Save track breaks to folder"
+msgstr "Gravar as separações de pista na pasta"
+
+#: src/wavbreaker.c:2154
+msgid "Preferences"
+msgstr "Preferências"
+
+#: src/wavbreaker.c:2154
+msgid "Configure wavbreaker"
+msgstr "Configurar wavbreaker"
+
+#: src/wavbreaker.c:2159
+msgid "Quit"
+msgstr "Sair"
+
+#: src/wavbreaker.c:2159
+msgid "Close wavbreaker"
+msgstr "Fechar wavbreaker"
+
+#: src/wavbreaker.c:2164
+msgid "Display toolbar"
+msgstr "Mostrar a barra de ferramentas"
+
+#: src/wavbreaker.c:2164
+msgid "Show or hide the main window toolbar"
+msgstr "Mostra ou esconde a barra de ferramentas"
+
+#: src/wavbreaker.c:2170
+msgid "Add track break"
+msgstr "Adicionar uma separação de pista"
+
+#: src/wavbreaker.c:2170
+msgid "Add track break at cursor position"
+msgstr "Adicionar uma separação de pista na posição do cursor"
+
+#: src/wavbreaker.c:2175
+msgid "Remove track break"
+msgstr "Remover uma separação de pista"
+
+#: src/wavbreaker.c:2175
+msgid "Remove selected track break"
+msgstr "Remover a separação de pista seleccionada"
+
+#: src/wavbreaker.c:2180
+msgid "Jump to track break"
+msgstr "Saltar para a separação de pista"
+
+#: src/wavbreaker.c:2180
+msgid "Set cursor position to track break"
+msgstr "Define a posição do cursor na separação de pista"
+
+#: src/wavbreaker.c:2185
+msgid "Jump to cursor marker"
+msgstr "Salto até ao marcador do cursor"
+
+#: src/wavbreaker.c:2185
+msgid "Set view to cursor marker"
+msgstr "Define a vista no marcador do cursor"
+
+#: src/wavbreaker.c:2190
+msgid "Rename track breaks"
+msgstr "Mudar o nome das separações de pistas"
+
+#: src/wavbreaker.c:2190
+msgid "Automatically rename all track breaks"
+msgstr "Mudar automaticamente o nome de todas as partes"
+
+#: src/wavbreaker.c:2195
+msgid "Auto-Split"
+msgstr "Auto Dividir"
+
+#: src/wavbreaker.c:2195
+msgid "Split into chunks with specified size"
+msgstr "Dividir em partes de tamanho indicado"
+
+#: src/wavbreaker.c:2201
+msgid "Export to TOC"
+msgstr "Exportar para um TOC"
+
+#: src/wavbreaker.c:2201
+msgid "Export to CD-ROM TOC file for burning"
+msgstr "Exportar para um ficheiro TOC de CD ROM para gravação"
+
+#: src/wavbreaker.c:2207
+msgid "Start/Stop playback of media"
+msgstr "Iniciar/Parar a reprodução"
+
+#: src/wavbreaker.c:2212
+msgid "About"
+msgstr "Acerca de"
+
+#: src/wavbreaker.c:2212
+msgid "Show information about "
+msgstr "Mostrar as informações acerca do wavbreaker"
+
+#: src/wavbreaker.c:2295
+msgid "_File"
+msgstr "_Ficheiro"
+
+#: src/wavbreaker.c:2308
+msgid "_Edit"
+msgstr "_Editar"
+
+#: src/wavbreaker.c:2322
+msgid "_View"
+msgstr "_Ver"
+
+#: src/wavbreaker.c:2331
+msgid "_Help"
+msgstr "_Ajuda"
+
+#: src/wavbreaker.c:2464
+msgid "Cursor position:"
+msgstr "Posição do cursor:"
+
+#: src/wavbreaker.c:2490
+msgid "Add"
+msgstr "Adicionar"
+
+#: src/wavbreaker.c:2505
+msgid "Remove"
+msgstr "Remover"
+
+#: src/wavbreaker.c:2520
+msgid "Auto-Rename"
+msgstr "Mudar automaticamente o nome"
+
