@@ -26,9 +26,9 @@
 #include "gettext.h"
 #include "wavbreaker.h"
 
-#define COPYRIGHT "Copyright (C) 2002-2006 Timothy Robinson\nCopyright (C) 2006-2007 Thomas Perl"
+#define COPYRIGHT "Copyright (C) 2002-2007 Timothy Robinson\nCopyright (C) 2006-2007 Thomas Perl"
 #define APPDESCRIPTION _("Split a wave file into multiple chunks")
-#define URL "http://thpinfo.com/2006/wavbreaker/"
+#define URL "http://wavbreaker.sourceforge.net/"
 
 #define AUTHOR_A "Timothy Robinson <tdrobinson@huli.org>"
 #define AUTHOR_B "Thomas Perl <thp@perli.net>"
