@@ -58,7 +58,7 @@ void saveas_show(GtkWidget *parent_window)
         saveas_set_dirname( getenv( "PWD"));
     }
 
-    gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), saveas_get_dirname());
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(dialog), saveas_get_dirname());
 
     if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         saveas_set_dirname( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));

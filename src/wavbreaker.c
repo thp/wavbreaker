@@ -1339,12 +1339,21 @@ static void open_select_file() {
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
 
+    if (sample_filename != NULL) {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
+            saveas_get_dirname());
+    }
+
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename;
+        char *dirname;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
         set_sample_filename(filename);
         g_free(filename);
+        dirname = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
+        saveas_set_dirname(dirname);
+        g_free(dirname);
         open_file();
     }
 
