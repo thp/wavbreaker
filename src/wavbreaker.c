@@ -1421,7 +1421,7 @@ static void draw_sample(GtkWidget *widget)
 
     /* clear sample_pixmap before drawing */
 
-    gdk_gc_set_foreground(gc, &zoom_color);
+    gdk_gc_set_foreground(gc, &bg_color);
     gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
     xaxis = height / 2;
@@ -2541,7 +2541,7 @@ int main(int argc, char **argv)
 
     zoom_color.red   =
     zoom_color.green =
-    zoom_color.blue  = 240*(65535/255);
+    zoom_color.blue  = 180*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &zoom_color);
 
     axis_color.red   =
