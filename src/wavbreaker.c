@@ -90,7 +90,7 @@ static GtkAdjustment *cursor_marker_spinner_adj;
 
 static GraphData graphData;
 
-#define SAMPLE_COLORS 10
+#define SAMPLE_COLORS 6
 #define SAMPLE_SHADES 3
 
 GdkColor sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
@@ -101,17 +101,20 @@ GdkColor axis_color;
 GdkColor cursor_marker_color;
 GdkColor play_marker_color;
 
+/**
+ * The sample_colors_values array now uses colors from the
+ * Tango Icon Theme Guidelines (except "Chocolate", as it looks too much like
+ * "Orange" in the waveform sample view), see this URL for more information:
+ *
+ * http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines
+ **/
 const int sample_colors_values[SAMPLE_COLORS][3] = {
-    { 15, 184, 225 },
-    { 255, 0, 0 },
-    { 0, 255, 0 },
-    { 255, 255, 0 },
-    { 0, 255, 255 },
-    { 255, 0, 255 },
-    { 255, 128, 128 },
-    { 128, 128, 255 },
-    { 128, 255, 128 },
-    { 128, 50, 200 }
+    { 52, 101, 164 }, // Sky Blue
+    { 204, 0, 0 },    // Scarlet Red
+    { 115, 210, 22 }, // Chameleon
+    { 237, 212, 0 },  // Butter
+    { 245, 121, 0 },  // Orange
+    { 117, 80, 123 }, // Plum
 };
 
 static gulong cursor_marker;
@@ -2558,7 +2561,7 @@ int main(int argc, char **argv)
 
     for( i=0; i<SAMPLE_COLORS; i++) {
         for( x=0; x<SAMPLE_SHADES; x++) {
-            factor_white = 0.4*(65535*x/(256*SAMPLE_SHADES));
+            factor_white = 0.5*(65535*x/(256*SAMPLE_SHADES));
             factor_color = 65535/256-factor_white;
             sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+255*factor_white;
             sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+255*factor_white;
