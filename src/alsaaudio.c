@@ -70,11 +70,13 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
     unsigned int rrate;
     snd_pcm_format_t format;
     snd_pcm_hw_params_t *hw_params;
-    snd_pcm_sframes_t buffer_size;
-    snd_pcm_sframes_t period_size;
+    snd_pcm_uframes_t buffer_size;
+    snd_pcm_uframes_t period_size;
 
     unsigned int buffer_time = 500000;         /* ring buffer length in us */
     unsigned int period_time = 100000;         /* period time in us */
+
+    format = SND_PCM_FORMAT_S16_LE;
 
     if (sampleInfo->bitsPerSample == 16) {
         bytesPerFrame = 2;

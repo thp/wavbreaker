@@ -401,7 +401,8 @@ wav_merge_files(char *filename,
                 char *filenames[],
                 int buf_size)
 {
-    int i, ret;
+    int i;
+    int ret = 0;
     SampleInfo sample_info[num_files];
     unsigned long data_ptr[num_files];
     FILE *new_fp, *read_fp;

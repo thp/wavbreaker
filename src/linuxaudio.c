@@ -50,6 +50,8 @@ int oss_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
     int format, speed, channels;
     int ret;
 
+    format = AFMT_S16_LE;
+
     if (sampleInfo->bitsPerSample == 16) {
         format = AFMT_S16_LE;
     } else if (sampleInfo->bitsPerSample == 8) {

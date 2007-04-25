@@ -99,7 +99,8 @@ void sample_init()
 
 static gpointer play_thread(gpointer thread_data)
 {
-    int read_ret, write_ret, i;
+    int read_ret = 0;
+    int write_ret, i;
     guint *play_marker = (guint *)thread_data;
     unsigned char *devbuf;
 
@@ -300,8 +301,10 @@ void sample_close_file()
 
 static void sample_max_min(GraphData *graphData, double *pct)
 {
-    int tmp, min, max;
-    int i, k, ret;
+    int tmp = 0;
+    int ret = 0;
+    int min, max;
+    int i, k;
     int numSampleBlocks;
     double tmp_sample_calc;
     unsigned char devbuf[BLOCK_SIZE];
