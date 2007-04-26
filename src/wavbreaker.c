@@ -190,6 +190,8 @@ static void set_title( char* title);
 
 /* Sample and Summary Display Functions */
 static void redraw();
+static gboolean redraw_later( gpointer data);
+
 static void draw_sample(GtkWidget *widget);
 static void draw_cursor_marker();
 static void draw_play_marker();
@@ -1380,10 +1382,26 @@ void set_sample_filename(const char *f) {
 
 static void redraw()
 {
-    draw_sample(draw);
-    gtk_widget_queue_draw(draw);
-    draw_summary_pixmap(draw_summary);
-    gtk_widget_queue_draw(draw_summary);
+    static int redraw_done = 1;
+
+    if( redraw_done) {
+        /* Only redraw if the last operation finished already. */
+        redraw_done = 0;
+        gtk_idle_add( redraw_later, &redraw_done);
+    }
+}
+
+static gboolean redraw_later( gpointer data)
+{
+    int *redraw_done = (int*)data;
+
+    draw_sample( draw);
+    gtk_widget_queue_draw( draw);
+    draw_summary_pixmap( draw_summary);
+    gtk_widget_queue_draw( draw_summary);
+
+    *redraw_done = 1;
+    return FALSE;
 }
 
 static void draw_sample(GtkWidget *widget)
@@ -2592,9 +2610,12 @@ int main(int argc, char **argv)
              G_CALLBACK(draw_summary_configure_event), NULL);
     g_signal_connect(G_OBJECT(draw_summary), "button_release_event",
              G_CALLBACK(draw_summary_button_release), NULL);
+    g_signal_connect(G_OBJECT(draw_summary), "motion_notify_event",
+             G_CALLBACK(draw_summary_button_release), NULL);
 
     gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
     gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
+    gtk_widget_add_events(draw_summary, GDK_BUTTON_MOTION_MASK);
 
     frame = gtk_frame_new(NULL);
     gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
