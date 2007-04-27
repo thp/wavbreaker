@@ -65,6 +65,7 @@ void wavbreaker_autosplit(long x);
 void track_break_rename();
 void wavbreaker_write_files(char *dirname);
 GtkWidget *wavbreaker_get_main_window();
+gboolean open_file_arg( gpointer data);
 
 void wavbreaker_quit();
 

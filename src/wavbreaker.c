@@ -40,6 +40,7 @@
 #include "overwritedialog.h"
 #include "toc.h"
 #include "reallyquit.h"
+#include "guimerge.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -64,6 +65,7 @@ static GtkAction *action_open;
 static GtkAction *action_save;
 static GtkAction *action_save_to;
 static GtkAction *action_preferences;
+static GtkAction *action_guimerge;
 static GtkAction *action_quit;
 
 static GtkToggleAction *action_view_toolbar;
@@ -184,7 +186,6 @@ void filesel_ok_clicked(GtkWidget *widget, gpointer data);
 void filesel_cancel_clicked(GtkWidget *widget, gpointer data);
 void set_sample_filename(const char *f);
 static void open_file();
-static gboolean open_file_arg( gpointer data);
 static void handle_arguments( int argc, char** argv);
 static void set_title( char* title);
 
@@ -254,6 +255,9 @@ menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
+menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -1260,7 +1264,7 @@ static void open_file() {
     set_title( basename( sample_filename));
 }
 
-static gboolean open_file_arg( gpointer data) {
+gboolean open_file_arg( gpointer data) {
     if( data != NULL) {
       set_sample_filename( (char *)data);
       open_file();
@@ -2263,6 +2267,12 @@ menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget)
 }
 
 static void
+menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    guimerge_show(main_window);
+}
+
+static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     if( sample_filename != NULL) {
@@ -2335,6 +2345,11 @@ void init_actions()
     g_signal_connect( action_preferences, "activate", G_CALLBACK(menu_config), NULL);
     gtk_action_set_accel_group( action_preferences, accel_group);
     gtk_action_group_add_action_with_accel( action_group, action_preferences, "<control>P");
+
+    action_guimerge = gtk_action_new( "guimerge", _("Merge wave files"), _("Merge wave files together"), GTK_STOCK_DND_MULTIPLE);
+    g_signal_connect( action_guimerge, "activate", G_CALLBACK(menu_merge), NULL);
+    gtk_action_set_accel_group( action_guimerge, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_guimerge, "<control>M");
 
     action_quit = gtk_action_new( "quit", _("Quit"), _("Close wavbreaker"), GTK_STOCK_QUIT);
     g_signal_connect( action_quit, "activate", G_CALLBACK(menu_quit), NULL);
@@ -2490,6 +2505,8 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_to));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_guimerge));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_preferences));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());

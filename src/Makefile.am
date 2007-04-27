@@ -8,7 +8,8 @@ bin_PROGRAMS = wavbreaker wavmerge wavinfo
 
 wavbreaker_SOURCES = cdda.c sample.c wav.c wavbreaker.c about.c \
 	appconfig.c autosplit.c popupmessage.c saveas.c browsedir.c \
-	toc.c nosound.c reallyquit.c fileutils.c overwritedialog.c
+	toc.c nosound.c reallyquit.c fileutils.c overwritedialog.c \
+	guimerge.c
 
 if NEED_ALSA
 wavbreaker_SOURCES += alsaaudio.c
