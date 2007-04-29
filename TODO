@@ -17,6 +17,14 @@ alsa and jack drivers
 sound card format issues
 pause function
 
+Seek to next/previous silent part
+FLAC import/export functionality
+
+better track break txt offset file support
+    - ask user if she wants to open a .txt offset file with the same name
+    - save on exit
+    - maybe write temporary track break backup in case wavbreaker crashes
+
 Release TODO list
 ----
 freshmeat.net
