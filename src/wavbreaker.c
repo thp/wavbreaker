@@ -2411,6 +2411,7 @@ void init_actions()
 
     action_playback = gtk_action_new( "playback", _("Play"), _("Start/Stop playback of media"), GTK_STOCK_MEDIA_PLAY);
     g_signal_connect( action_playback, "activate", G_CALLBACK(menu_play), NULL);
+    gtk_action_group_add_action_with_accel( action_group, action_playback, "<control>x");
     gtk_action_set_accel_group( action_playback, accel_group);
     gtk_action_set_sensitive( action_playback, FALSE);
 
