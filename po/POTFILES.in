@@ -3,6 +3,7 @@ src/appconfig.c
 src/autosplit.c
 src/browsedir.c
 src/gettext.h
+src/guimerge.c
 src/overwritedialog.c
 src/reallyquit.c
 src/saveas.c

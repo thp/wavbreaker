@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-04-29 14:39+0200\n"
+"POT-Creation-Date: 2007-05-07 20:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -88,6 +88,83 @@ msgstr ""
 msgid "Example (5min, 32sec, 12subsec):"
 msgstr ""
 
+#: src/guimerge.c:107 src/guimerge.c:196 src/wavbreaker.c:1336
+#: src/wavbreaker.c:2153 src/wavbreaker.c:2194
+msgid "All files"
+msgstr ""
+
+#: src/guimerge.c:111 src/guimerge.c:200 src/wavbreaker.c:1340
+msgid "Supported files"
+msgstr ""
+
+#: src/guimerge.c:114
+msgid "Select filename for merged wave file"
+msgstr ""
+
+#: src/guimerge.c:127
+msgid "Open file in wavbreaker after merge"
+msgstr ""
+
+#: src/guimerge.c:168
+msgid "Wrong file format - skipping file"
+msgstr ""
+
+#: src/guimerge.c:203
+msgid "Add wave file to merge"
+msgstr ""
+
+#: src/guimerge.c:284 src/wavbreaker.c:2349
+msgid "Merge wave files"
+msgstr ""
+
+#: src/guimerge.c:298
+msgid "Add wave files to this list and click on \"Merge\"."
+msgstr ""
+
+#: src/guimerge.c:322 src/wavbreaker.c:415
+msgid "File Name"
+msgstr ""
+
+#: src/guimerge.c:332
+msgid "Length"
+msgstr ""
+
+#: src/guimerge.c:364
+msgid "Merge"
+msgstr ""
+
+#: src/guimerge.c:412
+msgid "Merging wave files"
+msgstr ""
+
+#: src/guimerge.c:424
+msgid "The selected files are now being merged. This can take some time."
+msgstr ""
+
+#: src/guimerge.c:450
+#, c-format
+msgid "The files have been merged as %s."
+msgstr ""
+
+#: src/guimerge.c:451 src/wavbreaker.c:1059
+msgid "Operation successful"
+msgstr ""
+
+#: src/guimerge.c:466
+#, c-format
+msgid "Adding %s"
+msgstr ""
+
+#: src/guimerge.c:481
+#, c-format
+msgid "%d of %d files merged"
+msgstr ""
+
+#: src/guimerge.c:483
+#, c-format
+msgid "%d of 1 file merged"
+msgstr ""
+
 #: src/overwritedialog.c:100
 msgid ""
 " already exists.\n"
@@ -113,10 +190,6 @@ msgstr ""
 
 #: src/wavbreaker.c:404
 msgid "Write"
-msgstr ""
-
-#: src/wavbreaker.c:415
-msgid "File Name"
 msgstr ""
 
 #: src/wavbreaker.c:432
@@ -148,10 +221,6 @@ msgstr ""
 #: src/wavbreaker.c:1057
 #, c-format
 msgid "The file %s has been split into one part."
-msgstr ""
-
-#: src/wavbreaker.c:1059
-msgid "Operation successful"
 msgstr ""
 
 #: src/wavbreaker.c:1074
@@ -191,14 +260,6 @@ msgstr ""
 
 #: src/wavbreaker.c:1243
 msgid "Error opening file"
-msgstr ""
-
-#: src/wavbreaker.c:1336 src/wavbreaker.c:2153 src/wavbreaker.c:2194
-msgid "All files"
-msgstr ""
-
-#: src/wavbreaker.c:1340
-msgid "Supported files"
 msgstr ""
 
 #: src/wavbreaker.c:1343
@@ -277,10 +338,6 @@ msgstr ""
 
 #: src/wavbreaker.c:2344
 msgid "Configure wavbreaker"
-msgstr ""
-
-#: src/wavbreaker.c:2349
-msgid "Merge wave files"
 msgstr ""
 
 #: src/wavbreaker.c:2349
@@ -379,42 +436,42 @@ msgstr ""
 msgid "Start/Stop playback of media"
 msgstr ""
 
-#: src/wavbreaker.c:2417
+#: src/wavbreaker.c:2418
 msgid "About"
 msgstr ""
 
-#: src/wavbreaker.c:2417
+#: src/wavbreaker.c:2418
 msgid "Show information about "
 msgstr ""
 
-#: src/wavbreaker.c:2500
+#: src/wavbreaker.c:2501
 msgid "_File"
 msgstr ""
 
-#: src/wavbreaker.c:2515
+#: src/wavbreaker.c:2516
 msgid "_Edit"
 msgstr ""
 
-#: src/wavbreaker.c:2532
+#: src/wavbreaker.c:2533
 msgid "_View"
 msgstr ""
 
-#: src/wavbreaker.c:2541
+#: src/wavbreaker.c:2542
 msgid "_Help"
 msgstr ""
 
-#: src/wavbreaker.c:2682
+#: src/wavbreaker.c:2683
 msgid "Cursor position:"
 msgstr ""
 
-#: src/wavbreaker.c:2708
+#: src/wavbreaker.c:2709
 msgid "Add"
 msgstr ""
 
-#: src/wavbreaker.c:2723
+#: src/wavbreaker.c:2724
 msgid "Remove"
 msgstr ""
 
-#: src/wavbreaker.c:2738
+#: src/wavbreaker.c:2739
 msgid "Auto-Rename"
 msgstr ""
