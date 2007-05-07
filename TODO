@@ -19,6 +19,7 @@ pause function
 
 Seek to next/previous silent part
 FLAC import/export functionality
+Direct opening/saving from/to RAW (i.e. headerless, 2ch/44100s/16bit data)
 
 better track break txt offset file support
     - ask user if she wants to open a .txt offset file with the same name
