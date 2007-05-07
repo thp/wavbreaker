@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "wav.h"
 
 unsigned long wavDataPtr;
@@ -447,7 +448,7 @@ wav_merge_files(char *filename,
 
     for (i = 0; i < num_files; i++) {
         if ((read_fp = fopen(filenames[i], "rb")) == NULL) {
-            printf("error opening %s for writing\n", filenames[i]);
+            printf("error opening %s for reading\n", filenames[i]);
             fclose(new_fp);
             fclose(read_fp);
             return -1;
@@ -482,3 +483,118 @@ wav_merge_files(char *filename,
 
     return ret;
 }
+
+int
+wav_merge_files_gui(char *filename,
+                int num_files,
+                char *filenames[],
+                int buf_size,
+                WriteInfo *write_info)
+{
+    int i;
+    int ret = 0;
+    SampleInfo sample_info[num_files];
+    unsigned long data_ptr[num_files];
+    FILE *new_fp, *read_fp;
+    unsigned long cur_pos, end_pos, num_bytes;
+    unsigned char buf[buf_size];
+
+    write_info->num_files = num_files;
+    write_info->cur_file = 0;
+    write_info->sync = 0;
+    write_info->sync_check_file_overwrite_to_write_progress = 0;
+    write_info->check_file_exists = 0;
+    write_info->skip_file = -1;
+
+    for (i = 0; i < num_files; i++) {
+        wav_read_header(filenames[i], &sample_info[i], 0);
+        data_ptr[i] = wavDataPtr;
+    }
+
+    num_bytes = sample_info[0].numBytes;
+
+    for (i = 1; i < num_files; i++) {
+        if (sample_info[0].channels != sample_info[i].channels) {
+            return 1;
+        } else if (sample_info[0].samplesPerSec != 
+                            sample_info[i].samplesPerSec) {
+            return 1;
+        } else if (sample_info[0].avgBytesPerSec != 
+                            sample_info[i].avgBytesPerSec) {
+            return 1;
+        } else if (sample_info[0].blockAlign != sample_info[i].blockAlign) {
+            return 1;
+        } else if (sample_info[0].bitsPerSample != 
+                            sample_info[i].bitsPerSample) {
+            return 1;
+        }
+
+        num_bytes += sample_info[i].numBytes;
+    }
+
+    if ((new_fp = fopen(filename, "wb")) == NULL) {
+        printf("error opening %s for writing\n", filename);
+        return -1;
+    }
+
+    if ((wav_write_file_header(new_fp, &sample_info[0], num_bytes)) != 0) {
+        fclose(new_fp);
+        return -1;
+    }
+
+    for (i = 0; i < num_files; i++) {
+        write_info->pct_done = 0.0;
+        write_info->cur_file++;
+        if (write_info->cur_filename != NULL) {
+            free(write_info->cur_filename);
+        }
+        write_info->cur_filename = strdup(filenames[i]);
+
+        if ((read_fp = fopen(filenames[i], "rb")) == NULL) {
+            printf("error opening %s for reading\n", filenames[i]);
+            fclose(new_fp);
+            fclose(read_fp);
+            return -1;
+        }
+
+        cur_pos = data_ptr[i];
+        num_bytes = sample_info[i].numBytes;
+        end_pos = cur_pos + num_bytes;
+
+        if (fseek(read_fp, cur_pos, SEEK_SET)) {
+            fclose(new_fp);
+            fclose(read_fp);
+            return -1;
+        }
+
+        while ((ret = fread(buf, 1, buf_size, read_fp)) > 0 &&
+                           (cur_pos < end_pos)) {
+
+            if ((fwrite(buf, 1, ret, new_fp)) < ret) {
+                printf("error writing to file %s\n", filename);
+                fclose(new_fp);
+                fclose(read_fp);
+                return -1;
+            }
+
+            write_info->pct_done = (double) cur_pos / num_bytes;
+
+            cur_pos += ret;
+        }
+
+        fclose(read_fp);
+    }
+
+    write_info->sync = 1;
+    if (write_info->cur_filename != NULL) {
+        free(write_info->cur_filename);
+    }
+    write_info->cur_filename = NULL;
+
+    fclose(new_fp);
+
+    write_info->pct_done = 1.0;
+
+    return ret;
+}
+

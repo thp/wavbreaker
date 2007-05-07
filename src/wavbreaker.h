@@ -50,6 +50,7 @@ struct WriteInfo_ {
 	guint num_files;
 	guint cur_file;
 	char *cur_filename;
+	char *merge_filename;
 	double pct_done;
 	guint sync;
 	gint check_file_exists;

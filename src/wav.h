@@ -20,6 +20,7 @@
 #define WAV_H
 
 #include "sample.h"
+#include "wavbreaker.h"
 
 #define RiffID "RIFF"
 #define WaveID "WAVE"
@@ -68,5 +69,12 @@ wav_merge_files(char *filename,
                 int num_files,
                 char *filenames[],
                 int buf_size);
+
+int
+wav_merge_files_gui(char *filename,
+                int num_files,
+                char *filenames[],
+                int buf_size,
+                WriteInfo *write_info);
 
 #endif /* WAV_H */

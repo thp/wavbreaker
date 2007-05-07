@@ -55,5 +55,6 @@ int sample_open_file(const char *, GraphData *, double *);
 void sample_close_file();
 void sample_write_files(GList *, WriteInfo *, char *);
 gint sample_get_playing();
+void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write_info);
 
 #endif /* SAMPLE_H*/

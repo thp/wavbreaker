@@ -50,6 +50,9 @@ static GtkListStore *store = NULL;
 static char folder[4096] = {0};
 
 static SampleInfo common_sample_info;
+static WriteInfo write_info;
+
+gboolean file_merge_progress_idle_func(gpointer data);
 
 int get_merge_files_count()
 {
@@ -85,9 +88,8 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     GtkWidget *dialog;
     GValue value;
     GtkTreeIter iter;
-    char *filenames[500];
+    GList *filenames = NULL;
     char *tmp;
-    int i = 0;
     GtkWidget *checkbutton;
 
     GtkFileFilter *filter_all;
@@ -98,7 +100,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
         memset (&value, 0, sizeof (GValue));
         gtk_tree_model_get_value( GTK_TREE_MODEL(store), &iter, 0, &value);
         tmp = (char*)g_value_peek_pointer( &value);
-        filenames[i++] = tmp;
+        filenames = g_list_append(filenames, strdup(tmp));
     } while( gtk_tree_model_iter_next( GTK_TREE_MODEL(store), &iter) == TRUE);
 
     filter_all = gtk_file_filter_new();
@@ -134,11 +136,10 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 
     if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         tmp = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
-        wav_merge_files( tmp, i, filenames, DEFAULT_BUF_SIZE);
+        write_info.pct_done = 0.0;
+        sample_merge_files( tmp, filenames, &write_info);
         guimerge_hide( GTK_WIDGET(user_data));
-        if( gtk_toggle_button_get_active( GTK_TOGGLE_BUTTON(checkbutton))) {
-            g_idle_add( open_file_arg, (gpointer)tmp);
-        }
+        g_idle_add( file_merge_progress_idle_func, NULL);
     }
 
     gtk_widget_destroy( GTK_WIDGET(dialog));
@@ -375,5 +376,118 @@ void guimerge_show( GtkWidget *main_window)
 
     gtk_window_resize( GTK_WINDOW(window), 500, 300);
     gtk_widget_show_all(window);
+}
+
+gboolean file_merge_progress_idle_func(gpointer data) {
+    static GtkWidget *window;
+    static GtkWidget *pbar;
+    static GtkWidget *vbox;
+    static GtkWidget *label;
+    static GtkWidget *status_label;
+    static char tmp_str[6144];
+    static char str[6144];
+    char *str_ptr;
+    static int cur_file_displayed = 0;
+    static double fraction;
+
+    if (window == NULL) {
+        gdk_threads_enter();
+        window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        gtk_widget_realize(window);
+        gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+        gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+        gtk_window_set_transient_for(GTK_WINDOW(window),
+                GTK_WINDOW(wavbreaker_get_main_window()));
+        gtk_window_set_type_hint(GTK_WINDOW(window),
+                GDK_WINDOW_TYPE_HINT_DIALOG);
+        gtk_window_set_position(GTK_WINDOW(window),
+                GTK_WIN_POS_CENTER_ON_PARENT);
+        gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+
+
+        vbox = gtk_vbox_new(FALSE, 0);
+        gtk_container_add(GTK_CONTAINER(window), vbox);
+        gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+
+        gtk_window_set_title( GTK_WINDOW(window), _("Merging wave files"));
+
+        tmp_str[0] = '\0';
+        strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
+        strcat( tmp_str, gtk_window_get_title( GTK_WINDOW(window)));
+        strcat( tmp_str, "</span>");
+
+        label = gtk_label_new( NULL);
+        gtk_label_set_markup( GTK_LABEL(label), tmp_str);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
+
+        label = gtk_label_new( _("The selected files are now being written to disk. This can take some time."));
+        gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
+        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
+
+        pbar = gtk_progress_bar_new();
+        gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
+
+        status_label = gtk_label_new( NULL);
+        gtk_misc_set_alignment( GTK_MISC(status_label), 0.0, 0.5);
+        gtk_label_set_ellipsize( GTK_LABEL(status_label), PANGO_ELLIPSIZE_MIDDLE);
+        gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
+
+        gtk_widget_show_all(GTK_WIDGET(window));
+        cur_file_displayed = -1;
+
+        gdk_threads_leave();
+    }
+
+    if (write_info.sync) {
+        gdk_threads_enter();
+
+        write_info.sync = 0;
+        gtk_widget_destroy(window);
+        window = NULL;
+
+        sprintf( tmp_str, _("The files have been merged as %s."), basename(write_info.merge_filename));
+        popupmessage_show( NULL, _("Operation successful"), tmp_str);
+
+        gdk_threads_leave();
+        return FALSE;
+    }
+
+    if (cur_file_displayed != write_info.cur_file) {
+        gdk_threads_enter();
+
+        str_ptr = basename( write_info.cur_filename);
+
+        if( str_ptr == NULL) {
+            str_ptr = write_info.cur_filename;
+        }
+
+        sprintf( str, _("Writing %s"), str_ptr);
+        sprintf( tmp_str, "<i>%s</i>", str);
+        gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
+
+        cur_file_displayed = write_info.cur_file;
+
+        gdk_threads_leave();
+    }
+
+    gdk_threads_enter();
+
+    fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
+
+    if( write_info.num_files > 1) {
+        sprintf( tmp_str, _("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
+    } else {
+        sprintf( tmp_str, _("%d of 1 part written"), write_info.cur_file-1);
+    }
+    gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
+
+    gdk_threads_leave();
+
+    usleep( 100000);
+
+    return TRUE;
 }
 
