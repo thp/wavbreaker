@@ -421,7 +421,7 @@ gboolean file_merge_progress_idle_func(gpointer data) {
         gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
-        label = gtk_label_new( _("The selected files are now being written to disk. This can take some time."));
+        label = gtk_label_new( _("The selected files are now being merged. This can take some time."));
         gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
         gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
@@ -463,7 +463,7 @@ gboolean file_merge_progress_idle_func(gpointer data) {
             str_ptr = write_info.cur_filename;
         }
 
-        sprintf( str, _("Writing %s"), str_ptr);
+        sprintf( str, _("Adding %s"), str_ptr);
         sprintf( tmp_str, "<i>%s</i>", str);
         gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
 
@@ -478,9 +478,9 @@ gboolean file_merge_progress_idle_func(gpointer data) {
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
 
     if( write_info.num_files > 1) {
-        sprintf( tmp_str, _("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
+        sprintf( tmp_str, _("%d of %d files merged"), write_info.cur_file-1, write_info.num_files);
     } else {
-        sprintf( tmp_str, _("%d of 1 part written"), write_info.cur_file-1);
+        sprintf( tmp_str, _("%d of 1 file merged"), write_info.cur_file-1);
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
 

@@ -574,7 +574,7 @@ merge_thread(gpointer data)
         cur = g_list_next(cur);
     }
 
-    wav_merge_files_gui(thread_data->merge_filename,
+    wav_merge_files(thread_data->merge_filename,
                         g_list_length(thread_data->filenames),
                         filenames,
                         DEFAULT_BUF_SIZE,

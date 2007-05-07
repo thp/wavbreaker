@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    ret = wav_merge_files(merge_filename, num_files, filenames, DEFAULT_BUF_SIZE);
+    ret = wav_merge_files(merge_filename, num_files, filenames, DEFAULT_BUF_SIZE, NULL);
 
     if (ret != 0) {
         fprintf(stderr,
