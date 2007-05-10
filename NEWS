@@ -1,3 +1,13 @@
+version 0.8 (2007-05-10)
+    + New wavmerge gui
+    + German, French and Portuguese Translations
+    + new icons, sample display and colors
+    + Large file support (>2GB)
+    + summary wav display is now draggable
+    + manpages
+    + Support for load/save offsets from/to textfiles
+    ... and much more
+
 version 0.7.1 (2007-07-20)
     ! Fixed two-digit etree filename bug
     + Added basic argv handling
