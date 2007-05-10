@@ -1875,7 +1875,7 @@ draw_summary_expose_event(GtkWidget *widget,
 static gboolean draw_summary_button_release(GtkWidget *widget,
     GdkEventButton *event, gpointer user_data)
 {
-    guint start, midpoint, width;
+    guint midpoint, width;
     int x_scale, x_scale_leftover, x_scale_mod;
     int leftover_count;
 
@@ -1894,8 +1894,11 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
         leftover_count = 0;
     }
 
+    if (event->x < 0) {
+        return TRUE;
+    }
+
     midpoint = event->x * x_scale + leftover_count;
-    start = midpoint - width / 2;
     reset_sample_display(midpoint);
     redraw();
 
@@ -1913,10 +1916,12 @@ void reset_sample_display(guint midpoint)
         pixmap_offset = 0;
     } else if (start + width > graphData.numSamples) {
         pixmap_offset = graphData.numSamples - width;
-    } else if (pixmap_offset < 0) {
-        pixmap_offset = 0;
     } else {
         pixmap_offset = start;
+    }
+
+    if (pixmap_offset < 0) {
+        pixmap_offset = 0;
     }
 
     gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
