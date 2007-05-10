@@ -24,7 +24,7 @@ wavinfo_SOURCES = wavinfo.c wav.c
 
 noinst_HEADERS = cdda.h linuxaudio.h sample.h wav.h wavbreaker.h about.h \
 	appconfig.h autosplit.h popupmessage.h alsaaudio.h saveas.h browsedir.h \
-	toc.h nosound.h reallyquit.h fileutils.h overwritedialog.h
+	toc.h nosound.h reallyquit.h fileutils.h overwritedialog.h guimerge.h gettext.h
 
 wavbreaker_LDADD = $(WAVBREAKER_LIBS) $(ALSA_LIBS)
 
