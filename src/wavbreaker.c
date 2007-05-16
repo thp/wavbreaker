@@ -47,6 +47,8 @@
 
 #define APPNAME "wavbreaker"
 
+#define SILENCE_MIN_LENGTH 4
+
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
 static GdkPixmap *cursor_pixmap;
@@ -80,6 +82,8 @@ static GtkAction *action_jump_cursor;
 static GtkAction *action_save_breaks;
 static GtkAction *action_load_breaks;
 static GtkAction *action_playback;
+static GtkAction *action_next_silence;
+static GtkAction *action_prev_silence;
 
 static GtkAction *action_about;
 
@@ -273,6 +277,12 @@ menu_play(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_stop(GtkWidget *widget, gpointer user_data);
+
+static void
+menu_next_silence( GtkWidget* widget, gpointer user_data);
+
+static void
+menu_prev_silence( GtkWidget* widget, gpointer user_data);
 
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
@@ -1257,6 +1267,8 @@ static void open_file() {
     gtk_action_set_sensitive( action_save_breaks, TRUE);
     gtk_action_set_sensitive( action_load_breaks, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
+    gtk_action_set_sensitive( action_next_silence, TRUE);
+    gtk_action_set_sensitive( action_prev_silence, TRUE);
 
     menu_stop(NULL, NULL);
 
@@ -2079,6 +2091,48 @@ static void menu_stop(GtkWidget *widget, gpointer user_data)
     stop_sample();
 }
 
+static void menu_next_silence( GtkWidget* widget, gpointer user_data)
+{
+    int i, c = SILENCE_MIN_LENGTH+1, v;
+    int amp = graphData.minSampleAmp + (graphData.maxSampleAmp-graphData.minSampleAmp)*appconfig_get_silence_percentage()/100;
+
+    for( i=cursor_marker+1; i<graphData.numSamples; i++) {
+        v = graphData.data[i].max - graphData.data[i].min;
+        if( v < amp) {
+            c++;
+        } else {
+            c = 0;
+        }
+
+        if( c==SILENCE_MIN_LENGTH) {
+            cursor_marker = i;
+            jump_to_cursor_marker( widget, NULL);
+            return;
+        }
+    }
+}
+
+static void menu_prev_silence( GtkWidget* widget, gpointer user_data)
+{
+    int i, c = SILENCE_MIN_LENGTH+1, v;
+    int amp = graphData.minSampleAmp + (graphData.maxSampleAmp-graphData.minSampleAmp)*appconfig_get_silence_percentage()/100;
+
+    for( i=cursor_marker-1; i>0; i--) {
+        v = graphData.data[i].max - graphData.data[i].min;
+        if( v < amp) {
+            c++;
+        } else {
+            c = 0;
+        }
+
+        if( c==SILENCE_MIN_LENGTH) {
+            cursor_marker = i;
+            jump_to_cursor_marker( widget, NULL);
+            return;
+        }
+    }
+}
+
 static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     if( sample_filename == NULL) {
@@ -2420,6 +2474,18 @@ void init_actions()
     gtk_action_set_accel_group( action_playback, accel_group);
     gtk_action_set_sensitive( action_playback, FALSE);
 
+    action_next_silence = gtk_action_new( "next-silence", _("Seek to next silence"), _("Jump to next silent frame"), GTK_STOCK_GO_FORWARD);
+    g_signal_connect( action_next_silence, "activate", G_CALLBACK(menu_next_silence), NULL);
+    gtk_action_group_add_action_with_accel( action_group, action_next_silence, "<control>l");
+    gtk_action_set_accel_group( action_next_silence, accel_group);
+    gtk_action_set_sensitive( action_next_silence, FALSE);
+
+    action_prev_silence = gtk_action_new( "prev-silence", _("Seek to previous silence"), _("Jump to previous silent frame"), GTK_STOCK_GO_BACK);
+    g_signal_connect( action_prev_silence, "activate", G_CALLBACK(menu_prev_silence), NULL);
+    gtk_action_group_add_action_with_accel( action_group, action_prev_silence, "<control>k");
+    gtk_action_set_accel_group( action_prev_silence, accel_group);
+    gtk_action_set_sensitive( action_prev_silence, FALSE);
+
     action_about = gtk_action_new( "about", _("About"), _("Show information about " APPNAME), GTK_STOCK_ABOUT);
     g_signal_connect( action_about, "activate", G_CALLBACK(menu_about), NULL);
     gtk_action_set_accel_group( action_about, accel_group);
@@ -2532,8 +2598,15 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_breaks));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_breaks));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+
+    menu_item = gtk_menu_item_new_with_mnemonic( _("_Go"));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
+    submenu = gtk_menu_new();
+    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_playback));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_prev_silence));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_next_silence));
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_View"));
     gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);

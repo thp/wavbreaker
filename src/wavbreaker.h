@@ -32,6 +32,8 @@ typedef struct GraphData_ GraphData;
 struct GraphData_{
 	unsigned long numSamples;
 	unsigned long maxSampleValue;
+        unsigned long maxSampleAmp;
+        unsigned long minSampleAmp;
 	Points *data;
 };
 

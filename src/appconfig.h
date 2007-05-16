@@ -50,6 +50,8 @@ int appconfig_get_vpane1_position();
 void appconfig_set_vpane1_position(int x);
 int appconfig_get_vpane2_position();
 void appconfig_set_vpane2_position(int x);
+int appconfig_get_silence_percentage();
+void appconfig_set_silence_percentage(int x);
 int appconfig_get_ask_really_quit();
 void appconfig_set_ask_really_quit(int x);
 int appconfig_get_show_toolbar();

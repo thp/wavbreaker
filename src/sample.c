@@ -313,6 +313,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
     int tmp = 0;
     int ret = 0;
     int min, max;
+    int min_sample, max_sample;
     int i, k;
     int numSampleBlocks;
     double tmp_sample_calc;
@@ -350,6 +351,9 @@ static void sample_max_min(GraphData *graphData, double *pct)
             BLOCK_SIZE * i);
     }
 
+    min_sample = SHRT_MAX; /* highest value for 16-bit samples */
+    max_sample = 0;
+
     while (ret == BLOCK_SIZE) {
         min = max = 0;
         for (k = 0; k < ret; k++) {
@@ -374,6 +378,13 @@ static void sample_max_min(GraphData *graphData, double *pct)
         graph_data[i].min = min;
         graph_data[i].max = max;
 
+        if( min_sample > (max-min)) {
+            min_sample = (max-min);
+        }
+        if( max_sample < (max-min)) {
+            max_sample = (max-min);
+        }
+
         if (audio_type == CDDA) {
             ret = cdda_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
                     BLOCK_SIZE * i);
@@ -394,6 +405,9 @@ static void sample_max_min(GraphData *graphData, double *pct)
         free(graphData->data);
     }
     graphData->data = graph_data;
+
+    graphData->minSampleAmp = min_sample;
+    graphData->maxSampleAmp = max_sample;
 
     if (sampleInfo.bitsPerSample == 8) {
         graphData->maxSampleValue = UCHAR_MAX;

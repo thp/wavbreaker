@@ -106,6 +106,10 @@ static int main_window_height = -1;
 static int vpane1_position = -1;
 static int vpane2_position = -1;
 
+/* Percentage for silence detection */
+static int silence_percentage = 2;
+static GtkWidget *silence_spin_button = NULL;
+
 /* Ask user if the user really wants to quit wavbreaker. */
 static int ask_really_quit = 1;
 
@@ -343,6 +347,16 @@ void appconfig_set_vpane2_position(int x)
     vpane2_position = x;
 }
 
+int appconfig_get_silence_percentage()
+{
+    return silence_percentage;
+}
+
+void appconfig_set_silence_percentage(int x)
+{
+    silence_percentage = x;
+}
+
 int appconfig_get_ask_really_quit()
 {
     return ask_really_quit;
@@ -573,6 +587,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
     set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
+    appconfig_set_silence_percentage( gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(silence_spin_button)));
 
     set_audio_function_pointers_with_index(gtk_combo_box_get_active(
                 GTK_COMBO_BOX(combo_box)));
@@ -620,7 +635,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_container_add( GTK_CONTAINER(vbox), notebook);
 
     /* Selectable Output Directory */
-    table = gtk_table_new(2, 2, FALSE);
+    table = gtk_table_new(2, 3, FALSE);
     gtk_container_set_border_width(GTK_CONTAINER(table), 10);
     gtk_table_set_row_spacings( GTK_TABLE(table), 5);
     gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("General")));
@@ -642,6 +657,18 @@ void appconfig_show(GtkWidget *main_window)
         1, 2, 1, 2, GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(browse_button), "clicked",
             (GtkSignalFunc)browse_button_clicked, window);
+
+    silence_spin_button = (GtkWidget*)gtk_spin_button_new_with_range( 1.0, 100.0, 1.0);
+    gtk_spin_button_set_digits( GTK_SPIN_BUTTON(silence_spin_button), 0);
+    gtk_spin_button_set_value( GTK_SPIN_BUTTON(silence_spin_button), appconfig_get_silence_percentage());
+    
+    label = gtk_label_new( _("Maximum volume considered silence (in percent):"));
+    gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+
+    gtk_table_attach( GTK_TABLE(table), label,
+        0, 1, 2, 3, GTK_FILL, 0, 5, 0);
+    gtk_table_attach( GTK_TABLE(table), silence_spin_button,
+        1, 2, 2, 3, GTK_EXPAND, 0, 5, 0);
 
     /* Etree Filename Suffix */
 
@@ -882,6 +909,11 @@ static int appconfig_read_file() {
             nkey = atoi((char *)key);
             appconfig_set_vpane2_position(nkey);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "silence_percentage"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi((char *)key);
+            appconfig_set_silence_percentage(nkey);
+            xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "ask_really_quit"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             nkey = atoi((char *)key);
@@ -1083,6 +1115,18 @@ int appconfig_write_file() {
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
         fprintf(stderr, "error creating vpane2_position node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_silence_percentage());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"silence_percentage",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating silence_percentage node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
