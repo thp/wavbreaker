@@ -257,13 +257,7 @@ static gpointer open_thread(gpointer data)
 
 int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
-    if (sample_file != NULL) {
-        free(sample_file);
-        sample_file = NULL;
-    }
-    if (read_sample_fp != NULL) {
-        sample_close_file();
-    }
+    sample_close_file();
 
     sample_file = strdup(filename);
 
@@ -301,11 +295,15 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
 void sample_close_file()
 {
-    fclose(read_sample_fp);
-    read_sample_fp = NULL;
+    if( read_sample_fp != NULL) {
+        fclose( read_sample_fp);
+        read_sample_fp = NULL;
+    }
 
-    free(sample_file);
-    sample_file = NULL;
+    if( sample_file != NULL) {
+        free( sample_file);
+        sample_file = NULL;
+    }
 } 
 
 static void sample_max_min(GraphData *graphData, double *pct)
