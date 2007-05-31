@@ -34,7 +34,13 @@ void alsa_audio_close_device()
     #ifdef DEBUG
     printf("closing alsa audio device\n");
     #endif
-    snd_pcm_close(playback_handle);
+    if (playback_handle != NULL) {
+        snd_pcm_close(playback_handle);
+    }
+    playback_handle = NULL;
+    #ifdef DEBUG
+    printf("closed alsa audio device\n");
+    #endif
 }
 
 int alsa_audio_write(unsigned char *devbuf, int size)
