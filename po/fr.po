@@ -1,16 +1,19 @@
+# translation of fr.po to
 # French translation of wavbreaker
-# Copyright (C) 2007 José Jorge 
+# Copyright (C) 2007 José Jorge
 # This file is distributed under the same license as the wavbreaker package.
 #
 # José Jorge <jjorge@free.fr>, 2007.
+# Jose Jorge <jjorge@free.fr>, 2007.
+# José JORGE <jose.jorge@cpam-auch.cnamts.fr>, 2007.
 msgid ""
 msgstr ""
-"Project-Id-Version: wavbreaker 0.8\n"
+"Project-Id-Version: fr\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-05-07 20:20+0200\n"
-"PO-Revision-Date: 2007-05-01 17:34+0200\n"
-"Last-Translator: José Jorge <jjorge@free.fr>\n"
-"Language-Team: French <fr@li.org>\n"
+"POT-Creation-Date: 2007-07-05 08:35-0400\n"
+"PO-Revision-Date: 2007-07-06 16:27+0200\n"
+"Last-Translator: José JORGE <jose.jorge@cpam-auch.cnamts.fr>\n"
+"Language-Team:  <fr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,63 +23,67 @@ msgstr ""
 msgid "Split a wave file into multiple chunks"
 msgstr "Couper um fichier wave en plusieurs morceaux"
 
-#: src/appconfig.c:553 src/browsedir.c:37
+#: src/appconfig.c:567 src/browsedir.c:37
 msgid "Select Output Directory"
 msgstr "Sélectionner le Dossier de Sortie"
 
-#: src/appconfig.c:612
+#: src/appconfig.c:627
 msgid "wavbreaker Preferences"
 msgstr "Préférences"
 
-#: src/appconfig.c:626
+#: src/appconfig.c:641
 msgid "General"
 msgstr "Général"
 
-#: src/appconfig.c:628
+#: src/appconfig.c:643
 msgid "Save output files in folder:"
 msgstr "Enregistrer les fichiers coupés dans le dossier :"
 
-#: src/appconfig.c:640
+#: src/appconfig.c:655
 msgid "Browse"
 msgstr "Parcourir"
 
-#: src/appconfig.c:650
+#: src/appconfig.c:665
+msgid "Maximum volume considered silence (in percent):"
+msgstr "Pourcentage maximal du volume considéré comme du silence:"
+
+#: src/appconfig.c:677
 msgid "File Naming"
 msgstr "Nomage des Fichiers"
 
-#: src/appconfig.c:652
+#: src/appconfig.c:679
 msgid "Standard (##)"
 msgstr "Standard (##)"
 
-#: src/appconfig.c:662
+#: src/appconfig.c:689
 msgid "Prepend number before filename"
 msgstr "Mettre le numéro avant le nom du fichier"
 
-#: src/appconfig.c:668
+#: src/appconfig.c:695
 msgid "Separator:"
 msgstr "Séparateur:"
 
-#: src/appconfig.c:680
+#: src/appconfig.c:707
 msgid "etree.org (d#t##)"
 msgstr "etree.org (d#t##)"
 
-#: src/appconfig.c:683
+#: src/appconfig.c:710
 msgid "CD Length:"
 msgstr "Durée du CD:"
 
-#: src/appconfig.c:698
+#: src/appconfig.c:725
 msgid "Audio Device"
 msgstr "Périphérique Audio"
 
-#: src/appconfig.c:700
+#: src/appconfig.c:727
 msgid "Audio Device:"
 msgstr "Périphérique Audio :"
 
-#: src/appconfig.c:707
+#: src/appconfig.c:734
 msgid "Disable audio output"
 msgstr "Désactiver le son"
 
-#: src/appconfig.c:723
+#: src/appconfig.c:751
 msgid "Output device:"
 msgstr "Périphérique de son:"
 
@@ -88,89 +95,82 @@ msgstr "Ecrivez la durée pour la coupure automatique :"
 msgid "Example (5min, 32sec, 12subsec):"
 msgstr "Exemple (5min, 32sec, 12subsec):"
 
-#: src/guimerge.c:107 src/guimerge.c:196 src/wavbreaker.c:1336
-#: src/wavbreaker.c:2153 src/wavbreaker.c:2194
+#: src/guimerge.c:107 src/guimerge.c:196 src/wavbreaker.c:1348
+#: src/wavbreaker.c:2212 src/wavbreaker.c:2253
 msgid "All files"
 msgstr "Tous les fichiers"
 
-#: src/guimerge.c:111 src/guimerge.c:200 src/wavbreaker.c:1340
+#: src/guimerge.c:111 src/guimerge.c:200 src/wavbreaker.c:1352
 msgid "Supported files"
 msgstr "Fichiers acceptés"
 
 #: src/guimerge.c:114
-#, fuzzy
 msgid "Select filename for merged wave file"
-msgstr "Sélectionner le dossier où enregistrer les fichiers wave"
+msgstr "Sélectionner le nom du fichier où coller les fichiers wave"
 
 #: src/guimerge.c:127
 msgid "Open file in wavbreaker after merge"
-msgstr ""
+msgstr "Ouvrir le fichier dans wavbreaker après le collage"
 
 #: src/guimerge.c:168
 msgid "Wrong file format - skipping file"
-msgstr ""
+msgstr "Mauvais format de fichier - fichier ignoré"
 
 #: src/guimerge.c:203
 msgid "Add wave file to merge"
-msgstr ""
+msgstr "Ajouter le fichier wave au collage"
 
-#: src/guimerge.c:284 src/wavbreaker.c:2349
-#, fuzzy
+#: src/guimerge.c:284 src/wavbreaker.c:2408
 msgid "Merge wave files"
-msgstr "Ouvrir un fichier wave"
+msgstr "Concaténer des fichiers waves"
 
 #: src/guimerge.c:298
 msgid "Add wave files to this list and click on \"Merge\"."
-msgstr ""
+msgstr "Ajoutez les fichiers wave à cette liste et cliquez sur \"Concaténer\"."
 
-#: src/guimerge.c:322 src/wavbreaker.c:415
+#: src/guimerge.c:322 src/wavbreaker.c:425
 msgid "File Name"
 msgstr "Nom du fichier"
 
 #: src/guimerge.c:332
-#, fuzzy
 msgid "Length"
-msgstr "Durée du CD:"
+msgstr "Durée"
 
 #: src/guimerge.c:364
 msgid "Merge"
-msgstr ""
+msgstr "Concaténer"
 
 #: src/guimerge.c:412
-#, fuzzy
 msgid "Merging wave files"
-msgstr "Ouvrir un fichier wave"
+msgstr "Concatene les fichiers wave"
 
 #: src/guimerge.c:424
-#, fuzzy
 msgid "The selected files are now being merged. This can take some time."
-msgstr ""
-"Les morceaux de fichier sont maintenant en écriture sur le disque. Cela peut "
-"être long."
+msgstr "Les fichiers sélectionnés sont maintenant concaténés. Cela peut être long."
 
 #: src/guimerge.c:450
-#, fuzzy, c-format
+#, c-format
 msgid "The files have been merged as %s."
-msgstr "Le fichier %s a été coupé en %d morceaux."
+msgstr "Les fichiers ont été concaténés dans %s."
 
-#: src/guimerge.c:451 src/wavbreaker.c:1059
+#: src/guimerge.c:451 src/wavbreaker.c:1069
 msgid "Operation successful"
 msgstr "Opération réussie"
 
 #: src/guimerge.c:466
-#, fuzzy, c-format
+#, c-format
 msgid "Adding %s"
-msgstr "Analyse de %s"
+msgstr "Ajout de %s"
 
 #: src/guimerge.c:481
-#, fuzzy, c-format
+#, c-format
 msgid "%d of %d files merged"
-msgstr "%d des %d morceaux écrits"
+msgstr "%d des %d fichiers concaténés"
 
 #: src/guimerge.c:483
 #, c-format
 msgid "%d of 1 file merged"
-msgstr ""
+msgstr "%d d'un fichier concaténé"
 
 #: src/overwritedialog.c:100
 msgid ""
@@ -198,63 +198,62 @@ msgstr "Si vous quittez maintenant, tout morceau non enregistré sera perdu."
 msgid "Select folder to save wave files"
 msgstr "Sélectionner le dossier où enregistrer les fichiers wave"
 
-#: src/wavbreaker.c:404
+#: src/wavbreaker.c:414
 msgid "Write"
 msgstr "Écrire"
 
-#: src/wavbreaker.c:432
+#: src/wavbreaker.c:442
 msgid "Time"
 msgstr "Temps"
 
-#: src/wavbreaker.c:443
+#: src/wavbreaker.c:453
 msgid "Duration"
 msgstr "Durée"
 
-#: src/wavbreaker.c:453
+#: src/wavbreaker.c:463
 msgid "Offset"
 msgstr "Décalage"
 
-#: src/wavbreaker.c:1016
+#: src/wavbreaker.c:1026
 msgid "Splitting wave file"
 msgstr "Découpage en cours"
 
-#: src/wavbreaker.c:1028
-msgid ""
-"The selected track breaks are now written to disk. This can take some time."
+#: src/wavbreaker.c:1038
+msgid "The selected track breaks are now written to disk. This can take some time."
 msgstr ""
-"Les morceaux de fichier sont maintenant en écriture sur le disque. Cela peut "
-"être long."
+"Les découpages du fichier sont maintenant en écriture sur le disque. Cela "
+"peut être long."
 
-#: src/wavbreaker.c:1055
+#: src/wavbreaker.c:1065
 #, c-format
 msgid "The file %s has been split into %d parts."
 msgstr "Le fichier %s a été coupé en %d morceaux."
 
-#: src/wavbreaker.c:1057
+#: src/wavbreaker.c:1067
 #, c-format
 msgid "The file %s has been split into one part."
 msgstr "Le fichier %s a été coupé en un morceau."
 
-#: src/wavbreaker.c:1074
+#: src/wavbreaker.c:1084
 #, c-format
 msgid "Writing %s"
 msgstr "Ecriture de %s"
 
-#: src/wavbreaker.c:1089
+#: src/wavbreaker.c:1099
 #, c-format
 msgid "%d of %d parts written"
 msgstr "%d des %d morceaux écrits"
 
-#: src/wavbreaker.c:1091
+#: src/wavbreaker.c:1101
 #, c-format
 msgid "%d of 1 part written"
 msgstr "%d d'un morceau écrit"
 
-#: src/wavbreaker.c:1164
+#: src/wavbreaker.c:1174
 msgid "Analyzing waveform"
 msgstr "Analyse de l'onde sonore"
 
-#: src/wavbreaker.c:1176
+#: src/wavbreaker.c:1186
 msgid ""
 "The waveform data of the selected file is being analyzed and processed. This "
 "can take some time."
@@ -262,51 +261,51 @@ msgstr ""
 "L'onde sonore du fichier sélectionné est en cours d'analyse et traitement. "
 "Cela peut être long."
 
-#: src/wavbreaker.c:1184
+#: src/wavbreaker.c:1194
 #, c-format
 msgid "Analyzing %s"
 msgstr "Analyse de %s"
 
-#: src/wavbreaker.c:1230
+#: src/wavbreaker.c:1240
 #, c-format
 msgid "%d of %d MB analyzed"
 msgstr "%d de %d Mo analysés"
 
-#: src/wavbreaker.c:1243
+#: src/wavbreaker.c:1253
 msgid "Error opening file"
 msgstr "Erreur à l'ouverture du fichier"
 
-#: src/wavbreaker.c:1343
+#: src/wavbreaker.c:1355
 msgid "Open File"
 msgstr "Ouvrir un fichier"
 
-#: src/wavbreaker.c:2044 src/wavbreaker.c:2061 src/wavbreaker.c:2412
+#: src/wavbreaker.c:2061 src/wavbreaker.c:2078 src/wavbreaker.c:2471
 msgid "Play"
 msgstr "Lecture"
 
-#: src/wavbreaker.c:2053
+#: src/wavbreaker.c:2070
 msgid "Stop"
 msgstr "Arrêter"
 
-#: src/wavbreaker.c:2116
+#: src/wavbreaker.c:2175
 msgid "Select name for TOC file to export"
 msgstr "Sélectionner le nom du fichier TOC à exporter"
 
-#: src/wavbreaker.c:2128
+#: src/wavbreaker.c:2187
 msgid "Export failed"
 msgstr "L'exportation a échoué"
 
-#: src/wavbreaker.c:2128
+#: src/wavbreaker.c:2187
 msgid "There has been an error exporting track breaks to the TOC file."
 msgstr ""
 "Une erreur est survenue lors de l'exportation des coupures de piste vers le "
 "fichier TOC."
 
-#: src/wavbreaker.c:2130
+#: src/wavbreaker.c:2189
 msgid "TOC export successful"
 msgstr "Exportation de la TOC réussie"
 
-#: src/wavbreaker.c:2130
+#: src/wavbreaker.c:2189
 msgid ""
 "The track breaks have been exported to a TOC file that can be used to burn a "
 "CD from the wave file."
@@ -314,187 +313,203 @@ msgstr ""
 "Les coupures de piste ont été exportées vers le fichier TOC qui peut être "
 "utilisé pour graver un CD à partir du fichier wave."
 
-#: src/wavbreaker.c:2157 src/wavbreaker.c:2198
-#, fuzzy
+#: src/wavbreaker.c:2216 src/wavbreaker.c:2257
 msgid "Text files"
-msgstr "Tous les fichiers"
+msgstr "Fichiers Texte"
 
-#: src/wavbreaker.c:2160
-#, fuzzy
+#: src/wavbreaker.c:2219
 msgid "Save track breaks to file"
-msgstr "Enregistrer les morceaux de piste dans un dossier"
+msgstr "Enregistrer les séparations de piste dans un fichier"
 
-#: src/wavbreaker.c:2201
-#, fuzzy
+#: src/wavbreaker.c:2260
 msgid "Load track breaks from file"
-msgstr "Enregistrer les morceaux de piste dans un dossier"
+msgstr "Charger les séparations de piste depuis un fichier"
 
-#: src/wavbreaker.c:2328
+#: src/wavbreaker.c:2387
 msgid "_Open"
 msgstr "_Ouvrir"
 
-#: src/wavbreaker.c:2328
+#: src/wavbreaker.c:2387
 msgid "Open a wave file"
 msgstr "Ouvrir un fichier wave"
 
-#: src/wavbreaker.c:2333
+#: src/wavbreaker.c:2392
 msgid "_Save"
 msgstr "Enregi_strer"
 
-#: src/wavbreaker.c:2333
+#: src/wavbreaker.c:2392
 msgid "Save track breaks"
-msgstr "Enregistrer les morceaux de piste"
+msgstr "Enregistrer les séparateurs de piste"
 
-#: src/wavbreaker.c:2339
+#: src/wavbreaker.c:2398
 msgid "Save to..."
 msgstr "Enregistrer sous..."
 
-#: src/wavbreaker.c:2339
+#: src/wavbreaker.c:2398
 msgid "Save track breaks to folder"
-msgstr "Enregistrer les morceaux de piste dans un dossier"
+msgstr "Enregistrer les séparateurs de piste dans un dossier"
 
-#: src/wavbreaker.c:2344
+#: src/wavbreaker.c:2403
 msgid "Preferences"
 msgstr "Préférences"
 
-#: src/wavbreaker.c:2344
+#: src/wavbreaker.c:2403
 msgid "Configure wavbreaker"
 msgstr "Configurer"
 
-#: src/wavbreaker.c:2349
+#: src/wavbreaker.c:2408
 msgid "Merge wave files together"
-msgstr ""
+msgstr "Concaténer des fichiers wave ensemble"
 
-#: src/wavbreaker.c:2354
+#: src/wavbreaker.c:2413
 msgid "Quit"
 msgstr "Quitter"
 
-#: src/wavbreaker.c:2354
+#: src/wavbreaker.c:2413
 msgid "Close wavbreaker"
 msgstr "Fermer"
 
-#: src/wavbreaker.c:2359
+#: src/wavbreaker.c:2418
 msgid "Display toolbar"
 msgstr "Afficher la barre d'outils"
 
-#: src/wavbreaker.c:2359
+#: src/wavbreaker.c:2418
 msgid "Show or hide the main window toolbar"
 msgstr "Afficher ou cacher la barre d'outils de la fenêtre principale"
 
-#: src/wavbreaker.c:2365
+#: src/wavbreaker.c:2424
 msgid "Add track break"
 msgstr "Ajouter une séparation"
 
-#: src/wavbreaker.c:2365
+#: src/wavbreaker.c:2424
 msgid "Add track break at cursor position"
 msgstr "Ajouter une séparation à la position du curseur"
 
-#: src/wavbreaker.c:2370
+#: src/wavbreaker.c:2429
 msgid "Remove track break"
 msgstr "Supprimer une séparation"
 
-#: src/wavbreaker.c:2370
+#: src/wavbreaker.c:2429
 msgid "Remove selected track break"
 msgstr "Supprimer la séparation sélectionnée"
 
-#: src/wavbreaker.c:2375
+#: src/wavbreaker.c:2434
 msgid "Jump to track break"
 msgstr "Aller à la séparation"
 
-#: src/wavbreaker.c:2375
+#: src/wavbreaker.c:2434
 msgid "Set cursor position to track break"
 msgstr "Définir la posiiton du curseur à la séparation"
 
-#: src/wavbreaker.c:2380
+#: src/wavbreaker.c:2439
 msgid "Jump to cursor marker"
 msgstr "Aller au marqueur du curseur"
 
-#: src/wavbreaker.c:2380
+#: src/wavbreaker.c:2439
 msgid "Set view to cursor marker"
 msgstr "Définir la vue au marqueur du curseur"
 
-#: src/wavbreaker.c:2385
+#: src/wavbreaker.c:2444
 msgid "Rename track breaks"
 msgstr "Renommer les parties"
 
-#: src/wavbreaker.c:2385
+#: src/wavbreaker.c:2444
 msgid "Automatically rename all track breaks"
 msgstr "Donne automatiquement un nom à tous les morceaux"
 
-#: src/wavbreaker.c:2390
+#: src/wavbreaker.c:2449
 msgid "Auto-Split"
 msgstr "Coupure Automatique"
 
-#: src/wavbreaker.c:2390
+#: src/wavbreaker.c:2449
 msgid "Split into chunks with specified size"
-msgstr "Coupe en morceaux de la taille indiquée"
+msgstr "Coupe en morceaux d'une taille indiquée"
 
-#: src/wavbreaker.c:2396
+#: src/wavbreaker.c:2455
 msgid "Export to TOC"
 msgstr "Exportation vers TOC"
 
-#: src/wavbreaker.c:2396
+#: src/wavbreaker.c:2455
 msgid "Export to CD-ROM TOC file for burning"
 msgstr "Exporte vers un fichier TOC de CD-ROM pour gravage"
 
-#: src/wavbreaker.c:2402
+#: src/wavbreaker.c:2461
 msgid "_Save offsets to text file"
-msgstr ""
+msgstr "Enregi_strer les séparateurs dans un fichier texte"
 
-#: src/wavbreaker.c:2402
-#, fuzzy
+#: src/wavbreaker.c:2461
 msgid "Save track breaks to text file"
-msgstr "Enregistrer les morceaux de piste dans un dossier"
+msgstr "Enregistrer les séparations de piste dans un fichier texte"
 
-#: src/wavbreaker.c:2407
+#: src/wavbreaker.c:2466
 msgid "_Load offsets from text file"
-msgstr ""
+msgstr "_Charger les séparations depuis un fichier texte"
 
-#: src/wavbreaker.c:2407
-#, fuzzy
+#: src/wavbreaker.c:2466
 msgid "Load track breaks from text file"
-msgstr "Enregistrer les morceaux de piste dans un dossier"
+msgstr "Enregistrer les séparations de piste dans un dossier"
 
-#: src/wavbreaker.c:2412
+#: src/wavbreaker.c:2471
 msgid "Start/Stop playback of media"
 msgstr "Démarrer/Arrêter la lecture"
 
-#: src/wavbreaker.c:2418
+#: src/wavbreaker.c:2477
+msgid "Seek to next silence"
+msgstr "Avancer au silence suivant"
+
+#: src/wavbreaker.c:2477
+msgid "Jump to next silent frame"
+msgstr "Aller au passage silencieux suivant"
+
+#: src/wavbreaker.c:2483
+msgid "Seek to previous silence"
+msgstr "Revenir au silence précédent"
+
+#: src/wavbreaker.c:2483
+msgid "Jump to previous silent frame"
+msgstr "Aller au passage silencieux précédent"
+
+#: src/wavbreaker.c:2489
 msgid "About"
 msgstr "À propos"
 
-#: src/wavbreaker.c:2418
+#: src/wavbreaker.c:2489
 msgid "Show information about "
 msgstr "Affiche des informations à propos "
 
-#: src/wavbreaker.c:2501
+#: src/wavbreaker.c:2572
 msgid "_File"
 msgstr "_Fichier"
 
-#: src/wavbreaker.c:2516
+#: src/wavbreaker.c:2587
 msgid "_Edit"
 msgstr "_Édition"
 
-#: src/wavbreaker.c:2533
+#: src/wavbreaker.c:2602
+msgid "_Go"
+msgstr "A_ller"
+
+#: src/wavbreaker.c:2611
 msgid "_View"
 msgstr "_Affichage"
 
-#: src/wavbreaker.c:2542
+#: src/wavbreaker.c:2620
 msgid "_Help"
 msgstr "_Aide"
 
-#: src/wavbreaker.c:2683
+#: src/wavbreaker.c:2761
 msgid "Cursor position:"
 msgstr "Position du curseur :"
 
-#: src/wavbreaker.c:2709
+#: src/wavbreaker.c:2787
 msgid "Add"
 msgstr "Ajouter"
 
-#: src/wavbreaker.c:2724
+#: src/wavbreaker.c:2802
 msgid "Remove"
 msgstr "Supprimer"
 
-#: src/wavbreaker.c:2739
+#: src/wavbreaker.c:2817
 msgid "Auto-Rename"
 msgstr "Renommer automatiquement"
+

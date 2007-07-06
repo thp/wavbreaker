@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wavbreaker 0.8\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-05-07 20:20+0200\n"
+"POT-Creation-Date: 2007-07-05 08:35-0400\n"
 "PO-Revision-Date: 2007-05-07 20:24+0100\n"
 "Last-Translator: Thomas Perl <thp@perli.net>\n"
 "Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
@@ -20,63 +20,67 @@ msgstr ""
 msgid "Split a wave file into multiple chunks"
 msgstr "Teilen Sie eine Wave-Datei in mehrere Teile"
 
-#: src/appconfig.c:553 src/browsedir.c:37
+#: src/appconfig.c:567 src/browsedir.c:37
 msgid "Select Output Directory"
 msgstr "Ausgabe-Verzeichnis auswählen"
 
-#: src/appconfig.c:612
+#: src/appconfig.c:627
 msgid "wavbreaker Preferences"
 msgstr "wavbreaker Einstellungen"
 
-#: src/appconfig.c:626
+#: src/appconfig.c:641
 msgid "General"
 msgstr "Allgemein"
 
-#: src/appconfig.c:628
+#: src/appconfig.c:643
 msgid "Save output files in folder:"
 msgstr "Ausgabe-Dateien speichern in:"
 
-#: src/appconfig.c:640
+#: src/appconfig.c:655
 msgid "Browse"
 msgstr "Durchsuchen"
 
-#: src/appconfig.c:650
+#: src/appconfig.c:665
+msgid "Maximum volume considered silence (in percent):"
+msgstr ""
+
+#: src/appconfig.c:677
 msgid "File Naming"
 msgstr "Dateinamen"
 
-#: src/appconfig.c:652
+#: src/appconfig.c:679
 msgid "Standard (##)"
 msgstr "Standard (##)"
 
-#: src/appconfig.c:662
+#: src/appconfig.c:689
 msgid "Prepend number before filename"
 msgstr "Nummer vor dem Namen einfügen"
 
-#: src/appconfig.c:668
+#: src/appconfig.c:695
 msgid "Separator:"
 msgstr "Separator:"
 
-#: src/appconfig.c:680
+#: src/appconfig.c:707
 msgid "etree.org (d#t##)"
 msgstr "etree.org (d#t##)"
 
-#: src/appconfig.c:683
+#: src/appconfig.c:710
 msgid "CD Length:"
 msgstr "CD-Länge:"
 
-#: src/appconfig.c:698
+#: src/appconfig.c:725
 msgid "Audio Device"
 msgstr "Audio-Gerät"
 
-#: src/appconfig.c:700
+#: src/appconfig.c:727
 msgid "Audio Device:"
 msgstr "Audio-Gerät:"
 
-#: src/appconfig.c:707
+#: src/appconfig.c:734
 msgid "Disable audio output"
 msgstr "Audio-Ausgabe deaktivieren"
 
-#: src/appconfig.c:723
+#: src/appconfig.c:751
 msgid "Output device:"
 msgstr "Ausgabe-Gerät:"
 
@@ -88,12 +92,12 @@ msgstr "Zeit für Auto-Split eingeben:"
 msgid "Example (5min, 32sec, 12subsec):"
 msgstr "Beispiel (5 Min., 32 Sek., 12 Hdstl.):"
 
-#: src/guimerge.c:107 src/guimerge.c:196 src/wavbreaker.c:1336
-#: src/wavbreaker.c:2153 src/wavbreaker.c:2194
+#: src/guimerge.c:107 src/guimerge.c:196 src/wavbreaker.c:1348
+#: src/wavbreaker.c:2212 src/wavbreaker.c:2253
 msgid "All files"
 msgstr "Alle Dateien"
 
-#: src/guimerge.c:111 src/guimerge.c:200 src/wavbreaker.c:1340
+#: src/guimerge.c:111 src/guimerge.c:200 src/wavbreaker.c:1352
 msgid "Supported files"
 msgstr "Unterstützte Dateien"
 
@@ -113,7 +117,7 @@ msgstr "Falsches Dateiformat - lasse Datei aus"
 msgid "Add wave file to merge"
 msgstr "Wave-Datei hinzufügen"
 
-#: src/guimerge.c:284 src/wavbreaker.c:2349
+#: src/guimerge.c:284 src/wavbreaker.c:2408
 msgid "Merge wave files"
 msgstr "Wave-Dateien zusammenfügen"
 
@@ -123,7 +127,7 @@ msgstr ""
 "Fügen Sie Wave-Dateien zu dieser Liste hinzu und klicken Sie auf "
 "\"Zusammenfügen\"."
 
-#: src/guimerge.c:322 src/wavbreaker.c:415
+#: src/guimerge.c:322 src/wavbreaker.c:425
 msgid "File Name"
 msgstr "Dateiname"
 
@@ -149,7 +153,7 @@ msgstr ""
 msgid "The files have been merged as %s."
 msgstr "Die Dateien wurden als %s zusammengefügt."
 
-#: src/guimerge.c:451 src/wavbreaker.c:1059
+#: src/guimerge.c:451 src/wavbreaker.c:1069
 msgid "Operation successful"
 msgstr "Operation erfolgreich"
 
@@ -195,62 +199,62 @@ msgstr ""
 msgid "Select folder to save wave files"
 msgstr "Speicherort für Wave-Dateien wählen"
 
-#: src/wavbreaker.c:404
+#: src/wavbreaker.c:414
 msgid "Write"
 msgstr "Speichern"
 
-#: src/wavbreaker.c:432
+#: src/wavbreaker.c:442
 msgid "Time"
 msgstr "Zeit"
 
-#: src/wavbreaker.c:443
+#: src/wavbreaker.c:453
 msgid "Duration"
 msgstr "Länge"
 
-#: src/wavbreaker.c:453
+#: src/wavbreaker.c:463
 msgid "Offset"
 msgstr "Offset"
 
-#: src/wavbreaker.c:1016
+#: src/wavbreaker.c:1026
 msgid "Splitting wave file"
 msgstr "Teile Wave-Datei"
 
-#: src/wavbreaker.c:1028
+#: src/wavbreaker.c:1038
 msgid ""
 "The selected track breaks are now written to disk. This can take some time."
 msgstr ""
 "Die gewählten Teile werden nun gespeichert. Dies kann eine Weile dauern."
 
-#: src/wavbreaker.c:1055
+#: src/wavbreaker.c:1065
 #, c-format
 msgid "The file %s has been split into %d parts."
 msgstr "Die Datei %s wurde in %d Teile gesplittet."
 
-#: src/wavbreaker.c:1057
+#: src/wavbreaker.c:1067
 #, c-format
 msgid "The file %s has been split into one part."
 msgstr "Die Datei %s wurde in einen Teil gesplittet."
 
-#: src/wavbreaker.c:1074
+#: src/wavbreaker.c:1084
 #, c-format
 msgid "Writing %s"
 msgstr "Schreibe %s"
 
-#: src/wavbreaker.c:1089
+#: src/wavbreaker.c:1099
 #, c-format
 msgid "%d of %d parts written"
 msgstr "%d von %d Teilen gespeichert"
 
-#: src/wavbreaker.c:1091
+#: src/wavbreaker.c:1101
 #, c-format
 msgid "%d of 1 part written"
 msgstr "%d von 1 Teil geschrieben"
 
-#: src/wavbreaker.c:1164
+#: src/wavbreaker.c:1174
 msgid "Analyzing waveform"
 msgstr "Analysiere Waveform"
 
-#: src/wavbreaker.c:1176
+#: src/wavbreaker.c:1186
 msgid ""
 "The waveform data of the selected file is being analyzed and processed. This "
 "can take some time."
@@ -258,49 +262,49 @@ msgstr ""
 "Die Waveform der gewählten Datei wird nun analysiert und verarbeitet. Dies "
 "kann einige Minuten dauern."
 
-#: src/wavbreaker.c:1184
+#: src/wavbreaker.c:1194
 #, c-format
 msgid "Analyzing %s"
 msgstr "Analysiere %s"
 
-#: src/wavbreaker.c:1230
+#: src/wavbreaker.c:1240
 #, c-format
 msgid "%d of %d MB analyzed"
 msgstr "%d von %d MB analysiert"
 
-#: src/wavbreaker.c:1243
+#: src/wavbreaker.c:1253
 msgid "Error opening file"
 msgstr "Fehler beim Öffnen der Datei"
 
-#: src/wavbreaker.c:1343
+#: src/wavbreaker.c:1355
 msgid "Open File"
 msgstr "Datei öffnen"
 
-#: src/wavbreaker.c:2044 src/wavbreaker.c:2061 src/wavbreaker.c:2412
+#: src/wavbreaker.c:2061 src/wavbreaker.c:2078 src/wavbreaker.c:2471
 msgid "Play"
 msgstr "Wiedergabe"
 
-#: src/wavbreaker.c:2053
+#: src/wavbreaker.c:2070
 msgid "Stop"
 msgstr "Stopp"
 
-#: src/wavbreaker.c:2116
+#: src/wavbreaker.c:2175
 msgid "Select name for TOC file to export"
 msgstr "Dateiname für TOC-Export auswählen"
 
-#: src/wavbreaker.c:2128
+#: src/wavbreaker.c:2187
 msgid "Export failed"
 msgstr "Export fehlgeschlagen"
 
-#: src/wavbreaker.c:2128
+#: src/wavbreaker.c:2187
 msgid "There has been an error exporting track breaks to the TOC file."
 msgstr "Beim Exportieren der Track-breaks ist ein Fehler aufgetreten."
 
-#: src/wavbreaker.c:2130
+#: src/wavbreaker.c:2189
 msgid "TOC export successful"
 msgstr "TOC erfolgreich exportiert"
 
-#: src/wavbreaker.c:2130
+#: src/wavbreaker.c:2189
 msgid ""
 "The track breaks have been exported to a TOC file that can be used to burn a "
 "CD from the wave file."
@@ -308,183 +312,204 @@ msgstr ""
 "Die Track-Breaks wurden in eine TOC-Datei exportiert, die benutzt werden "
 "kann, um eine CD von der Wave-Datei zu erzeugen."
 
-#: src/wavbreaker.c:2157 src/wavbreaker.c:2198
+#: src/wavbreaker.c:2216 src/wavbreaker.c:2257
 msgid "Text files"
 msgstr "Text-Dateien"
 
-#: src/wavbreaker.c:2160
+#: src/wavbreaker.c:2219
 msgid "Save track breaks to file"
 msgstr "Track-Breaks in Datei speichern"
 
-#: src/wavbreaker.c:2201
+#: src/wavbreaker.c:2260
 msgid "Load track breaks from file"
 msgstr "Track-Breaks von Datei laden"
 
-#: src/wavbreaker.c:2328
+#: src/wavbreaker.c:2387
 msgid "_Open"
 msgstr "_Öffnen"
 
-#: src/wavbreaker.c:2328
+#: src/wavbreaker.c:2387
 msgid "Open a wave file"
 msgstr "Wave-Datei öffnen"
 
-#: src/wavbreaker.c:2333
+#: src/wavbreaker.c:2392
 msgid "_Save"
 msgstr "_Speichern"
 
-#: src/wavbreaker.c:2333
+#: src/wavbreaker.c:2392
 msgid "Save track breaks"
 msgstr "Track-Breaks speichern"
 
-#: src/wavbreaker.c:2339
+#: src/wavbreaker.c:2398
 msgid "Save to..."
 msgstr "Speichern nach..."
 
-#: src/wavbreaker.c:2339
+#: src/wavbreaker.c:2398
 msgid "Save track breaks to folder"
 msgstr "Track-Breaks in Ordner speichern"
 
-#: src/wavbreaker.c:2344
+#: src/wavbreaker.c:2403
 msgid "Preferences"
 msgstr "Einstellungen"
 
-#: src/wavbreaker.c:2344
+#: src/wavbreaker.c:2403
 msgid "Configure wavbreaker"
 msgstr "wavbreaker konfigurieren"
 
-#: src/wavbreaker.c:2349
+#: src/wavbreaker.c:2408
 msgid "Merge wave files together"
 msgstr "Wave-Dateien zusammenfügen"
 
-#: src/wavbreaker.c:2354
+#: src/wavbreaker.c:2413
 msgid "Quit"
 msgstr "Beenden"
 
-#: src/wavbreaker.c:2354
+#: src/wavbreaker.c:2413
 msgid "Close wavbreaker"
 msgstr "wavbreaker beenden"
 
-#: src/wavbreaker.c:2359
+#: src/wavbreaker.c:2418
 msgid "Display toolbar"
 msgstr "Toolbar anzeigen"
 
-#: src/wavbreaker.c:2359
+#: src/wavbreaker.c:2418
 msgid "Show or hide the main window toolbar"
 msgstr "Anzeigen oder Verstecken der Toolbar"
 
-#: src/wavbreaker.c:2365
+#: src/wavbreaker.c:2424
 msgid "Add track break"
 msgstr "Track Break hinzufügen"
 
-#: src/wavbreaker.c:2365
+#: src/wavbreaker.c:2424
 msgid "Add track break at cursor position"
 msgstr "Track-Break an Cursor-Position hinzufügen"
 
-#: src/wavbreaker.c:2370
+#: src/wavbreaker.c:2429
 msgid "Remove track break"
 msgstr "Track Break entfernen"
 
-#: src/wavbreaker.c:2370
+#: src/wavbreaker.c:2429
 msgid "Remove selected track break"
 msgstr "Gewählten Track Break entfernen"
 
-#: src/wavbreaker.c:2375
+#: src/wavbreaker.c:2434
 msgid "Jump to track break"
 msgstr "Springe zu Track Break"
 
-#: src/wavbreaker.c:2375
+#: src/wavbreaker.c:2434
 msgid "Set cursor position to track break"
 msgstr "Cursor-Position auf Track-Break setzen"
 
-#: src/wavbreaker.c:2380
+#: src/wavbreaker.c:2439
 msgid "Jump to cursor marker"
 msgstr "SPringe zu Cursor-Position"
 
-#: src/wavbreaker.c:2380
+#: src/wavbreaker.c:2439
 msgid "Set view to cursor marker"
 msgstr "Anzeige auf die Cursor-Position setzen"
 
-#: src/wavbreaker.c:2385
+#: src/wavbreaker.c:2444
 msgid "Rename track breaks"
 msgstr "Track-Breaks umbenennen"
 
-#: src/wavbreaker.c:2385
+#: src/wavbreaker.c:2444
 msgid "Automatically rename all track breaks"
 msgstr "Alle Track Breaks automatisch umbenennen"
 
-#: src/wavbreaker.c:2390
+#: src/wavbreaker.c:2449
 msgid "Auto-Split"
 msgstr "Auto-Split"
 
-#: src/wavbreaker.c:2390
+#: src/wavbreaker.c:2449
 msgid "Split into chunks with specified size"
 msgstr "Splitten in Teile mit angegebener Größe"
 
-#: src/wavbreaker.c:2396
+#: src/wavbreaker.c:2455
 msgid "Export to TOC"
 msgstr "Exportiere zu TOC"
 
-#: src/wavbreaker.c:2396
+#: src/wavbreaker.c:2455
 msgid "Export to CD-ROM TOC file for burning"
 msgstr "Exportieren als CD-ROM TOC Datei zum brennen"
 
-#: src/wavbreaker.c:2402
+#: src/wavbreaker.c:2461
 msgid "_Save offsets to text file"
 msgstr "Offsets in Text-Datei _speichern"
 
-#: src/wavbreaker.c:2402
+#: src/wavbreaker.c:2461
 msgid "Save track breaks to text file"
 msgstr "Track-Breaks in Text-Datei speichern"
 
-#: src/wavbreaker.c:2407
+#: src/wavbreaker.c:2466
 msgid "_Load offsets from text file"
 msgstr "Offsets aus Text-Datei _laden"
 
-#: src/wavbreaker.c:2407
+#: src/wavbreaker.c:2466
 msgid "Load track breaks from text file"
 msgstr "Track-Breaks von Text-Datei laden"
 
-#: src/wavbreaker.c:2412
+#: src/wavbreaker.c:2471
 msgid "Start/Stop playback of media"
 msgstr "Wiedergabe starten/stoppen/fortsetzen"
 
-#: src/wavbreaker.c:2418
+#: src/wavbreaker.c:2477
+#, fuzzy
+msgid "Seek to next silence"
+msgstr "Offsets in Text-Datei _speichern"
+
+#: src/wavbreaker.c:2477
+msgid "Jump to next silent frame"
+msgstr ""
+
+#: src/wavbreaker.c:2483
+msgid "Seek to previous silence"
+msgstr ""
+
+#: src/wavbreaker.c:2483
+msgid "Jump to previous silent frame"
+msgstr ""
+
+#: src/wavbreaker.c:2489
 msgid "About"
 msgstr "Über"
 
-#: src/wavbreaker.c:2418
+#: src/wavbreaker.c:2489
 msgid "Show information about "
 msgstr "Informationen anzeigen über "
 
-#: src/wavbreaker.c:2501
+#: src/wavbreaker.c:2572
 msgid "_File"
 msgstr "_Datei"
 
-#: src/wavbreaker.c:2516
+#: src/wavbreaker.c:2587
 msgid "_Edit"
 msgstr "_Bearbeiten"
 
-#: src/wavbreaker.c:2533
+#: src/wavbreaker.c:2602
+msgid "_Go"
+msgstr ""
+
+#: src/wavbreaker.c:2611
 msgid "_View"
 msgstr "_Anzeige"
 
-#: src/wavbreaker.c:2542
+#: src/wavbreaker.c:2620
 msgid "_Help"
 msgstr "_Hilfe"
 
-#: src/wavbreaker.c:2683
+#: src/wavbreaker.c:2761
 msgid "Cursor position:"
 msgstr "Cursor-Position:"
 
-#: src/wavbreaker.c:2709
+#: src/wavbreaker.c:2787
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: src/wavbreaker.c:2724
+#: src/wavbreaker.c:2802
 msgid "Remove"
 msgstr "Entfernen"
 
-#: src/wavbreaker.c:2739
+#: src/wavbreaker.c:2817
 msgid "Auto-Rename"
 msgstr "Alle umbenennen"
 
