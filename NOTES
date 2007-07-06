@@ -1,0 +1,9 @@
+---------------------------------
+- i18n
+---------------------------------
+export LANG=en_US.UTF-8
+export LANG=pt_PT.UTF-8
+export LANG=fr_FR.UTF-8
+export LANG=de_AT.UTF-8
+
+
