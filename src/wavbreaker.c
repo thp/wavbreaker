@@ -2041,14 +2041,18 @@ static void update_status() {
     char str[1024];
     char strbuf[1024];
 
-    sprintf(str, "cursor_marker: ");
+    sprintf( str, _("Cursor"));
+    strcat( str, ": ");
     offset_to_time(cursor_marker, strbuf);
     strcat(str, strbuf);
 
-    sprintf(strbuf, "\tplaying: ");
-    strcat(str, strbuf);
-    offset_to_time(play_marker, strbuf);
-    strcat(str, strbuf);
+    if( sample_is_playing()) {
+        strcat( str, "\t");
+        strcat( str, _("Playing"));
+        strcat( str, ": ");
+        offset_to_time(play_marker, strbuf);
+        strcat(str, strbuf);
+    }
 
     gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
 }
@@ -2057,6 +2061,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
 {
     if( sample_is_playing()) {
         menu_stop( NULL, NULL);
+        update_status();
         g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
         g_object_set( action_playback, "label", _("Play"), NULL);
         return;
@@ -2074,6 +2079,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
             break;
         case 2:
             menu_stop( NULL, NULL);
+            update_status();
             g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
             g_object_set( action_playback, "label", _("Play"), NULL);
 //            printf("already playing\n");
@@ -2107,6 +2113,7 @@ static void menu_next_silence( GtkWidget* widget, gpointer user_data)
         if( c==SILENCE_MIN_LENGTH) {
             cursor_marker = i;
             jump_to_cursor_marker( widget, NULL);
+            update_status();
             return;
         }
     }
@@ -2128,6 +2135,7 @@ static void menu_prev_silence( GtkWidget* widget, gpointer user_data)
         if( c==SILENCE_MIN_LENGTH) {
             cursor_marker = i;
             jump_to_cursor_marker( widget, NULL);
+            update_status();
             return;
         }
     }
