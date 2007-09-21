@@ -39,6 +39,7 @@ void reallyquit_show(GtkWidget *main_window)
                                      message);
 
 
+    gtk_window_set_title( GTK_WINDOW(dialog), message);
     gtk_message_dialog_format_secondary_text( dialog, info_text);
 
     result = gtk_dialog_run( GTK_DIALOG(dialog));
