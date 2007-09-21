@@ -90,6 +90,11 @@ static GtkAction *action_about;
 static GtkActionGroup *action_group;
 static GtkAccelGroup *accel_group;
 
+static GtkWidget *cursor_marker_spinner;
+static GtkWidget *button_add_break;
+static GtkWidget *button_remove_break;
+static GtkWidget *button_rename;
+
 static GtkWidget *toolbar;
 
 static GtkAdjustment *cursor_marker_spinner_adj;
@@ -1269,6 +1274,11 @@ static void open_file() {
     gtk_action_set_sensitive( action_playback, TRUE);
     gtk_action_set_sensitive( action_next_silence, TRUE);
     gtk_action_set_sensitive( action_prev_silence, TRUE);
+
+    gtk_widget_set_sensitive( cursor_marker_spinner, TRUE);
+    gtk_widget_set_sensitive( button_add_break, TRUE);
+    gtk_widget_set_sensitive( button_remove_break, TRUE);
+    gtk_widget_set_sensitive( button_rename, TRUE);
 
     menu_stop(NULL, NULL);
 
@@ -2533,7 +2543,6 @@ int main(int argc, char **argv)
     GtkWidget *list_vbox;
     GtkWidget *frame;
 
-    GtkWidget *cursor_marker_spinner;
     GtkWidget *hbox;
     GtkWidget *hbbox;
     GtkWidget *button;
@@ -2770,6 +2779,7 @@ int main(int argc, char **argv)
 
     cursor_marker_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 74.0);
     cursor_marker_spinner = gtk_spin_button_new(cursor_marker_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_spinner, FALSE);
     gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_spinner, FALSE, FALSE, 0);
     g_signal_connect(G_OBJECT(cursor_marker_spinner_adj), "value-changed",
              G_CALLBACK(cursor_marker_spinner_changed), NULL);
@@ -2794,6 +2804,7 @@ int main(int argc, char **argv)
 
     label = gtk_label_new(_("Add"));
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    button_add_break = button;
 
     /* delete track break button */
     button = gtk_button_new();
@@ -2809,6 +2820,7 @@ int main(int argc, char **argv)
 
     label = gtk_label_new(_("Remove"));
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    button_remove_break = button;
 
     /* rename track breaks button */
     button = gtk_button_new();
@@ -2824,6 +2836,12 @@ int main(int argc, char **argv)
 
     label = gtk_label_new(_("Auto-Rename"));
     gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    button_rename = button;
+
+    /* Set buttons to be disabled initially */
+    gtk_widget_set_sensitive( button_add_break, FALSE);
+    gtk_widget_set_sensitive( button_remove_break, FALSE);
+    gtk_widget_set_sensitive( button_rename, FALSE);
 
 /* Track Break List */
     tbl_widget = track_break_create_list_gui();
