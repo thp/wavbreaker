@@ -39,6 +39,8 @@ cdda_read_header(const char *filename,
 	sampleInfo->channels = 2; 
 	sampleInfo->samplesPerSec = 44100;
 	sampleInfo->bitsPerSample = 16;
+        sampleInfo->avgBytesPerSec = sampleInfo->bitsPerSample/8 * sampleInfo->samplesPerSec * sampleInfo->channels;
+        sampleInfo->blockAlign = 4;
 
 	return 0;
 }

@@ -27,6 +27,10 @@
 #define CD_BLOCK_SIZE                   (2352)
 #define CD_BLOCKS_PER_SEC               (75)
 
+/* Responses for the ask open raw dialog */
+#define WB_RESPONSE_LITTLE_ENDIAN 1
+#define WB_RESPONSE_BIG_ENDIAN 2
+
 typedef struct SampleInfo_ SampleInfo;
 
 struct SampleInfo_ {
@@ -39,7 +43,6 @@ struct SampleInfo_ {
     unsigned int    bufferSize;
 };
 
-char *wav_get_error_message();
 char *sample_get_error_message();
 
 void sample_init();

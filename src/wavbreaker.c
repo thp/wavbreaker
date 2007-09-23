@@ -1256,6 +1256,7 @@ static void open_file() {
     if (sample_open_file(sample_filename, &graphData, &progress_pct) != 0) {
         char *message = sample_get_error_message();
         popupmessage_show(main_window, _("Error opening file"), message);
+        sample_filename = NULL;
         g_free(message);
         return;
     }
@@ -1289,8 +1290,9 @@ static void open_file() {
 gboolean open_file_arg( gpointer data) {
     if( data != NULL) {
       set_sample_filename( (char *)data);
+      gdk_threads_enter();
       open_file();
-      set_title( basename( sample_filename));
+      gdk_threads_leave();
     }
 
     /* do not call this function again = return FALSE */
@@ -1361,6 +1363,8 @@ static void open_select_file() {
     filter_supported = gtk_file_filter_new();
     gtk_file_filter_set_name( filter_supported, _("Supported files"));
     gtk_file_filter_add_pattern( filter_supported, "*.wav");
+    gtk_file_filter_add_pattern( filter_supported, "*.dat");
+    gtk_file_filter_add_pattern( filter_supported, "*.raw");
 
     dialog = gtk_file_chooser_dialog_new(_("Open File"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -1385,10 +1389,11 @@ static void open_select_file() {
         dirname = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
         saveas_set_dirname(dirname);
         g_free(dirname);
+        gtk_widget_destroy(dialog);
         open_file();
+    } else {
+        gtk_widget_destroy(dialog);
     }
-
-    gtk_widget_destroy(dialog);
 }
 
 void set_sample_filename(const char *f) {
@@ -2873,11 +2878,11 @@ int main(int argc, char **argv)
         gtk_widget_hide_all( GTK_WIDGET(toolbar));
     }
 
-    handle_arguments( argc, argv);
-
     if( !g_thread_supported()) {
         g_thread_init( NULL);
     }
+
+    handle_arguments( argc, argv);
 
     gdk_threads_enter();
     gtk_main();

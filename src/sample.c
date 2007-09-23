@@ -33,6 +33,7 @@
 #include "appconfig.h"
 #include "fileutils.h"
 #include "overwritedialog.h"
+#include "gettext.h"
 
 #define CDDA 1
 #define WAV  2 
@@ -255,25 +256,59 @@ static gpointer open_thread(gpointer data)
     return NULL;
 }
 
+int ask_open_as_raw()
+{
+    GtkMessageDialog *dialog;
+    gint result;
+    const gchar *message = _("Open as RAW audio");
+    const gchar *info_text = _("The file you selected does not contain a wave header. wavbreaker can interpret the file as \"Signed 16 bit, 44100 Hz, Stereo\" audio. Choose the byte order for the RAW audio or cancel to abort.");
+
+    dialog = (GtkMessageDialog*)gtk_message_dialog_new( GTK_WINDOW(wavbreaker_get_main_window()),
+                                     GTK_DIALOG_DESTROY_WITH_PARENT,
+                                     GTK_MESSAGE_QUESTION,
+                                     GTK_BUTTONS_CANCEL,
+                                     message);
+    
+    gtk_dialog_add_button( GTK_DIALOG(dialog), _("Big endian"), WB_RESPONSE_BIG_ENDIAN);
+    gtk_dialog_add_button( GTK_DIALOG(dialog), _("Little endian"), WB_RESPONSE_LITTLE_ENDIAN);
+
+    gtk_message_dialog_format_secondary_text( dialog, info_text);
+    gtk_window_set_title( GTK_WINDOW(dialog), message);
+
+    result = gtk_dialog_run( GTK_DIALOG(dialog));
+    gtk_widget_destroy( GTK_WIDGET( dialog));
+
+    return result;
+}
+
 int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
+    int ask_result = 0;
     sample_close_file();
 
     sample_file = strdup(filename);
 
-    if (strstr(sample_file, ".wav")) {
-        if (wav_read_header(sample_file, &sampleInfo, 0) != 0) {
-            sample_set_error_message(wav_get_error_message());
+    audio_type = 0;
+    if( wav_read_header(sample_file, &sampleInfo, 0) == 0) {
+        audio_type = WAV;
+    }
+    
+    if( audio_type == 0) {
+        ask_result = ask_open_as_raw();
+        if( ask_result == GTK_RESPONSE_CANCEL) {
+            sample_set_error_message( wav_get_error_message());
             return 1;
         }
-        audio_type = WAV;
-    } else {
         cdda_read_header(sample_file, &sampleInfo);
-        audio_type = CDDA;
+        if( ask_result == WB_RESPONSE_BIG_ENDIAN) {
+            audio_type = CDDA;
+        } else {
+            audio_type = WAV;
+        }
     }
 
     if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
-        snprintf(error_message, ERROR_MESSAGE_SIZE, "error opening %s\n", sample_file);
+        snprintf(error_message, ERROR_MESSAGE_SIZE, _("Error opening %s: %s"), sample_file, strerror( errno));
         return 2;
     }
 
