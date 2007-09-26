@@ -1990,6 +1990,43 @@ static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
     redraw();
 }
 
+static gboolean scroll_event( GtkWidget *widget, GdkEventScroll *event, gpointer data)
+{
+    long step, upper, size;
+
+    step = GTK_ADJUSTMENT(adj)->page_increment;
+    upper = GTK_ADJUSTMENT(adj)->upper;
+    size = GTK_ADJUSTMENT(adj)->page_size;
+
+    if( widget == draw) {
+        /* Scroll in more detail on the zoomed view */
+        step /= 2;
+    }
+
+    if( event->direction == GDK_SCROLL_UP || event->direction == GDK_SCROLL_LEFT) {
+        if( pixmap_offset >= step) {
+            pixmap_offset -= step;
+        } else {
+            pixmap_offset = 0;
+        }
+    }
+    if( event->direction == GDK_SCROLL_DOWN || event->direction == GDK_SCROLL_RIGHT) {
+        if( pixmap_offset <= upper-step-size) {
+            pixmap_offset += step;
+        } else {
+            pixmap_offset = upper-size;
+        }
+    }
+
+    gtk_adjustment_set_value( GTK_ADJUSTMENT(adj), pixmap_offset);
+    gtk_widget_queue_draw( scrollbar);
+
+    redraw();
+    update_status();
+
+    return TRUE;
+}
+
 static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
@@ -2730,6 +2767,8 @@ int main(int argc, char **argv)
              G_CALLBACK(draw_summary_button_release), NULL);
     g_signal_connect(G_OBJECT(draw_summary), "motion_notify_event",
              G_CALLBACK(draw_summary_button_release), NULL);
+    g_signal_connect(G_OBJECT(draw_summary), "scroll-event",
+             G_CALLBACK(scroll_event), NULL);
 
     gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
     gtk_widget_add_events(draw_summary, GDK_BUTTON_PRESS_MASK);
@@ -2751,6 +2790,8 @@ int main(int argc, char **argv)
              G_CALLBACK(configure_event), NULL);
     g_signal_connect(G_OBJECT(draw), "button_release_event",
              G_CALLBACK(button_release), NULL);
+    g_signal_connect(G_OBJECT(draw), "scroll-event",
+             G_CALLBACK(scroll_event), NULL);
 
     gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
     gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
