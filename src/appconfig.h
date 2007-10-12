@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2005 Timothy Robinson
+ * Copyright (C) 2007 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,6 +57,8 @@ int appconfig_get_ask_really_quit();
 void appconfig_set_ask_really_quit(int x);
 int appconfig_get_show_toolbar();
 void appconfig_set_show_toolbar(int x);
+int appconfig_get_show_moodbar();
+void appconfig_set_show_moodbar(int x);
 
 char *audio_options_get_output_device();
 void set_audio_oss_options_output_device(const char *);

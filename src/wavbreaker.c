@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2006 Timothy Robinson
+ * Copyright (C) 2006-2007 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +30,10 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <libgen.h>
+#include <errno.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <signal.h>
 
 #include "wavbreaker.h"
 #include "sample.h"
@@ -71,11 +76,13 @@ static GtkAction *action_guimerge;
 static GtkAction *action_quit;
 
 static GtkToggleAction *action_view_toolbar;
+static GtkToggleAction *action_view_moodbar;
 
 static GtkAction *action_add_break;
 static GtkAction *action_remove_break;
 static GtkAction *action_jump_break;
 static GtkAction *action_rename;
+static GtkAction *action_moodbar;
 static GtkAction *action_split;
 static GtkAction *action_export;
 static GtkAction *action_jump_cursor;
@@ -100,6 +107,11 @@ static GtkWidget *toolbar;
 static GtkAdjustment *cursor_marker_spinner_adj;
 
 static GraphData graphData;
+
+static MoodbarData moodbarData;
+static pid_t moodbar_pid;
+static gboolean moodbar_cancelled;
+static GtkWidget* moodbar_wait_dialog;
 
 #define SAMPLE_COLORS 6
 #define SAMPLE_SHADES 3
@@ -260,6 +272,9 @@ static void
 menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
+menu_view_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
 menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
@@ -273,6 +288,9 @@ menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
+
+static void
+menu_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -320,6 +338,134 @@ void set_status_message(const char *val)
     status_message = g_strdup(val);
 }
 */
+
+void cancel_moodbar_process(GtkWidget *widget, gpointer user_data)
+{
+    moodbar_cancelled = TRUE;
+    kill( moodbar_pid, SIGKILL);
+    /* remove (partial) .mood file */
+    unlink( (char*)user_data);
+}
+
+void hide_moodbar_process(GtkWidget *widget, gpointer user_data)
+{
+    gtk_widget_hide_all( (GtkWidget*)user_data);
+}
+
+void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
+    gchar *fn;
+    FILE* fp;
+    unsigned long s;
+    struct stat st;
+    int pos;
+    int child_status;
+    gchar tmp[3];
+    GtkWidget *child, *cancel_button;
+    time_t t;
+
+    if( moodbarData.frames != NULL) {
+        free( moodbarData.frames);
+        moodbarData.frames = NULL;
+        moodbarData.numFrames = 0;
+    }
+
+    /* replace ".xxx" with ".mood" */
+    fn = (gchar*)malloc( strlen(filename)+2);
+    strcpy( fn, filename);
+    strcpy( (gchar*)(fn+strlen(fn)-4), ".mood");
+
+    if( stat( fn, &st) != 0 && run_moodbar) {
+        if( moodbar_wait_dialog != NULL) {
+            return;
+        }
+
+        moodbar_cancelled = FALSE;
+        moodbar_pid = fork();
+        if( moodbar_pid == 0) {
+            if( execlp( "moodbar", "moodbar", filename, "-o", fn, (char*)NULL) == -1) {
+                fprintf( stderr, "Error running moodbar: %s (Have you installed the \"moodbar\" package?)\n", strerror( errno));
+                exit( -1);
+            }
+        } else if( moodbar_pid > 0) {
+            moodbar_wait_dialog = gtk_message_dialog_new( GTK_WINDOW(main_window),
+                                  GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+                                  GTK_MESSAGE_INFO,
+                                  GTK_BUTTONS_NONE,
+                                  _("Generating moodbar"));
+            gtk_widget_realize( GTK_WIDGET(moodbar_wait_dialog));
+            gdk_window_set_functions( GTK_WIDGET(moodbar_wait_dialog)->window, GDK_FUNC_MOVE);
+
+            child = gtk_progress_bar_new();
+            gtk_progress_bar_set_text( GTK_PROGRESS_BAR(child), basename( fn));
+            gtk_box_pack_start( GTK_BOX(GTK_DIALOG(moodbar_wait_dialog)->vbox), child, FALSE, TRUE, 0);
+
+            cancel_button = gtk_button_new_with_label( _("Hide window"));
+            g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(hide_moodbar_process), moodbar_wait_dialog);
+            gtk_box_pack_start( GTK_BOX(GTK_DIALOG(moodbar_wait_dialog)->action_area), cancel_button, FALSE, TRUE, 0);
+
+            cancel_button = gtk_button_new_from_stock( GTK_STOCK_CANCEL);
+            g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), fn);
+            gtk_box_pack_start( GTK_BOX(GTK_DIALOG(moodbar_wait_dialog)->action_area), cancel_button, FALSE, TRUE, 0);
+
+            gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(moodbar_wait_dialog), _("The moodbar tool analyzes your audio file and generates a colorful representation of the audio data."));
+            gtk_window_set_title( GTK_WINDOW(moodbar_wait_dialog), _("Generating moodbar"));
+            gtk_widget_show_all( moodbar_wait_dialog);
+
+            t = time( NULL);
+            while( waitpid( moodbar_pid, &child_status, WNOHANG) == 0) {
+                while( gtk_events_pending()) {
+                    gtk_main_iteration();
+                }
+
+                if( time( NULL) > t) {
+                    gtk_progress_bar_pulse( GTK_PROGRESS_BAR(child));
+                    t = time( NULL);
+                }
+            }
+
+            gtk_widget_destroy( moodbar_wait_dialog);
+            moodbar_wait_dialog = NULL;
+
+            if( child_status != 0 && !moodbar_cancelled) {
+                popupmessage_show( NULL, _("Cannot launch \"moodbar\""), _("wavbreaker could not launch the moodbar application, which is needed to generate the moodbar. You can download the moodbar package from:\n\n      http://amarok.kde.org/wiki/Moodbar"));
+            }
+        } else {
+            fprintf( stderr, "fork() failed for moodbar process: %s\n", strerror( errno));
+        }
+    }
+
+    moodbarData.numFrames = 0;
+
+    fp = fopen( fn, "rb");
+    if( !fp) {
+        gtk_action_set_sensitive( GTK_ACTION(action_view_moodbar), FALSE);
+        gtk_toggle_action_set_active( GTK_TOGGLE_ACTION(action_view_moodbar), FALSE);
+        return;
+    }
+
+    fseek( fp, 0, SEEK_END);
+    s = ftell( fp);
+    fseek( fp, 0, SEEK_SET);
+
+    moodbarData.numFrames = s/3;
+
+    moodbarData.frames = (GdkColor*)calloc( moodbarData.numFrames, sizeof(GdkColor));
+
+    pos = 0;
+    while( fread( &tmp, 3, 1, fp) > 0) {
+        moodbarData.frames[pos].red = tmp[0]*(65535/255);
+        moodbarData.frames[pos].green = tmp[1]*(65535/255);
+        moodbarData.frames[pos].blue = tmp[2]*(65535/255);
+        gdk_color_alloc( gtk_widget_get_colormap(main_window), &(moodbarData.frames[pos]));
+        pos++;
+    }
+
+    fclose( fp);
+    free( fn);
+    gtk_action_set_sensitive( GTK_ACTION(action_view_moodbar), TRUE);
+    gtk_toggle_action_set_active( GTK_TOGGLE_ACTION(action_view_moodbar), (appconfig_get_show_moodbar())?(TRUE):(FALSE));
+    gtk_action_set_sensitive( action_moodbar, FALSE);
+}
 
 void jump_to_cursor_marker(GtkWidget *widget, gpointer data) {
     reset_sample_display(cursor_marker);
@@ -1230,6 +1376,8 @@ file_open_progress_idle_func(gpointer data) {
 
         /* TODO: Remove FIX !!!!!!!!!!! */
         configure_event(draw, NULL, NULL);
+
+        moodbar_open_file( sample_filename, FALSE);
         redraw();
 
         /* --------------------------------------------------- */
@@ -1269,6 +1417,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_jump_cursor, TRUE);
     gtk_action_set_sensitive( action_rename, TRUE);
     gtk_action_set_sensitive( action_split, TRUE);
+    gtk_action_set_sensitive( action_moodbar, TRUE);
     gtk_action_set_sensitive( action_export, TRUE);
     gtk_action_set_sensitive( action_save_breaks, TRUE);
     gtk_action_set_sensitive( action_load_breaks, TRUE);
@@ -1451,6 +1600,8 @@ static void draw_sample(GtkWidget *widget)
     int index;
     GList *tbl;
     TrackBreak *tb_cur;
+    unsigned int moodbar_pos = 0;
+    GdkColor *new_color = NULL;
 
     width = widget->allocation.width;
     height = widget->allocation.height;
@@ -1538,13 +1689,23 @@ static void draw_sample(GtkWidget *widget)
 
         //gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % SAMPLE_COLORS][0]);
         //gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
+        if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
+            moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
+            gdk_gc_set_foreground(gc, &(moodbarData.frames[moodbar_pos]));
+            gdk_draw_line( sample_pixmap, gc, i, 0, i, height);
+        }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( is_write) {
-                gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
-            } else {
-                gdk_gc_set_foreground(gc, &nowrite_color);
+            if( new_color != NULL) {
+                gdk_color_free( new_color);
+                new_color = NULL;
             }
+            if( is_write) {
+                new_color = gdk_color_copy( &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            } else {
+                new_color = gdk_color_copy( &nowrite_color);
+            }
+            gdk_gc_set_foreground(gc, new_color);
             gdk_draw_line(sample_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             gdk_draw_line(sample_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
         }
@@ -1692,6 +1853,9 @@ static void draw_summary_pixmap(GtkWidget *widget)
     GList *tbl;
     TrackBreak *tb_cur;
 
+    unsigned int moodbar_pos = 0;
+    GdkColor *new_color = NULL;
+
     GdkPoint poly_points[4];
 
     width = widget->allocation.width;
@@ -1829,11 +1993,21 @@ printf("x_scale_mod: %d\n", x_scale_mod);
             }
         }
 
+        if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
+            moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
+            gdk_gc_set_foreground(gc, &(moodbarData.frames[moodbar_pos]));
+            gdk_draw_line( summary_pixmap, gc, i, 0, i, height);
+        }
+
         /* draw reverse background */
         if( i * x_scale + leftover_count >= pixmap_offset &&
             i * x_scale + leftover_count < pixmap_offset+width) {
 
-            gdk_gc_set_foreground( gc, &zoom_color);
+            if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
+                gdk_gc_set_foreground( gc, &bg_color);
+            } else {
+                gdk_gc_set_foreground( gc, &zoom_color);
+            }
             gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
 
             if( poly_left < i) {
@@ -1845,17 +2019,26 @@ printf("x_scale_mod: %d\n", x_scale_mod);
             }
         }
 
-
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( is_write) {
-                gdk_gc_set_foreground(gc, &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
-            } else {
-                gdk_gc_set_foreground(gc, &nowrite_color);
+            if( new_color != NULL) {
+                gdk_color_free( new_color);
+                new_color = NULL;
             }
+            if( is_write) {
+                new_color = gdk_color_copy( &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+            } else {
+                new_color = gdk_color_copy( &nowrite_color);
+            }
+            if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
+                new_color->red = MOODBAR_BLEND( new_color->red, moodbarData.frames[moodbar_pos].red);
+                new_color->green = MOODBAR_BLEND( new_color->green, moodbarData.frames[moodbar_pos].green);
+                new_color->blue = MOODBAR_BLEND( new_color->blue, moodbarData.frames[moodbar_pos].blue);
+                gdk_color_alloc( gtk_widget_get_colormap(main_window), new_color);
+            }
+            gdk_gc_set_foreground(gc, new_color);
             gdk_draw_line(summary_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             gdk_draw_line(summary_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
         }
-
     }
 
     poly_points[2].x = poly_right;
@@ -2374,6 +2557,21 @@ menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widg
 }
 
 static void
+menu_view_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    if( !gtk_action_get_sensitive( GTK_ACTION(action_view_moodbar))) {
+        return;
+    }
+    if( gtk_toggle_action_get_active( GTK_TOGGLE_ACTION(action_view_moodbar))) {
+        appconfig_set_show_moodbar( 1);
+        redraw();
+    } else {
+        appconfig_set_show_moodbar( 0);
+        redraw();
+    }
+}
+
+static void
 menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     about_show(main_window);
@@ -2389,6 +2587,12 @@ static void
 menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     guimerge_show(main_window);
+}
+
+static void
+menu_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
+{
+    moodbar_open_file( sample_filename, TRUE);
 }
 
 static void
@@ -2481,6 +2685,13 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, GTK_ACTION(action_view_toolbar), "<control>T");
     gtk_toggle_action_set_active( action_view_toolbar, appconfig_get_show_toolbar()?TRUE:FALSE);
 
+    action_view_moodbar = gtk_toggle_action_new( "view-moodbar", _("Display moodbar"), _("Draw moodbar over the waveform graph"), NULL);
+    g_signal_connect( action_view_moodbar, "activate", G_CALLBACK(menu_view_moodbar), NULL);
+    gtk_action_set_accel_group( GTK_ACTION(action_view_moodbar), accel_group);
+    gtk_action_group_add_action_with_accel( action_group, GTK_ACTION(action_view_moodbar), "<control>B");
+    gtk_toggle_action_set_active( action_view_moodbar, appconfig_get_show_moodbar()?TRUE:FALSE);
+    gtk_action_set_sensitive( GTK_ACTION(action_view_moodbar), FALSE);
+
     action_add_break = gtk_action_new( "add-break", _("Add track break"), _("Add track break at cursor position"), GTK_STOCK_ADD);
     g_signal_connect( action_add_break, "activate", G_CALLBACK(menu_add_track_break), NULL);
     gtk_action_set_accel_group( action_add_break, accel_group);
@@ -2505,6 +2716,11 @@ void init_actions()
     g_signal_connect( action_rename, "activate", G_CALLBACK(menu_rename), NULL);
     gtk_action_set_accel_group( action_rename, accel_group);
     gtk_action_set_sensitive( action_rename, FALSE);
+
+    action_moodbar = gtk_action_new( "moodbar", _("Generate moodbar"), _("Generate moodbar data"), GTK_STOCK_EXECUTE);
+    g_signal_connect( action_moodbar, "activate", G_CALLBACK(menu_moodbar), NULL);
+    gtk_action_set_accel_group( action_moodbar, accel_group);
+    gtk_action_set_sensitive( action_moodbar, FALSE);
 
     action_split = gtk_action_new( "split", _("Auto-Split"), _("Split into chunks with specified size"), GTK_STOCK_CUT);
     g_signal_connect( action_split, "activate", G_CALLBACK(menu_autosplit), NULL);
@@ -2672,6 +2888,9 @@ int main(int argc, char **argv)
     submenu = gtk_menu_new();
     gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_toolbar)));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_moodbar)));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_moodbar));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_break));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_cursor));

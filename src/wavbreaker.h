@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple wave.
  * Copyright (C) 2002-2005 Timothy Robinson
+ * Copyright (C) 2007 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +38,12 @@ struct GraphData_{
 	Points *data;
 };
 
+typedef struct MoodbarData_ MoodbarData;
+struct MoodbarData_ {
+    unsigned long numFrames;
+    GdkColor *frames;
+};
+
 typedef struct TrackBreak_ TrackBreak;
 struct TrackBreak_ {
 	gboolean  write;
@@ -71,5 +78,9 @@ GtkWidget *wavbreaker_get_main_window();
 gboolean open_file_arg( gpointer data);
 
 void wavbreaker_quit();
+
+#define MB_OVL_MOODBAR 2
+#define MB_OVL_WAVEFORM 7
+#define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
 
 #endif /* WAVBREAKER_H */

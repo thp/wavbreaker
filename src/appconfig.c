@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2004 Timothy Robinson
+ * Copyright (C) 2007 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -115,6 +116,9 @@ static int ask_really_quit = 1;
 
 /* Show toolbar in main window */
 static int show_toolbar = 1;
+
+/* Draw moodbar in main window */
+static int show_moodbar = 1;
 
 /* function prototypes */
 static int appconfig_read_file();
@@ -374,6 +378,15 @@ int appconfig_get_show_toolbar() {
 void appconfig_set_show_toolbar(int x)
 {
     show_toolbar = x;
+}
+
+int appconfig_get_show_moodbar() {
+    return show_moodbar;
+}
+
+void appconfig_set_show_moodbar(int x)
+{
+    show_moodbar = x;
 }
 
 int get_use_outputdir()
@@ -924,6 +937,11 @@ static int appconfig_read_file() {
             nkey = atoi((char *)key);
             appconfig_set_show_toolbar(nkey);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "show_moodbar"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi((char *)key);
+            appconfig_set_show_moodbar(nkey);
+            xmlFree(key);
         }
         cur = cur->next;
     }
@@ -1151,6 +1169,18 @@ int appconfig_write_file() {
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
         fprintf(stderr, "error creating show_toolbar node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_show_moodbar());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"show_moodbar",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating show_moodbar node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
