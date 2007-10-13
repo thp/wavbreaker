@@ -238,8 +238,13 @@ void set_audio_function_pointers()
         gtk_widget_hide( output_device_label);
         gtk_widget_hide( output_device_entry);
     } else {
-        gtk_widget_show( output_device_label);
-        gtk_widget_show( output_device_entry);
+        if( get_audio_driver_type() == ALSA) {
+            gtk_widget_hide( output_device_label);
+            gtk_widget_hide( output_device_entry);
+        } else {
+            gtk_widget_show( output_device_label);
+            gtk_widget_show( output_device_entry);
+        }
         gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
     }
 }
@@ -292,7 +297,7 @@ void set_audio_alsa_options_output_device(const char *val) {
 }
 
 void default_audio_alsa_options_output_device() {
-    set_audio_alsa_options_output_device("plughw:0,0");
+    set_audio_alsa_options_output_device("default");
 }
 
 /* generic audio driver functions */
@@ -873,10 +878,15 @@ static int appconfig_read_file() {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_audio_oss_options_output_device((char *)key);
             xmlFree(key);
+        /***
+         * Don't load ALSA output device config parameter (always use "default")
+         *
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "alsa_options_output_device"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_audio_alsa_options_output_device((char *)key);
             xmlFree(key);
+         *
+         ***/
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdir"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_outputdir((char *)key);

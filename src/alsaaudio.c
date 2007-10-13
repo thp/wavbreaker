@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2004 Timothy Robinson
+ * Copyright (C) 2007 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,8 +62,27 @@ int alsa_audio_write(unsigned char *devbuf, int size)
      */
     err = snd_pcm_writei(playback_handle, ptr, size / (channels * bytesPerFrame));
     if (err < 0) {
-        fprintf(stderr, "write to audio interface failed (%s)\n",
-            snd_strerror(err));
+        /*
+         * This code should let us recover from a buffer underrun in ALSA.
+         * This happens, for example, when the user backgrounds (^Z) the 
+         * wavbreaker process while playing back audio or if the machine is 
+         * too slow to keep up with normal playback speed.
+         *
+         * After every error, we have to call "snd_pcm_prepare" and hope 
+         * that ALSA recovers. If not, we have a problem, so spit out an 
+         * error message to let the user know something's wrong.
+         */
+        if( err == -ESTRPIPE) {
+            while( (err = snd_pcm_resume( playback_handle)) == -EAGAIN) {
+                sleep( 1);
+            }
+        }
+
+        err = snd_pcm_prepare( playback_handle);
+
+        if( err != 0) {
+            fprintf( stderr, "write to audio interface failed (%s)\n", snd_strerror( err));
+        }
     }
 
     return err;
