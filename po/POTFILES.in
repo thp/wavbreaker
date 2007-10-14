@@ -6,5 +6,7 @@ src/gettext.h
 src/guimerge.c
 src/overwritedialog.c
 src/reallyquit.c
+src/sample.c
 src/saveas.c
 src/wavbreaker.c
+src/wav.c
