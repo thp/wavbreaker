@@ -381,10 +381,11 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
 
         moodbar_cancelled = FALSE;
         moodbar_pid = fork();
+
         if( moodbar_pid == 0) {
             if( execlp( "moodbar", "moodbar", filename, "-o", fn, (char*)NULL) == -1) {
                 fprintf( stderr, "Error running moodbar: %s (Have you installed the \"moodbar\" package?)\n", strerror( errno));
-                exit( -1);
+                _exit( -1);
             }
         } else if( moodbar_pid > 0) {
             moodbar_wait_dialog = gtk_message_dialog_new( GTK_WINDOW(main_window),
