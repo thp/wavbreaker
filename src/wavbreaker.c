@@ -56,8 +56,6 @@
 
 static GdkPixmap *sample_pixmap;
 static GdkPixmap *summary_pixmap;
-static GdkPixmap *cursor_pixmap;
-static GdkPixmap *play_pixmap;
 
 static GtkWidget *main_window;
 static GtkWidget *vpane1, *vpane2;
@@ -119,10 +117,6 @@ static GtkWidget* moodbar_wait_dialog;
 GdkColor sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
 GdkColor bg_color;
 GdkColor nowrite_color;
-GdkColor zoom_color;
-GdkColor axis_color;
-GdkColor cursor_marker_color;
-GdkColor play_marker_color;
 
 /**
  * The sample_colors_values array now uses colors from the
@@ -211,12 +205,11 @@ static void handle_arguments( int argc, char** argv);
 static void set_title( char* title);
 
 /* Sample and Summary Display Functions */
+static void force_redraw();
 static void redraw();
 static gboolean redraw_later( gpointer data);
 
 static void draw_sample(GtkWidget *widget);
-static void draw_cursor_marker();
-static void draw_play_marker();
 static void draw_summary_pixmap(GtkWidget *widget);
 static void reset_sample_display(guint);
 
@@ -492,7 +485,6 @@ void wavbreaker_autosplit(long x) {
         track_break_add_entry();
         n += x;
     }
-//    redraw();
 }
 
 /*
@@ -955,6 +947,8 @@ void track_break_add_entry()
 
     track_break_set_durations();
     track_break_rename( FALSE);
+
+    force_redraw();
 }
 
 void track_break_add_offset( char* filename, guint offset)
@@ -1065,7 +1059,7 @@ void track_break_write_toggled(GtkWidget *widget,
                        track_break->write, -1);
 
     gtk_tree_path_free(path);
-    redraw();
+    force_redraw();
 }
 
 void track_break_filename_edited(GtkCellRendererText *cell,
@@ -1090,6 +1084,8 @@ void track_break_filename_edited(GtkCellRendererText *cell,
                        track_break->filename, -1);
 
     gtk_tree_path_free(path);
+
+    force_redraw();
 }
 
 void track_break_start_time_edited(GtkCellRendererText *cell,
@@ -1116,6 +1112,8 @@ void track_break_start_time_edited(GtkCellRendererText *cell,
                        */
 
     gtk_tree_path_free(path);
+
+    force_redraw();
 }
 
 /*
@@ -1267,10 +1265,10 @@ file_play_progress_idle_func(gpointer data) {
     gint m = graphData.numSamples;
     gint x = play_marker - draw->allocation.width / 2;
     gint y = play_marker - pixmap_offset;
-    gint z = draw->allocation.width / 2;
+    gint z = draw->allocation.width * (1.0 - 1.0/PLAY_MARKER_SCROLL);
 
     if (y > z && x > 0 && n <= m) {
-        pixmap_offset = play_marker - draw->allocation.width / 2;
+        pixmap_offset = play_marker - draw->allocation.width * (1.0/PLAY_MARKER_SCROLL);
         gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
         gtk_widget_queue_draw(scrollbar);
     } else if (pixmap_offset > play_marker) {
@@ -1281,6 +1279,7 @@ file_play_progress_idle_func(gpointer data) {
 
     redraw();
     update_status();
+    usleep( 50000);
 
     if (sample_get_playing()) {
         return TRUE;
@@ -1561,6 +1560,21 @@ void set_sample_filename(const char *f) {
  *-------------------------------------------------------------------------
  */
 
+static void force_redraw()
+{
+    if( sample_pixmap) {
+        gdk_pixmap_unref( sample_pixmap);
+        sample_pixmap = NULL;
+    }
+
+    if( summary_pixmap) {
+        gdk_pixmap_unref( summary_pixmap);
+        summary_pixmap = NULL;
+    }
+
+    redraw();
+}
+
 static void redraw()
 {
     static int redraw_done = 1;
@@ -1604,8 +1618,15 @@ static void draw_sample(GtkWidget *widget)
     unsigned int moodbar_pos = 0;
     GdkColor *new_color = NULL;
 
+    static unsigned long pw, ph, ppos, mb;
+
     width = widget->allocation.width;
     height = widget->allocation.height;
+
+    if( sample_pixmap != NULL && pw == width && ph == height && ppos == pixmap_offset &&
+        (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
+        return;
+    }
 
     if (sample_pixmap) {
         gdk_pixmap_unref(sample_pixmap);
@@ -1625,6 +1646,11 @@ static void draw_sample(GtkWidget *widget)
     gdk_gc_set_foreground(gc, &bg_color);
     gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
 
+    if (graphData.data == NULL) {
+        g_object_unref(gc);
+        return;
+    }
+
     xaxis = height / 2;
     if (xaxis != 0) {
         scale = graphData.maxSampleValue / xaxis;
@@ -1635,42 +1661,16 @@ static void draw_sample(GtkWidget *widget)
         scale = 1;
     }
 
-    if (graphData.data == NULL) {
-        /* draw axis */
-
-        gdk_gc_set_foreground(gc, &axis_color);
-        gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
-        
-        //cleanup
-        g_object_unref(gc);
-
-        return;
-    }
-
     /* draw sample graph */
 
     for (i = 0; i < width && i < graphData.numSamples; i++) {
         y_min = graphData.data[i + pixmap_offset].min;
         y_max = graphData.data[i + pixmap_offset].max;
 
-        /*
-        y_max = y_min;
-        y_min = 100 * sin(i * .1);
-        */
-
         y_min = xaxis + fabs(y_min) / scale;
         y_max = xaxis - y_max / scale;
 
-        /* DEBUG CODE START */
-        /*
-        printf("i: %d\t", i);
-        printf("y_min: %d\t", y_min);
-        printf("y_max: %d\n", y_max);
-        */
-        /* DEBUG CODE END */
-
         /* find the track break we are drawing now */
-
         count = 0;
         is_write = 0;
         tb_cur = NULL;
@@ -1688,8 +1688,6 @@ static void draw_sample(GtkWidget *widget)
             }
         }
 
-        //gdk_gc_set_foreground(gc, &sample_colors[(count - 1) % SAMPLE_COLORS][0]);
-        //gdk_draw_line(sample_pixmap, gc, i, y_min, i, y_max);
         if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
             moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
             gdk_gc_set_foreground(gc, &(moodbarData.frames[moodbar_pos]));
@@ -1712,62 +1710,13 @@ static void draw_sample(GtkWidget *widget)
         }
     }
 
-    /* draw axis */
-
-    gdk_gc_set_foreground(gc, &axis_color);
-
-    if (width > graphData.numSamples) {
-        gdk_draw_line(sample_pixmap, gc, 0, xaxis, graphData.numSamples, xaxis);
-    } else {
-        gdk_draw_line(sample_pixmap, gc, 0, xaxis, width, xaxis);
-    }
-
     //cleanup
     g_object_unref(gc);
-}
 
-static void draw_cursor_marker()
-{
-    int height;
-    GdkGC *gc;
-
-    height = draw->allocation.height;
-
-    cursor_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
-
-    if (!cursor_pixmap) {
-        printf("cursor_pixmap is NULL\n");
-        return;
-    }
-
-    gc = gdk_gc_new(cursor_pixmap);
-    gdk_gc_set_foreground(gc, &cursor_marker_color);
-    gdk_draw_line(cursor_pixmap, gc, 0, 0, 0, height);
-
-    //cleanup
-    g_object_unref(gc);
-}
-
-static void draw_play_marker()
-{
-    int height;
-    GdkGC *gc;
-
-    height = draw->allocation.height;
-
-    play_pixmap = gdk_pixmap_new(draw->window, 1, height, -1);
-
-    if (!play_pixmap) {
-        printf("play_pixmap is NULL\n");
-        return;
-    }
-
-    gc = gdk_gc_new(play_pixmap);
-    gdk_gc_set_foreground(gc, &play_marker_color);
-    gdk_draw_line(play_pixmap, gc, 0, 0, 0, height);
-
-    //cleanup
-    g_object_unref(gc);
+    pw = width;
+    ph = height;
+    ppos = pixmap_offset;
+    mb = moodbarData.numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean configure_event(GtkWidget *widget,
@@ -1801,8 +1750,6 @@ static gboolean configure_event(GtkWidget *widget,
     GTK_ADJUSTMENT(cursor_marker_spinner_adj)->upper = graphData.numSamples - 1;
 
     draw_sample(widget);
-    draw_cursor_marker();
-    draw_play_marker();
 
     return TRUE;
 }
@@ -1811,25 +1758,137 @@ static gboolean expose_event(GtkWidget *widget,
     GdkEventExpose *event, gpointer data)
 {
     GdkGC *gc;
+    cairo_t *cr;
 
-    gc = gdk_gc_new(sample_pixmap);
+    GList *tbl;
+    TrackBreak *tb_cur = NULL, *tb_first = NULL;
+    TrackBreak **tbs;
+    const int border = 3;
+    int tbc = 0, i, border_left, border_right, text_height = 0, ellipsis_width = 0;
+    gboolean label_truncated = FALSE;
+    char tmp[1024];
 
-    gdk_draw_drawable(widget->window, gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
+    cairo_text_extents_t te;
 
-    if (cursor_marker >= pixmap_offset &&
-        cursor_marker <= pixmap_offset + widget->allocation.width) {
+    guint width = widget->allocation.width,
+          height = widget->allocation.height;
 
-        gdk_draw_drawable(widget->window, gc, cursor_pixmap, 0, 0,
-                  cursor_marker - pixmap_offset, 0, -1, -1);
+    if( sample_pixmap) {
+        gc = gdk_gc_new(sample_pixmap);
+        gdk_draw_drawable(widget->window, gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
+        g_object_unref(gc);
     }
 
-    if (sample_get_playing()) {
-        gdk_draw_drawable(widget->window, gc, play_pixmap, 0, 0,
-                  play_marker - pixmap_offset, 0, -1, -1);
+    cr = gdk_cairo_create( widget->window);
+
+    cairo_set_line_width( cr, 1);
+    if( cursor_marker >= pixmap_offset && cursor_marker <= pixmap_offset + width) {
+        /**
+         * Draw RED cursor marker
+         **/
+        cairo_set_source_rgba( cr, 1, 0, 0, 0.9);
+        cairo_move_to( cr, cursor_marker - pixmap_offset + 0.5, 0);
+        cairo_line_to( cr, cursor_marker - pixmap_offset + 0.5, height);
+        cairo_stroke( cr);
     }
 
-    //cleanup
-    g_object_unref(gc);
+    if( sample_is_playing()) {
+        /**
+         * Draw GREEN play marker
+         **/
+        cairo_set_source_rgba( cr, 0, 1, 0, 0.9);
+        cairo_move_to( cr, play_marker - pixmap_offset + 0.5, 0);
+        cairo_line_to( cr, play_marker - pixmap_offset + 0.5, height);
+        cairo_stroke( cr);
+    }
+
+    /**
+     * Prepare text output (filename labels)
+     **/
+
+    cairo_select_font_face( cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size( cr, 10);
+
+    cairo_text_extents( cr, "...", &te);
+    ellipsis_width = te.width;
+
+    /**
+     * Find track breaks for which we need to draw labels
+     **/
+
+    tb_cur = NULL;
+    tbs = NULL;;
+    for( tbl = track_break_list; tbl != NULL; tbl = g_list_next( tbl)) {
+        tb_cur = g_list_nth_data( track_break_list, g_list_position( track_break_list, tbl));
+        if (tb_cur != NULL) {
+            cairo_text_extents( cr, tb_cur->filename, &te);
+
+            if( pixmap_offset <= tb_cur->offset) {
+                if( tbs == NULL && tb_first != NULL) {
+                    tbs = (TrackBreak**)malloc( sizeof( TrackBreak*));
+                    tbs[tbc] = tb_first;
+                    tbc++;
+                }
+                tbs = (TrackBreak**)realloc( tbs, (tbc+1)*sizeof( TrackBreak*));
+                tbs[tbc] = tb_cur;
+                tbc++;
+                if( te.height > text_height) {
+                    text_height = te.height;
+                }
+            }
+
+            tb_first = tb_cur;
+        }
+    }
+
+    if( tbs == NULL && tb_first != NULL) {
+        tbs = (TrackBreak**)malloc( sizeof( TrackBreak*));
+        tbs[tbc] = tb_first;
+        tbc++;
+        text_height = te.height;
+    }
+
+    /**
+     * Calculate label size (and if we need to draw it) and
+     * finally draw the label with the right size and position
+     **/
+
+    for( i=0; i<tbc; i++) {
+        if( !(tbs[i]->write)) {
+            continue;
+        }
+        border_left = (tbs[i]->offset > pixmap_offset)?(tbs[i]->offset - pixmap_offset):(0);
+        border_right = (i+1 == tbc)?(width+100):(tbs[i+1]->offset - pixmap_offset);
+        strcpy( tmp, tbs[i]->filename);
+        cairo_text_extents( cr, tmp, &te);
+        label_truncated = FALSE;
+        while( border_left + te.width + ellipsis_width + border*2 > border_right - border*2 && strlen( tmp) > 1) {
+            tmp[strlen( tmp)-1] = '\0';
+            cairo_text_extents( cr, tmp, &te);
+            label_truncated = TRUE;
+        }
+        if( label_truncated) {
+            strcat( tmp, "...");
+            cairo_text_extents( cr, tmp, &te);
+            if( border_left + te.width + border*2 > border_right - border*2) {
+                border_left -= (border_left + te.width + border*2) - (border_right - border*2);
+            }
+        }
+
+        cairo_set_source_rgba( cr, 0, 0, 0, 0.5);
+        cairo_rectangle( cr, border_left, height - text_height - border*2, te.width + border*2, text_height + border*2);
+        cairo_fill( cr);
+
+        cairo_set_source_rgb( cr, 1, 1, 1);
+        cairo_move_to( cr, border_left + border, height - (text_height+1)/2);
+        cairo_show_text( cr, tmp);
+    }
+
+    if( tbs != NULL) {
+        free( tbs);
+    }
+
+    cairo_destroy( cr);
 
     return FALSE;
 }
@@ -1839,13 +1898,13 @@ static void draw_summary_pixmap(GtkWidget *widget)
     int xaxis;
     int width, height;
     int y_min, y_max;
-    int min, max, x_scale, x_scale_leftover, x_scale_mod;
+    int min, max;
     int scale;
     int i, k;
-    int leftover_count, loop_end, array_offset;
+    int loop_end, array_offset;
     int shade;
-    int poly_left;
-    int poly_right;
+
+    float x_scale;
 
     GdkGC *gc;
     int count;
@@ -1857,23 +1916,19 @@ static void draw_summary_pixmap(GtkWidget *widget)
     unsigned int moodbar_pos = 0;
     GdkColor *new_color = NULL;
 
-    GdkPoint poly_points[4];
+    static unsigned long pw, ph, mb;
 
     width = widget->allocation.width;
-    height = widget->allocation.height; 
+    height = widget->allocation.height;
+
+    if( summary_pixmap != NULL && pw == width && ph == height &&
+        (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
+        return;
+    }
+
     if (summary_pixmap) {
         gdk_pixmap_unref(summary_pixmap);
     }
-
-    poly_left = 0;
-    poly_right = width;
-
-    poly_points[0].x = 0;
-    poly_points[0].y = height;
-    poly_points[1].x = width;
-    poly_points[1].y = height;
-    poly_points[2].y = height*5/6;
-    poly_points[3].y = height*5/6;
 
     summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
 
@@ -1885,9 +1940,13 @@ static void draw_summary_pixmap(GtkWidget *widget)
     gc = gdk_gc_new(summary_pixmap);
 
     /* clear summary_pixmap before drawing */
-
     gdk_gc_set_foreground(gc, &bg_color);
     gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
+
+    if (graphData.data == NULL) {
+        g_object_unref(gc);
+        return;
+    }
 
     xaxis = height / 2;
     if (xaxis != 0) {
@@ -1899,60 +1958,19 @@ static void draw_summary_pixmap(GtkWidget *widget)
         scale = 1;
     }
 
-    if (graphData.data == NULL) {
-        /* draw axis */
-
-        gdk_gc_set_foreground(gc, &axis_color);
-
-        //cleanup
-        g_object_unref(gc);
-        return;
-    }
-
     /* draw sample graph */
 
-    x_scale = graphData.numSamples / width;
+    x_scale = (float)(graphData.numSamples) / (float)(width);
     if (x_scale == 0) {
         x_scale = 1;
     }
 
-/*
-printf("x_scale: %d\n", x_scale);
-printf("width: %d\n", width);
-printf("graphData.numSamples: %lu\n", graphData.numSamples);
-*/
-
-    x_scale_leftover = graphData.numSamples % width;
-//printf("x_scale_leftover: %d\n", x_scale_leftover);
-    if (x_scale_leftover > 0) {
-        x_scale_mod =  width / x_scale_leftover;
-    } else {
-        x_scale_mod = 1;
-    }
-
-    if (! (x_scale_mod > 0)) {
-        x_scale_mod = 1;
-    }
-/*
-printf("x_scale_leftover: %d\n", x_scale_leftover);
-printf("x_scale_mod: %d\n", x_scale_mod);
-*/
-
-    leftover_count = 0;
-
     for (i = 0; i < width && i < graphData.numSamples; i++) {
         min = max = 0;
-        array_offset = i * x_scale + leftover_count;
+        array_offset = (int)(i * x_scale);
 
         if (x_scale != 1) {
-            loop_end = x_scale;
-
-            if (i % x_scale_mod == 0 &&
-                leftover_count < x_scale_leftover) {
-
-                loop_end++;
-                leftover_count++;
-            }
+            loop_end = (int)x_scale;
 
             for (k = 0; k < loop_end; k++) {
                 if (graphData.data[array_offset + k].max > max) {
@@ -1972,14 +1990,6 @@ printf("x_scale_mod: %d\n", x_scale_mod);
         y_min = xaxis + fabs(y_min) / scale;
         y_max = xaxis - y_max / scale;
 
-        /* DEBUG CODE START */
-        /*
-        printf("i: %d\t", i);
-        printf("y_min: %d\t", y_min);
-        printf("y_max: %d\n", y_max);
-        */
-        /* DEBUG CODE END */
-
         count = 0;
         is_write = 0;
         tb_cur = NULL;
@@ -1998,26 +2008,6 @@ printf("x_scale_mod: %d\n", x_scale_mod);
             moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
             gdk_gc_set_foreground(gc, &(moodbarData.frames[moodbar_pos]));
             gdk_draw_line( summary_pixmap, gc, i, 0, i, height);
-        }
-
-        /* draw reverse background */
-        if( i * x_scale + leftover_count >= pixmap_offset &&
-            i * x_scale + leftover_count < pixmap_offset+width) {
-
-            if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
-                gdk_gc_set_foreground( gc, &bg_color);
-            } else {
-                gdk_gc_set_foreground( gc, &zoom_color);
-            }
-            gdk_draw_line(summary_pixmap, gc, i, 0, i, height);
-
-            if( poly_left < i) {
-                poly_left = i;
-            }
-
-            if( poly_right > i) {
-                poly_right = i;
-            }
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
@@ -2042,18 +2032,12 @@ printf("x_scale_mod: %d\n", x_scale_mod);
         }
     }
 
-    poly_points[2].x = poly_right;
-    poly_points[3].x = poly_left;
-
-    // TODO: fix the polygon calculation and draw below waveform
-    //gdk_gc_set_foreground( gc, &zoom_color);
-    //gdk_draw_polygon( summary_pixmap, gc, TRUE, poly_points, 4);
-
-
-//printf("leftover_count: %d\n", leftover_count);
-
     //cleanup
     g_object_unref(gc);
+
+    pw = width;
+    ph = height;
+    mb = moodbarData.numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean
@@ -2071,14 +2055,44 @@ draw_summary_expose_event(GtkWidget *widget,
                           GdkEventExpose *event,
                           gpointer user_data)
 {
+    cairo_t *cr;
+
+    guint width = widget->allocation.width,
+          height = widget->allocation.height;
+
+    gfloat summary_scale;
+
     GdkGC *gc;
 
-    gc = gdk_gc_new(summary_pixmap);
+    summary_scale = (float)(graphData.numSamples) / (float)(width);
 
-    gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
+    if( summary_pixmap) {
+        gc = gdk_gc_new(summary_pixmap);
+        gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
+        g_object_unref(gc);
+    }
 
-    //cleanup
-    g_object_unref(gc);
+    /**
+     * Draw shadow in summary pixmap to show current view
+     **/
+
+    cr = gdk_cairo_create( widget->window);
+
+    cairo_set_source_rgba( cr, 0, 0, 0, 0.3);
+    cairo_rectangle( cr, 0, 0, pixmap_offset / summary_scale, height);
+    cairo_fill( cr);
+    cairo_rectangle( cr, (pixmap_offset+width) / summary_scale, 0, width - (pixmap_offset+width) / summary_scale, height);
+    cairo_fill( cr);
+
+    cairo_set_source_rgba( cr, 1, 1, 1, 0.6);
+    cairo_set_line_width( cr, 1);
+    cairo_move_to( cr, (int)(pixmap_offset / summary_scale) + 0.5, 0);
+    cairo_line_to( cr, (int)(pixmap_offset / summary_scale) + 0.5, height);
+    cairo_move_to( cr, (int)((pixmap_offset+width) / summary_scale) + 0.5, 0);
+    cairo_line_to( cr, (int)((pixmap_offset+width) / summary_scale) + 0.5, height);
+    cairo_stroke( cr);
+
+    cairo_destroy( cr);
 
     return FALSE;
 }
@@ -2931,26 +2945,6 @@ int main(int argc, char **argv)
     nowrite_color.green =
     nowrite_color.blue  = 220*(65535/255);
     gdk_color_alloc(gtk_widget_get_colormap(main_window), &nowrite_color);
-
-    zoom_color.red   =
-    zoom_color.green =
-    zoom_color.blue  = 180*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &zoom_color);
-
-    axis_color.red   =
-    axis_color.green =
-    axis_color.blue  = 0*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &axis_color);
-
-    cursor_marker_color.red   = 255*(65535/255);
-    cursor_marker_color.green =   0*(65535/255);
-    cursor_marker_color.blue  =   0*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &cursor_marker_color);
-
-    play_marker_color.red   =   0*(65535/255);
-    play_marker_color.green = 255*(65535/255);
-    play_marker_color.blue  =   0*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &play_marker_color);
 
     for( i=0; i<SAMPLE_COLORS; i++) {
         for( x=0; x<SAMPLE_SHADES; x++) {

@@ -83,4 +83,13 @@ void wavbreaker_quit();
 #define MB_OVL_WAVEFORM 7
 #define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
 
+/**
+ * When the play marker reaches (x-1)/x (where x is the 
+ * value of PLAY_MARKER_SCROLL), scroll the waveform so
+ * that the play marker continues at position 1/x.
+ *
+ * i.e. play marker at 7/8 of width -> go to 1/8 of width
+ **/
+#define PLAY_MARKER_SCROLL 8
+
 #endif /* WAVBREAKER_H */
