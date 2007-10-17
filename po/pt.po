@@ -1,3 +1,4 @@
+# translation of pt.po to português
 # translation of pt.po to
 # Português translation of wavbreaker
 # Copyright (C) 2007 José Jorge
@@ -11,9 +12,9 @@ msgstr ""
 "Project-Id-Version: pt\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-10-14 14:49+0200\n"
-"PO-Revision-Date: 2007-07-06 16:27+0200\n"
-"Last-Translator: José JORGE <jose.jorge@cpam-auch.cnamts.fr>\n"
-"Language-Team:  <fr@li.org>\n"
+"PO-Revision-Date: 2007-10-16 22:41+0200\n"
+"Last-Translator: Jose Jorge <jjorge@free.fr>\n"
+"Language-Team: português <pt@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -194,54 +195,53 @@ msgstr "Sair do wavbreaker?"
 
 #: src/reallyquit.c:29
 msgid "If you quit wavbreaker now, any unsaved chunks will be lost."
-msgstr ""
-"Se fechar wavbreaker agora, todos as partes não gravadas serão perdidas."
+msgstr "Se fechar wavbreaker agora, todos as partes não gravadas serão perdidas."
 
 #: src/sample.c:263
 msgid "Open as RAW audio"
-msgstr ""
+msgstr "Abrir como áudio RAW"
 
 #: src/sample.c:264
 msgid ""
 "The file you selected does not contain a wave header. wavbreaker can "
 "interpret the file as \"Signed 16 bit, 44100 Hz, Stereo\" audio. Choose the "
 "byte order for the RAW audio or cancel to abort."
-msgstr ""
+msgstr "O ficheiro que escolheu não contém um cabeçalho wave. wavbreaker pode interpretar o ficheiro como um som \"16 bits, 44100 Hz, Estéreo\". Escolha a ordem dos bytes para o áudio RAW ou anule para saír."
 
 #: src/sample.c:272
 msgid "Big endian"
-msgstr ""
+msgstr "Big endian"
 
 #: src/sample.c:273
 msgid "Little endian"
-msgstr ""
+msgstr "Little endian"
 
 #: src/sample.c:311
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening %s: %s"
-msgstr "Erro ao abrir o ficheiro"
+msgstr "Erro ao abrir %s : %s"
 
 #: src/saveas.c:50
 msgid "Select folder to save wave files"
-msgstr "Seleccionar a pasta onde gravar os ficheiros wave"
+msgstr "Seleccione a pasta onde gravar os ficheiros wave"
 
 #: src/wavbreaker.c:394 src/wavbreaker.c:411
 msgid "Generating moodbar"
-msgstr ""
+msgstr "A criar a barra de ambiente sonoro"
 
 #: src/wavbreaker.c:402
 msgid "Hide window"
-msgstr ""
+msgstr "Esconder esta janela"
 
 #: src/wavbreaker.c:410
 msgid ""
 "The moodbar tool analyzes your audio file and generates a colorful "
 "representation of the audio data."
-msgstr ""
+msgstr "A ferramenta moodbar analisa o seu ficheiro áudio e cria um gráfico colorido que representa o ambiente sonoro."
 
 #: src/wavbreaker.c:430
 msgid "Cannot launch \"moodbar\""
-msgstr ""
+msgstr "Impossível de iniciar \"moodbar\""
 
 #: src/wavbreaker.c:430
 msgid ""
@@ -250,6 +250,9 @@ msgid ""
 "\n"
 "      http://amarok.kde.org/wiki/Moodbar"
 msgstr ""
+"wavbreaker não conseguiu iniciar o programa moodbar, que é necessário para criar a barra de ambiente sonoro. Pode descarregar o programa em :\n"
+"\n"
+"      http://amarok.kde.org/wiki/Moodbar"
 
 #: src/wavbreaker.c:565
 msgid "Write"
@@ -272,8 +275,7 @@ msgid "Splitting wave file"
 msgstr "A dividir o ficheiro wave"
 
 #: src/wavbreaker.c:1189
-msgid ""
-"The selected track breaks are now written to disk. This can take some time."
+msgid "The selected track breaks are now written to disk. This can take some time."
 msgstr ""
 "Os cortes pedidos estão agora a ser escritos no disco. Isto pode levar algum "
 "tempo."
@@ -336,16 +338,15 @@ msgstr "Abrir um Ficheiro"
 #: src/wavbreaker.c:2279
 #, c-format
 msgid "Cursor"
-msgstr ""
+msgstr "Cursor"
 
 #: src/wavbreaker.c:2286
-#, fuzzy
 msgid "Playing"
-msgstr "Reproduzir"
+msgstr "A ler"
 
 #: src/wavbreaker.c:2301 src/wavbreaker.c:2319 src/wavbreaker.c:2747
 msgid "Play"
-msgstr "Reproduzir"
+msgstr "Ouvir"
 
 #: src/wavbreaker.c:2310
 msgid "Stop"
@@ -440,13 +441,12 @@ msgid "Show or hide the main window toolbar"
 msgstr "Mostra ou esconde a barra de ferramentas"
 
 #: src/wavbreaker.c:2688
-#, fuzzy
 msgid "Display moodbar"
-msgstr "Mostrar a barra de ferramentas"
+msgstr "Mostrar a barra de ambiente sonoro"
 
 #: src/wavbreaker.c:2688
 msgid "Draw moodbar over the waveform graph"
-msgstr ""
+msgstr "Desenha a barra de ambiente sonoro por cima do gráfico da forma sonora"
 
 #: src/wavbreaker.c:2695
 msgid "Add track break"
@@ -490,11 +490,11 @@ msgstr "Mudar automaticamente o nome de todas as partes"
 
 #: src/wavbreaker.c:2720
 msgid "Generate moodbar"
-msgstr ""
+msgstr "Criar a barra de ambiente sonoro"
 
 #: src/wavbreaker.c:2720
 msgid "Generate moodbar data"
-msgstr ""
+msgstr "Calcula os dados necessários para mostrar a barra de ambiente sonoro"
 
 #: src/wavbreaker.c:2725
 msgid "Auto-Split"
@@ -593,31 +593,31 @@ msgid "Auto-Rename"
 msgstr "Mudar automaticamente o nome"
 
 #: src/wav.c:34
-msgid ""
-"Error reading chunk. Maybe the wave file you are trying to load is truncated?"
-msgstr ""
+msgid "Error reading chunk. Maybe the wave file you are trying to load is truncated?"
+msgstr "Erro na leitura. Talvez o ficheiro wave que abriu foi cortado?"
 
 #: src/wav.c:77
 #, c-format
 msgid "Cannot open %s: %s"
-msgstr ""
+msgstr "Impossível de abrir %s: %s"
 
 #: src/wav.c:84
 #, c-format
 msgid "Cannot read wave header."
-msgstr ""
+msgstr "Impossível de ler o cabeçalho wave."
 
 #: src/wav.c:90
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a wave file."
-msgstr "Abrir um ficheiro wave"
+msgstr "%s não é um ficheiro wave."
 
 #: src/wav.c:131 src/wav.c:184 src/wav.c:205
 #, c-format
 msgid "Error seeking to %u in %s: %s"
-msgstr ""
+msgstr "Erro ao atingir %u em %s: %s"
 
 #: src/wav.c:170
 #, c-format
 msgid "Loading compressed wave data is not supported."
-msgstr ""
+msgstr "Os dados wave comprimidos não são aceites."
+
