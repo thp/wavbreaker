@@ -779,6 +779,8 @@ track_break_delete_entry()
 
     track_break_set_durations();
     track_break_rename( FALSE);
+
+    force_redraw();
 }
 
 void
