@@ -826,8 +826,6 @@ track_break_setup_filename(gpointer data, gpointer user_data)
                 }
             }
 
-            printf("cmp_str: %s\n", cmp_str);
-
             if (strcmp(orig_filename, cmp_str)) {
                 return;
             }
@@ -857,8 +855,6 @@ track_break_setup_filename(gpointer data, gpointer user_data)
             sprintf(buf, "%s%02d", get_etree_filename_suffix(), index);
         }
     }
-
-    printf("buf: %s\n", buf);
 
     fn[0] = '\0';
 
