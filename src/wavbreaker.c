@@ -785,6 +785,8 @@ void
 track_break_setup_filename(gpointer data, gpointer user_data)
 {
     TrackBreak *track_break = (TrackBreak *)data;
+    gchar *orig_filename = (gchar *)user_data;
+
     gchar fn[128];
     gchar buf[128];
     int index;
@@ -793,8 +795,43 @@ track_break_setup_filename(gpointer data, gpointer user_data)
     static int track_num = 1;
 
     /* when not overwriting track names, only update not-yet-set names */
-    if( overwrite_track_names == FALSE && track_break->filename != NULL) {
-        return;
+    if( overwrite_track_names == FALSE) {
+
+        // try and determine if the user has modified the filename
+
+        if (track_break->filename != NULL) {
+            char cmp_str[1024];
+            cmp_str[0] = '\0';
+
+            if (get_use_etree_filename_suffix()) {
+                // remove the dXtXX from the end
+                int length = strlen(track_break->filename);
+                if (length > 5) {
+                    strncpy(cmp_str, track_break->filename, length - 5);
+                    cmp_str[length - 4] = '\0';
+                }
+            } else if (get_prepend_file_number()) {
+                // remove the XX- from the beginning
+                int length = strlen(track_break->filename);
+                if (length > 3) {
+                    strncpy(cmp_str, track_break->filename + 3, length);
+                    cmp_str[length - 2] = '\0';
+                }
+            } else {
+                // remove the -XX from the end
+                int length = strlen(track_break->filename);
+                if (length > 3) {
+                    strncpy(cmp_str, track_break->filename, length - 3);
+                    cmp_str[length - 2] = '\0';
+                }
+            }
+
+            printf("cmp_str: %s\n", cmp_str);
+
+            if (strcmp(orig_filename, cmp_str)) {
+                return;
+            }
+        }
     }
 
     index = g_list_index(track_break_list, track_break);
@@ -821,13 +858,15 @@ track_break_setup_filename(gpointer data, gpointer user_data)
         }
     }
 
+    printf("buf: %s\n", buf);
+
     fn[0] = '\0';
 
     if (!get_use_etree_filename_suffix() && get_prepend_file_number()) {
         strcat(fn, buf);
-        strcat(fn, (gchar *)user_data);
+        strcat(fn, orig_filename);
     } else {
-        strcat(fn, (gchar *)user_data);
+        strcat(fn, orig_filename);
         strcat(fn, buf);
     }
 
