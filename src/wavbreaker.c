@@ -1565,7 +1565,14 @@ static void open_select_file() {
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
 
     if (sample_filename != NULL) {
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dirname(sample_filename));
+        char* filename = g_strdup(sample_filename);
+        char* dir = dirname(filename);
+
+        if (dir != NULL && dir[0] != '.') {
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
+        }
+
+        g_free(filename);
     }
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
