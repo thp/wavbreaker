@@ -1298,21 +1298,21 @@ file_write_progress_idle_func(gpointer data) {
 
 gboolean
 file_play_progress_idle_func(gpointer data) {
-    gint n = play_marker + draw->allocation.width / 2;
-    gint m = graphData.numSamples;
-    gint x = play_marker - draw->allocation.width / 2;
+    gint half_width = draw->allocation.width / 2;
+    gint offset = draw->allocation.width * (1.0/PLAY_MARKER_SCROLL);
+
+    gint x = play_marker - half_width;
     gint y = play_marker - pixmap_offset;
     gint z = draw->allocation.width * (1.0 - 1.0/PLAY_MARKER_SCROLL);
 
-    if (y > z && x > 0 && n <= m) {
-        pixmap_offset = play_marker - draw->allocation.width * (1.0/PLAY_MARKER_SCROLL);
-        gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
-        gtk_widget_queue_draw(scrollbar);
+    if (y > z && x > 0) {
+        reset_sample_display(play_marker - offset + half_width);
     } else if (pixmap_offset > play_marker) {
-        pixmap_offset = 0;
-        gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
-        gtk_widget_queue_draw(scrollbar);
+        reset_sample_display(play_marker);
     }
+
+    gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
+    gtk_widget_queue_draw(scrollbar);
 
     redraw();
     update_status();
