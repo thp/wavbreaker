@@ -303,6 +303,9 @@ menu_prev_silence( GtkWidget* widget, gpointer user_data);
 void
 menu_add_track_break(GtkWidget *widget, gpointer user_data);
 
+static void set_stop_icon();
+static void set_play_icon();
+
 static void save_window_sizes();
 static void check_really_quit();
 
@@ -1321,6 +1324,7 @@ file_play_progress_idle_func(gpointer data) {
     if (sample_get_playing()) {
         return TRUE;
     } else {
+        set_play_icon();
         return FALSE;
     }
 }
@@ -2348,8 +2352,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     if( sample_is_playing()) {
         menu_stop( NULL, NULL);
         update_status();
-        g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
-        g_object_set( action_playback, "label", _("Play"), NULL);
+        set_play_icon();
         return;
     }
 
@@ -2357,8 +2360,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     switch (play_sample(cursor_marker, &play_marker)) {
         case 0:
             idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
-            g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_STOP, NULL);
-            g_object_set( action_playback, "label", _("Stop"), NULL);
+            set_stop_icon();
             break;
         case 1:
             printf("error in play_sample\n");
@@ -2366,8 +2368,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
         case 2:
             menu_stop( NULL, NULL);
             update_status();
-            g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
-            g_object_set( action_playback, "label", _("Play"), NULL);
+            set_play_icon();
 //            printf("already playing\n");
 //            menu_stop(NULL, NULL);
 //            play_sample(cursor_marker, &play_marker);
@@ -2376,6 +2377,16 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
 //            printf("must open sample file to play\n");
             break;
     }
+}
+
+static void set_stop_icon() {
+    g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_STOP, NULL);
+    g_object_set( action_playback, "label", _("Stop"), NULL);
+}
+
+static void set_play_icon() {
+    g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
+    g_object_set( action_playback, "label", _("Play"), NULL);
 }
 
 static void menu_stop(GtkWidget *widget, gpointer user_data)
