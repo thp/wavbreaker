@@ -754,7 +754,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "OSS");
 #endif
 #ifdef HAVE_ALSA
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "ALSA (recommended)");
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "ALSA");
 #endif
 #ifdef HAVE_JACK
     gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack");
