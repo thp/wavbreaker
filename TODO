@@ -9,11 +9,6 @@ Low Priority
 Split based on cue and toc files
 Movable Boundaries in wav display
 fix highlight on summary display
-alsa and jack drivers
-    - Config menu
-    - autoconf
-    - dynamic function call based on audio interface
-        - make sure not playing when changing audio interfaces
 sound card format issues
 pause function
 

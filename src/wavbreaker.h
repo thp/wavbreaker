@@ -79,6 +79,8 @@ gboolean open_file_arg( gpointer data);
 
 void wavbreaker_quit();
 
+extern char *sample_filename;
+
 #define MB_OVL_MOODBAR 2
 #define MB_OVL_WAVEFORM 7
 #define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))

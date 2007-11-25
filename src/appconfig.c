@@ -30,6 +30,10 @@
 #include "alsaaudio.h"
 #endif
 
+#ifdef HAVE_PULSE
+#include "pulseaudio.h"
+#endif
+
 #ifdef HAVE_OSS
 #include "linuxaudio.h"
 #endif
@@ -49,7 +53,15 @@
 #define NOSOUND 0
 #define OSS     1
 #define ALSA    2
-#define JACK    3
+#define PULSE   3
+
+/**
+ * Descriptive name of our output modules
+ **/
+#define NOSOUND_STR _("Disable audio output")
+#define OSS_STR       "OSS"
+#define ALSA_STR      "ALSA"
+#define PULSE_STR     "PulseAudio"
 
 static GtkWidget *window;
 
@@ -125,9 +137,12 @@ static int appconfig_read_file();
 static void default_all_strings();
 static void open_select_outputdir();
 
+static int get_combo_box_selected_type();
+
 static char *get_audio_nosound_options_output_device();
 static char *get_audio_oss_options_output_device();
 static char *get_audio_alsa_options_output_device();
+static char *get_audio_pulse_options_output_device();
 
 int get_config_file_version()
 {
@@ -204,12 +219,13 @@ void set_audio_function_pointers_with_index(int index)
             set_audio_get_outputdev(get_audio_alsa_options_output_device);
             break;
 #endif
-#ifdef HAVE_JACK
-        case JACK:
-            set_audio_driver_type(JACK);
-            set_audio_close_device(jack_audio_close_device);
-            set_audio_open_device(jack_audio_open_device);
-            set_audio_write(jack_audio_write);
+#ifdef HAVE_PULSE
+        case PULSE:
+            set_audio_driver_type(PULSE);
+            set_audio_close_device(pulse_audio_close_device);
+            set_audio_open_device(pulse_audio_open_device);
+            set_audio_get_outputdev(get_audio_pulse_options_output_device);
+            set_audio_write(pulse_audio_write);
             break;
 #endif
         case NOSOUND:
@@ -231,14 +247,14 @@ void set_audio_function_pointers()
             GTK_ENTRY(output_device_entry)));
     }
 
-    set_audio_function_pointers_with_index(gtk_combo_box_get_active(
-                GTK_COMBO_BOX(combo_box)));
+    set_audio_function_pointers_with_index(get_combo_box_selected_type());
 
     if (get_audio_driver_type() == NOSOUND) {
         gtk_widget_hide( output_device_label);
         gtk_widget_hide( output_device_entry);
     } else {
-        if( get_audio_driver_type() == ALSA) {
+        if( get_audio_driver_type() == ALSA ||
+            get_audio_driver_type() == PULSE) {
             gtk_widget_hide( output_device_label);
             gtk_widget_hide( output_device_entry);
         } else {
@@ -252,8 +268,8 @@ void set_audio_function_pointers()
 void default_audio_function_pointers()
 {
     set_audio_function_pointers_with_index(NOSOUND);
-#ifdef HAVE_JACK
-    set_audio_function_pointers_with_index(JACK);
+#ifdef HAVE_PULSE
+    set_audio_function_pointers_with_index(PULSE);
 #endif
 #ifdef HAVE_OSS
     set_audio_function_pointers_with_index(OSS);
@@ -300,6 +316,15 @@ void default_audio_alsa_options_output_device() {
     set_audio_alsa_options_output_device("default");
 }
 
+/* pulseaudio driver options */
+char *get_audio_pulse_options_output_device() {
+    /**
+     * This is currently a placeholder function, and the
+     * return value is not used in the PulseAudio driver.
+     **/
+    return "";
+}
+
 /* generic audio driver functions */
 
 char *audio_options_get_output_device()
@@ -308,8 +333,10 @@ char *audio_options_get_output_device()
         return get_audio_nosound_options_output_device();
     } else if (get_audio_driver_type() == OSS) {
         return get_audio_oss_options_output_device();
-    } else if (get_audio_driver_type()  == ALSA) {
+    } else if (get_audio_driver_type() == ALSA) {
         return get_audio_alsa_options_output_device();
+    } else if (get_audio_driver_type() == PULSE) {
+        return get_audio_pulse_options_output_device();
     }
 
     /* Wrong setting - return empty string */
@@ -600,6 +627,27 @@ static void open_select_outputdir() {
     gtk_widget_destroy(dialog);
 }
 
+static int get_combo_box_selected_type() {
+    char *selected;
+
+    selected = gtk_combo_box_get_active_text(GTK_COMBO_BOX(combo_box));
+    
+    if (selected == NULL) {
+        return NOSOUND;
+    }
+
+    if (strcmp(selected, OSS_STR) == 0) {
+        return OSS;
+    } else if (strcmp(selected, ALSA_STR) == 0) {
+        return ALSA;
+    } else if (strcmp(selected, PULSE_STR) == 0) {
+        return PULSE;
+    }
+
+    g_free(selected);
+    return NOSOUND;
+}
+
 static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 {
     set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
@@ -607,8 +655,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
     appconfig_set_silence_percentage( gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(silence_spin_button)));
 
-    set_audio_function_pointers_with_index(gtk_combo_box_get_active(
-                GTK_COMBO_BOX(combo_box)));
+    set_audio_function_pointers_with_index(get_combo_box_selected_type());
 
     if (get_audio_driver_type() == OSS) {
         set_audio_oss_options_output_device(gtk_entry_get_text(
@@ -633,7 +680,7 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *label;
 
     GtkWidget *notebook;
-
+    int driver_type, pos;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_realize(window);
@@ -748,18 +795,33 @@ void appconfig_show(GtkWidget *main_window)
             0, 1, 0, 1, GTK_FILL, 0, 5, 0);
 
     combo_box = gtk_combo_box_new_text ();
+    
+    driver_type = get_audio_driver_type();
+    pos = 0;
 
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), _("Disable audio output"));
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), NOSOUND_STR);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
 #ifdef HAVE_OSS
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "OSS");
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), OSS_STR);
+    pos++;
+    if (driver_type == OSS) {
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
+    }
 #endif
 #ifdef HAVE_ALSA
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "ALSA");
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), ALSA_STR);
+    pos++;
+    if (driver_type == ALSA) {
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
+    }
 #endif
-#ifdef HAVE_JACK
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), "Jack");
+#ifdef HAVE_PULSE
+    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), PULSE_STR);
+    pos++;
+    if (driver_type == PULSE) {
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
+    }
 #endif
-    gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), get_audio_driver_type());
     gtk_widget_set_sensitive( GTK_WIDGET(combo_box), sample_get_playing()?FALSE:TRUE);
     gtk_table_attach(GTK_TABLE(table), combo_box,
             1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);

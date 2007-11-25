@@ -137,7 +137,7 @@ const int sample_colors_values[SAMPLE_COLORS][3] = {
 static gulong cursor_marker;
 static gulong play_marker;
 static int pixmap_offset;
-static char *sample_filename = NULL;
+char *sample_filename = NULL;
 struct stat sample_stat;
 static gboolean overwrite_track_names = FALSE;
 

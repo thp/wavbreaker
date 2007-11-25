@@ -1,0 +1,43 @@
+PulseAudio support in wavbreaker
+================================
+
+wavbreaker now supports the PulseAudio sound server.
+
+wavbreaker will always connect to the default server and
+its default device/sink. For a classic setup with the
+server running on the local host, this works fine. If you
+want to redirect wavbreaker's output over the network to
+some other machine, set up a PulseAudio sound server 
+there and set the $PULSE_SERVER variable accordingly 
+(or see below for other options on how to specify the 
+server to connect to).
+
+
+Dependencies
+------------
+You will have to install "libpulse0" and "libpulse-dev" 
+in order for the build scripts to enable building the 
+PulseAudio output module. If you don't want to build the
+PulseAudio module, just pass "--disable-pulse" to the
+./configure script.
+
+
+wavbreaker's output on a different, networked host
+--------------------------------------------------
+Just set the environment variable $PULSE_SERVER to the host
+name of the PulseAudio server. Alternatively you can modify
+~/.pulse/client.conf or /etc/pulse/client.conf and set 
+default-server=. For authentication you need the same auth 
+cookies on all sides. For that copy ~/.pulse-cookie to all 
+clients that shall be allowed to connect. Alternatively the
+authorization cookies can be stored in the X11 server. The 
+server must have module-native-protocol-tcp loaded, with 
+the argument loopback=0 set.
+              (from http://www.pulseaudio.org/wiki/FAQ)
+
+
+More answers to your PulseAudio-related questions can be
+found on the PulseAudio wiki at
+
+  http://www.pulseaudio.org/wiki/FAQ
+
