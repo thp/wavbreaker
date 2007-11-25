@@ -344,12 +344,12 @@ void sample_close_file()
 static void sample_max_min(GraphData *graphData, double *pct)
 {
     int tmp = 0;
-    int ret = 0;
+    long int ret = 0;
     int min, max;
     int min_sample, max_sample;
-    int i, k;
+    long int i, k;
     int numSampleBlocks;
-    double tmp_sample_calc;
+    long int tmp_sample_calc;
     unsigned char devbuf[BLOCK_SIZE];
     Points *graph_data;
 
