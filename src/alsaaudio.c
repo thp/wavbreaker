@@ -110,6 +110,9 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
     } else if (sampleInfo->bitsPerSample == 8) {
         bytesPerFrame = 1;
         format = SND_PCM_FORMAT_U8;
+    } else if (sampleInfo->bitsPerSample == 24) {
+        bytesPerFrame = 3;
+        format = SND_PCM_FORMAT_S24_3LE;
     }
     rate = sampleInfo->samplesPerSec;
     channels = sampleInfo->channels;
@@ -154,6 +157,7 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
 
     /* set format */
     #ifdef DEBUG
+    printf("SND_PCM_FORMAT_S24_3LE: %d\n", SND_PCM_FORMAT_S24_3LE);
     printf("SND_PCM_FORMAT_S16_LE: %d\n", SND_PCM_FORMAT_S16_LE);
     printf("SND_PCM_FORMAT_S16: %d\n", SND_PCM_FORMAT_S16);
     printf("SND_PCM_FORMAT_U8: %d\n", SND_PCM_FORMAT_U8);
@@ -202,6 +206,22 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
         return err;
     }
 
+    /* set the period time */
+    err = snd_pcm_hw_params_set_period_time_near(playback_handle, hw_params,
+        &period_time, &dir);
+    if (err < 0) {
+        printf("Unable to set period time %i for playback: %s\n", period_time,
+            snd_strerror(err));
+        return err;
+    }
+
+    /* commit parameters */
+    err = snd_pcm_hw_params(playback_handle, hw_params);
+    if (err < 0) {
+        fprintf(stderr, "cannot set parameters (%s)\n", snd_strerror(err));
+        return -1;
+    }
+
     err = snd_pcm_hw_params_get_buffer_size(hw_params, &buffer_size);
     if (err < 0) {
         printf("Unable to get buffer size for playback: %s\n",
@@ -212,16 +232,7 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
     printf("buffer size for playback: %d\n", buffer_size);
     #endif
 
-    /* set the period time */
-    err = snd_pcm_hw_params_set_period_time_near(playback_handle, hw_params,
-        &period_time, &dir);
-    if (err < 0) {
-        printf("Unable to set period time %i for playback: %s\n", period_time,
-            snd_strerror(err));
-        return err;
-    }
-
-    err = snd_pcm_hw_params_get_period_size(hw_params, &period_size, &dir);
+    err = snd_pcm_hw_params_get_period_size(hw_params, &period_size, 0);
     if (err < 0) {
         printf("Unable to get period size for playback: %s\n",
             snd_strerror(err));
@@ -230,14 +241,8 @@ int alsa_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
     #ifdef DEBUG
     printf("period size for playback: %d\n", period_size);
     #endif
-    sampleInfo->bufferSize = period_size;
-
-    /* commit parameters */
-    err = snd_pcm_hw_params(playback_handle, hw_params);
-    if (err < 0) {
-        fprintf(stderr, "cannot set parameters (%s)\n", snd_strerror(err));
-        return -1;
-    }
+    sampleInfo->bufferSize =
+	snd_pcm_frames_to_bytes(playback_handle, period_size);
 
     snd_pcm_hw_params_free(hw_params);
 

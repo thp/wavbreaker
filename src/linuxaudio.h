@@ -21,6 +21,16 @@
 
 #include "sample.h"
 
+/**
+ * Some versions of soundcard.h are missing this #define, see:
+ *   http://mail.directfb.org/pipermail/directfb-dev/2005-July/000541.html 
+ *   http://manuals.opensound.com/developer/AFMT_S24_LE.html
+ *   http://manuals.opensound.com/developer/soundcard.h.html
+ **/
+#ifndef AFMT_S24_LE
+#define AFMT_S24_LE              0x00000800
+#endif
+
 void oss_audio_close_device();
 int oss_audio_open_device(const char *, SampleInfo *);
 int oss_audio_write(unsigned char *, int);

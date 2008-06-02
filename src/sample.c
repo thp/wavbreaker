@@ -38,7 +38,7 @@
 #define CDDA 1
 #define WAV  2 
 
-static SampleInfo sampleInfo;
+SampleInfo sampleInfo;
 static AudioFunctionPointers *audio_function_pointers;
 static unsigned long sample_start = 0;
 static int playing = 0;
@@ -182,7 +182,8 @@ static gpointer play_thread(gpointer thread_data)
                 sample_start + (sampleInfo.bufferSize * i++));
         }
 
-        *play_marker = ((sampleInfo.bufferSize * i) + sample_start) / BLOCK_SIZE;
+        *play_marker = ((sampleInfo.bufferSize * i) + sample_start) /
+	    sampleInfo.blockSize;
     }
 
     g_mutex_lock(mutex);
@@ -214,7 +215,7 @@ int play_sample(gulong startpos, gulong *play_marker)
     }
 
     playing = 1;
-    sample_start = startpos * BLOCK_SIZE;
+    sample_start = startpos * sampleInfo.blockSize;
 
     /* setup thread */
 
@@ -307,6 +308,10 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         }
     }
 
+    sampleInfo.blockSize = (((sampleInfo.bitsPerSample / 8) *
+			     sampleInfo.channels * sampleInfo.samplesPerSec) /
+			    CD_BLOCKS_PER_SEC);
+
     if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
         snprintf(error_message, ERROR_MESSAGE_SIZE, _("Error opening %s: %s"), sample_file, strerror( errno));
         return 2;
@@ -345,23 +350,23 @@ static void sample_max_min(GraphData *graphData, double *pct)
 {
     int tmp = 0;
     long int ret = 0;
-    int min, max;
+    int min, max, xtmp;
     int min_sample, max_sample;
     long int i, k;
     int numSampleBlocks;
     long int tmp_sample_calc;
-    unsigned char devbuf[BLOCK_SIZE];
+    unsigned char devbuf[sampleInfo.blockSize];
     Points *graph_data;
 
     tmp_sample_calc = sampleInfo.numBytes;
-    tmp_sample_calc = tmp_sample_calc / BLOCK_SIZE;
+    tmp_sample_calc = tmp_sample_calc / sampleInfo.blockSize;
     numSampleBlocks = (int) (tmp_sample_calc + 1);
 
     /* DEBUG CODE START */
     /*
     printf("\nsampleInfo.numBytes: %lu\n", sampleInfo.numBytes);
     printf("sampleInfo.bitsPerSample: %d\n", sampleInfo.bitsPerSample);
-    printf("BLOCK_SIZE: %d\n", BLOCK_SIZE);
+    printf("sampleInfo.blockSize: %d\n", sampleInfo.blockSize);
     printf("sampleInfo.channels: %d\n", sampleInfo.channels);
     printf("numSampleBlocks: %d\n\n", numSampleBlocks);
     */
@@ -377,17 +382,17 @@ static void sample_max_min(GraphData *graphData, double *pct)
     i = 0;
 
     if (audio_type == CDDA) {
-        ret = cdda_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
-            BLOCK_SIZE * i);
+        ret = cdda_read_sample(read_sample_fp, devbuf, sampleInfo.blockSize,
+			       sampleInfo.blockSize * i);
     } else if (audio_type == WAV) {
-        ret = wav_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
-            BLOCK_SIZE * i);
+        ret = wav_read_sample(read_sample_fp, devbuf, sampleInfo.blockSize,
+			      sampleInfo.blockSize * i);
     }
 
     min_sample = SHRT_MAX; /* highest value for 16-bit samples */
     max_sample = 0;
 
-    while (ret == BLOCK_SIZE) {
+    while (ret == sampleInfo.blockSize) {
         min = max = 0;
         for (k = 0; k < ret; k++) {
             if (sampleInfo.bitsPerSample == 8) {
@@ -396,6 +401,12 @@ static void sample_max_min(GraphData *graphData, double *pct)
             } else if (sampleInfo.bitsPerSample == 16) {
                 tmp = (char)devbuf[k+1] << 8 | (char)devbuf[k];
                 k++;
+	    } else if (sampleInfo.bitsPerSample == 24) {
+		tmp   = ((char)devbuf[k]) | ((char)devbuf[k+1] << 8);
+		tmp  &= 0x0000ffff;
+		xtmp  =  (char)devbuf[k+2] << 16;
+		tmp  |= xtmp;
+		k += 2;
             }
 
             if (tmp > max) {
@@ -419,11 +430,13 @@ static void sample_max_min(GraphData *graphData, double *pct)
         }
 
         if (audio_type == CDDA) {
-            ret = cdda_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
-                    BLOCK_SIZE * i);
+            ret = cdda_read_sample(read_sample_fp, devbuf,
+				   sampleInfo.blockSize,
+				   sampleInfo.blockSize * i);
         } else if (audio_type == WAV) {
-            ret = wav_read_sample(read_sample_fp, devbuf, BLOCK_SIZE,
-                    BLOCK_SIZE * i);
+            ret = wav_read_sample(read_sample_fp, devbuf,
+				  sampleInfo.blockSize,
+				  sampleInfo.blockSize * i);
         }
 
         *pct = (double) i / numSampleBlocks;
@@ -446,8 +459,9 @@ static void sample_max_min(GraphData *graphData, double *pct)
         graphData->maxSampleValue = UCHAR_MAX;
     } else if (sampleInfo.bitsPerSample == 16) {
         graphData->maxSampleValue = SHRT_MAX;
+    } else if (sampleInfo.bitsPerSample == 24) {
+	graphData->maxSampleValue = 0x7fffff;
     }
-
     /* DEBUG CODE START */
     /*
     printf("\ni: %d\n", i);
@@ -502,7 +516,7 @@ write_thread(gpointer data)
         index = g_list_position(tbl_head, tbl_cur);
         tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
         if (tb_cur->write == TRUE) {
-            start_pos = tb_cur->offset * BLOCK_SIZE;
+            start_pos = tb_cur->offset * sampleInfo.blockSize;
 
             if (tbl_next == NULL) {
                 end_pos = 0;
@@ -510,7 +524,7 @@ write_thread(gpointer data)
             } else {
                 index = g_list_position(tbl_head, tbl_next);
                 tb_next = (TrackBreak *)g_list_nth_data(tbl_head, index);
-                end_pos = tb_next->offset * BLOCK_SIZE;
+                end_pos = tb_next->offset * sampleInfo.blockSize;
             }
 
             /* add output directory to filename */
@@ -550,8 +564,10 @@ write_thread(gpointer data)
                     ret = cdda_write_file(write_sample_fp, filename,
                         sampleInfo.bufferSize, start_pos, end_pos);
                 } else if (audio_type == WAV) {
-                    ret = wav_write_file(write_sample_fp, filename, BLOCK_SIZE,
-                        &sampleInfo, start_pos, end_pos, &write_info->pct_done);
+                    ret = wav_write_file(write_sample_fp, filename,
+					 sampleInfo.blockSize,
+					 &sampleInfo, start_pos, end_pos,
+					 &write_info->pct_done);
                 }
                 i++;
             }

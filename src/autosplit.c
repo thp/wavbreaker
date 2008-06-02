@@ -31,6 +31,7 @@ static GtkWidget *window;
 
 static char *autosplit_time = NULL; 
 static GtkWidget *autosplit_time_entry = NULL;
+extern SampleInfo sampleInfo;
 
 char *get_autosplit_time()
 {

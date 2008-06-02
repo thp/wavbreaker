@@ -22,9 +22,7 @@
 #include "wavbreaker.h"
 
 #define DEFAULT_BUF_SIZE 4096
-#define BLOCK_SIZE 2352
 
-#define CD_BLOCK_SIZE                   (2352)
 #define CD_BLOCKS_PER_SEC               (75)
 
 /* Responses for the ask open raw dialog */
@@ -41,6 +39,7 @@ struct SampleInfo_ {
     unsigned short  bitsPerSample;
     unsigned int    numBytes;
     unsigned int    bufferSize;
+    unsigned int    blockSize;
 };
 
 char *sample_get_error_message();

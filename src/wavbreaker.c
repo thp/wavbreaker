@@ -112,6 +112,8 @@ static pid_t moodbar_pid;
 static gboolean moodbar_cancelled;
 static GtkWidget* moodbar_wait_dialog;
 
+extern SampleInfo sampleInfo;
+
 #define SAMPLE_COLORS 6
 #define SAMPLE_SHADES 3
 
