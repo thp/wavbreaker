@@ -21,12 +21,59 @@
 #include <string.h>
 
 #include "wavbreaker.h"
+#include "sample.h"
 #include "toc.h"
 
 char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime);
+guint time_to_offset( gchar * );
 
 int toc_read_file(const char *toc_filename, GList *breaks)
 {
+    FILE   *fp;
+    char    buf[1024];
+    gchar  *ptr, *eptr;
+    guint   offset;
+
+    fp = fopen( toc_filename, "r" );
+    if( !fp ) return 1;
+
+    track_break_clear_list();
+
+    do {
+	do {
+	    ptr = fgets( buf, 1024, fp );
+	    if( !ptr ) {
+		if( feof(fp) ) {
+		    fclose( fp );
+		    return 0;
+		}
+		else {
+		    fclose( fp );
+		    return 1;
+		}
+	    }
+	} while( memcmp(buf, "FILE", 4) );
+
+	ptr = strrchr( buf, '"' );
+	if( !ptr ) {
+	    fclose( fp );
+	    return 1;
+	}
+
+	ptr += 2;
+	eptr = strchr( ptr, ':' );
+	if( !eptr ) {
+	    fclose( fp );
+	    return 1;
+	}
+	eptr += 6;
+	*eptr = '\0';
+
+	offset = time_to_offset( ptr );
+	track_break_add_offset( (char *)-1, offset );
+    } while( !feof( fp ) );
+
+    fclose( fp );
     return 0;
 }
 
@@ -69,24 +116,72 @@ int toc_write_file(const char *toc_filename, const char *wav_filename, GList *br
 char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime) {
     char *tocTime;
     int i;
-    int p = 0;
 
+    #ifdef DEBUG
     printf("start of convert_wavbreaker_time_to_toc_time\n");
     printf("called convert_wavbreaker_time_to_toc_time with: %s\n", wavbreakerTime);
+    #endif
+
     tocTime = g_strdup(wavbreakerTime);
+
+    #ifdef DEBUG
     printf("got to: %d\n", p++);
+    #endif
 
     i = 0;
     while (tocTime[i] != '\0') {
-    printf("got to: %d\n", p++);
+
+        #ifdef DEBUG
+	printf("got to: %d\n", p++);
         printf("looping with: %d", tocTime[i]);
+        #endif
+
         if (tocTime[i] == '.') {
             tocTime[i] = ':';
         }
         i++;
     }
 
+    #ifdef DEBUG
     printf("end of convert_wavbreaker_time_to_toc_time\n");
+    #endif
+
     return tocTime;
 }
 
+guint
+time_to_offset( gchar *str )
+{
+    char   buf[1024];
+    uint   parse[3];
+    gchar  *aptr, *bptr;
+    int    index;
+    uint   offset;
+
+
+    strncpy( buf, str, 1024 );
+
+    aptr = buf;
+    for( index = 0; index < 2; index++ ) {
+	bptr = memchr( aptr, ':', 1024 );
+	if( aptr == NULL ) {
+	    return 0;
+	}
+	*bptr = '\0';
+	parse[index] = atoi( aptr );
+	aptr = ++bptr;
+    }
+
+    parse[index] = atoi( aptr );
+
+    offset  = parse[0] * CD_BLOCKS_PER_SEC * 60;
+    offset += parse[1] * CD_BLOCKS_PER_SEC;
+    offset += parse[2];
+
+    return offset;
+}
+
+/* min = time / (CD_BLOCKS_PER_SEC * 60); */
+/* sec = time % (CD_BLOCKS_PER_SEC * 60); */
+/* subsec = sec % CD_BLOCKS_PER_SEC; */
+/* sec = sec / CD_BLOCKS_PER_SEC; */
