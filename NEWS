@@ -1,3 +1,28 @@
+version 0.10 (2008-06-02)
+    + PulseAudio support
+    ! Better driver selection
+    ! Fix largefile issues in sample.c (Patch by Avuton Olrich)
+    ! Add the correct GPL text for "COPYING" (thanks to Dave Maley)
+    + Support for loading TOC files into wavbreaker
+    + Add support for 24-bit audio (ALSA and OSS) (Patch by pigiron)
+
+version 0.9 (2007-11-19)
+
+    New and improved features
+    * Support for generating and displaying Moodbars (suggested by José Jorge)
+    * RAW audio support for both little- and big-endian RAW files
+    * Cairo-based cursor/play markers and filename labels in sample view
+    * Usability: Conditionally disable main window buttons; add dialog window titles
+    * Sample view scrollable with the mouse wheel (suggested by José Jorge)
+    * Status bar text revised and internationalized
+    * "Open file" dialog starts in the current file's directory
+    * Updated translations: German, French and Portuguese
+
+    Bug fixes, stability and performance improvements
+    * Best-attempt loading of truncated wave files (override header's size)
+    * Fix ALSA underrun bug and use "default" ALSA device
+    * Scrolling code is now less CPU-intensive
+
 version 0.8 (2007-05-10)
     + New wavmerge gui
     + German, French and Portuguese Translations

@@ -13,7 +13,7 @@ find . -name 'Makefile.in' | xargs rm -f
 find . -name 'Makefile' | xargs rm -f
 echo "done."
 
-if [ "$1" == "clean" ]; then
+if [ "X$1" = "Xclean" ]; then
     exit 0
 fi
 
@@ -25,7 +25,7 @@ automake
 autoconf
 echo "done."
 
-if [ "$1" == "release" ]; then
+if [ "X$1" = "Xrelease" ]; then
     VERSION=`grep ^PACKAGE_VERSION= configure | cut -d\' -f2`
     mkdir -p .release_tmp/wavbreaker-$VERSION
     cp -rpv * .release_tmp/wavbreaker-$VERSION/
@@ -35,7 +35,7 @@ if [ "$1" == "release" ]; then
     exit 0
 fi
 
-if [ "$1" == "configure" ]; then
+if [ "X$1" = "Xconfigure" ]; then
     shift
     ./configure $*
     exit 0
