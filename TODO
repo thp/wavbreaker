@@ -1,38 +1,45 @@
 High Priority
 -------------
-[ ] debian package - ubuntu
-[ ] fix the calculation of the time (error when sample is not stereo 16-bit 44100)
+[?] fix the calculation of the time (error when sample is not stereo 16-bit 44100)
 [ ] Autosplit based on silence
 
 Low Priority
 -------------
-Split based on cue and toc files
-Movable Boundaries in wav display
-fix highlight on summary display
-sound card format issues
-pause function
-
-Seek to next/previous silent part
-FLAC import/export functionality
-Direct opening/saving from/to RAW (i.e. headerless, 2ch/44100s/16bit data)
-
-better track break txt offset file support
+[?] Movable Boundaries in wav display
+[?] fix highlight on summary display
+[?] sound card format issues
+[ ] pause function
+[ ] FLAC import/export functionality
+[?] better track break txt offset file support
     - ask user if she wants to open a .txt offset file with the same name
     - save on exit
     - maybe write temporary track break backup in case wavbreaker crashes
 
-Release TODO list
-----
+Where to announce a new release (checklist)
+-------------------------------------------
 freshmeat.net
 gnomefiles.org
 wavbreaker-announce
-gentoo
+
+
+rel_0.10
+--------
+[*] Split based on cue and toc files
+
+rel_0.9
+-------
+[*] Direct opening/saving from/to RAW (i.e. headerless, 2ch/44100s/16bit data)
+
+rel_0.8.1
+---------
+[*] Seek to next/previous silent part
 
 rel_0.8
 -------
 [*] change add/del to stock GTK_STOCK_ADD and GTK_STOCK_REMOVE
 [*] i18n
 [*] 2GB file limit - large file support
+[*] debian package - ubuntu
 
 rel_0.7
 --------
