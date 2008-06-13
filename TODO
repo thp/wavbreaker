@@ -1,6 +1,7 @@
 High Priority
 -------------
-[?] fix the calculation of the time (error when sample is not stereo 16-bit 44100)
+[ ] Time calculations are based on data rate of CD audio
+    https://sourceforge.net/tracker/index.php?func=detail&aid=1903259&group_id=194597&atid=950067
 [ ] Autosplit based on silence
 
 Low Priority
