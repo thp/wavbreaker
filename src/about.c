@@ -39,20 +39,17 @@ void about_show(GtkWidget *main_window)
         GdkPixbuf* icon;
         const char* authors[] = { AUTHOR_A, AUTHOR_B, 0 };
 
-        GtkAboutDialog* about = (GtkAboutDialog*)gtk_about_dialog_new();
-
         icon = gdk_pixbuf_new_from_file( WAVBREAKER_ICON, NULL);
 
-        gtk_about_dialog_set_name( about, PACKAGE);
-        gtk_about_dialog_set_version( about, VERSION);
-        gtk_about_dialog_set_copyright( about, COPYRIGHT);
-        gtk_about_dialog_set_comments( about, APPDESCRIPTION);
-        gtk_about_dialog_set_website( about, URL);
-        gtk_about_dialog_set_website_label( about, URL);
-        gtk_about_dialog_set_authors( about, authors);
-        gtk_about_dialog_set_logo( about, icon);
-
-        gtk_dialog_run( (GtkDialog*)about);
-        gtk_widget_destroy( (GtkWidget*) about);
+        gtk_show_about_dialog (GTK_WINDOW(main_window),
+                          "name", PACKAGE,
+                          "version", VERSION,
+                          "copyright", COPYRIGHT,
+                          "comments", APPDESCRIPTION,
+                          "website", URL,
+                          "website-label", URL,
+                          "authors", authors,
+                          "logo", icon,
+                          NULL);
 }
 
