@@ -83,6 +83,9 @@ static GtkAction *action_rename;
 static GtkAction *action_moodbar;
 static GtkAction *action_split;
 static GtkAction *action_export;
+static GtkAction *action_check_all;
+static GtkAction *action_check_none;
+static GtkAction *action_check_invert;
 static GtkAction *action_jump_cursor;
 static GtkAction *action_save_breaks;
 static GtkAction *action_load_breaks;
@@ -469,6 +472,42 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
     gtk_action_set_sensitive( action_moodbar, FALSE);
 }
 
+void parts_check_cb(GtkWidget *widget, gpointer data) {
+
+    TrackBreak *track_break;
+    guint list_pos;
+    gpointer list_data;
+    gint i;
+    GtkTreeIter iter;
+
+    i = 0;
+
+    while (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, i++)) {
+
+        list_pos = i - 1;
+        list_data = g_list_nth_data(track_break_list, list_pos);
+        track_break = (TrackBreak *)list_data;
+
+        switch ((gint) data) {
+
+            case CHECK_ALL:
+                track_break->write = TRUE;
+                break;
+            case CHECK_NONE:
+                track_break->write = FALSE;
+                break;
+            case CHECK_INVERT:
+                track_break->write = !track_break->write;
+                break;
+        }
+
+        gtk_list_store_set(GTK_LIST_STORE(store), &iter, COLUMN_WRITE,
+                           track_break->write, -1);
+    }
+
+    force_redraw();
+}
+
 void jump_to_cursor_marker(GtkWidget *widget, gpointer data) {
     reset_sample_display(cursor_marker);
     redraw();
@@ -639,14 +678,28 @@ track_break_sort(gconstpointer a, gconstpointer b)
 static gboolean
 track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-    GtkWidget *menu;
+    GtkWidget *menu, *separator;
 
-    if (event->button != 3) {
+    if ((event->type == GDK_2BUTTON_PRESS) && (event->button == 1)) {
+
+        cursor_marker = track_break_find_offset();
+        gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_spinner), cursor_marker);
+        jump_to_cursor_marker (NULL, NULL);
+        return FALSE;
+
+    } else if (event->button != 3) {
         return FALSE;
     }
 
     menu = gtk_menu_new();
 
+    separator = gtk_separator_menu_item_new();
+    gtk_widget_show (separator);
+
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_check_all));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_check_none));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_check_invert));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu), separator);
     gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_remove_break));
     gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_jump_break));
 
@@ -1468,6 +1521,9 @@ static void open_file() {
     gtk_action_set_sensitive( action_remove_break, TRUE);
     gtk_action_set_sensitive( action_jump_break, TRUE);
     gtk_action_set_sensitive( action_jump_cursor, TRUE);
+    gtk_action_set_sensitive( action_check_all, TRUE);
+    gtk_action_set_sensitive( action_check_none, TRUE);
+    gtk_action_set_sensitive( action_check_invert, TRUE);
     gtk_action_set_sensitive( action_rename, TRUE);
     gtk_action_set_sensitive( action_split, TRUE);
     gtk_action_set_sensitive( action_moodbar, TRUE);
@@ -2843,7 +2899,23 @@ void init_actions()
     action_jump_cursor = gtk_action_new( "jump-cursor", _("Jump to cursor marker"), _("Set view to cursor marker"), GTK_STOCK_JUMP_TO);
     g_signal_connect( action_jump_cursor, "activate", G_CALLBACK(jump_to_cursor_marker), NULL);
     gtk_action_set_accel_group( action_jump_cursor, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_jump_cursor, "<control>space");
     gtk_action_set_sensitive( action_jump_cursor, FALSE);
+
+    action_check_all = gtk_action_new( "check-all", _("Check all"), _("Check all"), NULL);
+    g_signal_connect( action_check_all, "activate", G_CALLBACK(parts_check_cb), GINT_TO_POINTER(CHECK_ALL));
+    gtk_action_set_accel_group( action_check_all, accel_group);
+    gtk_action_set_sensitive( action_check_all, FALSE);
+
+    action_check_none = gtk_action_new( "check-none", _("Check none"), _("Check none"), NULL);
+    g_signal_connect( action_check_none, "activate", G_CALLBACK(parts_check_cb), GINT_TO_POINTER(CHECK_NONE));
+    gtk_action_set_accel_group( action_check_none, accel_group);
+    gtk_action_set_sensitive( action_check_none, FALSE);
+
+    action_check_invert = gtk_action_new( "check-invert", _("Invert check"), _("Invert check"), NULL);
+    g_signal_connect( action_check_invert, "activate", G_CALLBACK(parts_check_cb), GINT_TO_POINTER(CHECK_INVERT));
+    gtk_action_set_accel_group( action_check_invert, accel_group);
+    gtk_action_set_sensitive( action_check_invert, FALSE);
 
     action_rename = gtk_action_new( "rename", _("Rename track breaks"), _("Automatically rename all track breaks"), GTK_STOCK_EDIT);
     g_signal_connect( action_rename, "activate", G_CALLBACK(menu_rename), NULL);
