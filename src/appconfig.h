@@ -43,6 +43,10 @@ int get_prepend_file_number();
 char *get_etree_filename_suffix();
 char *get_etree_cd_length();
 
+int appconfig_get_main_window_xpos();
+void appconfig_set_main_window_xpos(int x);
+int appconfig_get_main_window_ypos();
+void appconfig_set_main_window_ypos(int x);
 int appconfig_get_main_window_width();
 void appconfig_set_main_window_width(int x);
 int appconfig_get_main_window_height();

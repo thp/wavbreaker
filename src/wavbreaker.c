@@ -2741,12 +2741,16 @@ menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget)
 
 static void save_window_sizes()
 {
-    gint w, h;
+    gint x, y, w, h;
+ 
+    gdk_window_get_root_origin (GDK_WINDOW(main_window->window), &x, &y);
     gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
     /*
     g_print("w: %d\n", w);
     g_print("h: %d\n", h);
     */
+    appconfig_set_main_window_xpos(x);
+    appconfig_set_main_window_ypos(y);
     appconfig_set_main_window_width(w);
     appconfig_set_main_window_height(h);
     appconfig_set_vpane1_position(gtk_paned_get_position(GTK_PANED(vpane1)));
@@ -3238,6 +3242,12 @@ int main(int argc, char **argv)
     write_info.cur_filename = NULL;
 
     sample_init();
+
+    if (appconfig_get_main_window_xpos() > 0) {
+        gtk_window_move (GTK_WINDOW (main_window), 
+                    appconfig_get_main_window_xpos(),
+                    appconfig_get_main_window_ypos());
+    }
 
     if( appconfig_get_main_window_width() > 0) {
         gtk_window_resize(GTK_WINDOW(main_window),

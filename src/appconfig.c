@@ -114,6 +114,8 @@ static GtkWidget *etree_cd_length_entry = NULL;
 static char *config_filename = NULL;
 
 /* Window and pane sizes. */
+static int main_window_xpos = -1;
+static int main_window_ypos = -1;
 static int main_window_width = -1;
 static int main_window_height = -1;
 static int vpane1_position = -1;
@@ -341,6 +343,26 @@ char *audio_options_get_output_device()
 
     /* Wrong setting - return empty string */
     return "";
+}
+
+int appconfig_get_main_window_xpos()
+{
+    return main_window_xpos;
+}
+
+void appconfig_set_main_window_xpos(int x)
+{
+    main_window_xpos = x;
+}
+
+int appconfig_get_main_window_ypos()
+{
+    return main_window_ypos;
+}
+
+void appconfig_set_main_window_ypos(int x)
+{
+    main_window_ypos = x;
 }
 
 int appconfig_get_main_window_width()
@@ -974,6 +996,16 @@ static int appconfig_read_file() {
             nkey = atoi((char *)key);
             set_audio_function_pointers_with_index(nkey);
             xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_xpos"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi((char *)key);
+            appconfig_set_main_window_xpos(nkey);
+            xmlFree(key);
+        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_ypos"))) {
+            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+            nkey = atoi((char *)key);
+            appconfig_set_main_window_ypos(nkey);
+            xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_width"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             nkey = atoi((char *)key);
@@ -1123,6 +1155,30 @@ int appconfig_write_file() {
     if (cur == NULL) {
         fprintf(stderr, "error creating wavbreaker config file\n");
         fprintf(stderr, "error creating prepend_file_number node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_main_window_xpos());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_xpos",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating main_window_xpos node\n");
+        xmlFreeNodeList(root);
+        xmlFreeDoc(doc);
+        return 3;
+    }
+
+    sprintf(tmp_str, "%d", appconfig_get_main_window_ypos());
+    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_ypos",
+        (const xmlChar *) tmp_str);
+
+    if (cur == NULL) {
+        fprintf(stderr, "error creating wavbreaker config file\n");
+        fprintf(stderr, "error creating main_window_ypos node\n");
         xmlFreeNodeList(root);
         xmlFreeDoc(doc);
         return 3;
