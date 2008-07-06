@@ -458,7 +458,7 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
         moodbarData.frames[pos].red = tmp[0]*(65535/255);
         moodbarData.frames[pos].green = tmp[1]*(65535/255);
         moodbarData.frames[pos].blue = tmp[2]*(65535/255);
-        gdk_color_alloc( gtk_widget_get_colormap(main_window), &(moodbarData.frames[pos]));
+        gdk_colormap_alloc_color ( gtk_widget_get_colormap(main_window), &(moodbarData.frames[pos]), TRUE, TRUE);
         pos++;
     }
 
@@ -1486,7 +1486,7 @@ static void open_file() {
 
     menu_stop(NULL, NULL);
 
-    idle_func_num = gtk_idle_add(file_open_progress_idle_func, NULL);
+    idle_func_num = g_idle_add(file_open_progress_idle_func, NULL);
     set_title( basename( sample_filename));
 }
 
@@ -1623,12 +1623,12 @@ void set_sample_filename(const char *f) {
 static void force_redraw()
 {
     if( sample_pixmap) {
-        gdk_pixmap_unref( sample_pixmap);
+        g_object_unref( sample_pixmap);
         sample_pixmap = NULL;
     }
 
     if( summary_pixmap) {
-        gdk_pixmap_unref( summary_pixmap);
+        g_object_unref( summary_pixmap);
         summary_pixmap = NULL;
     }
 
@@ -1642,7 +1642,7 @@ static void redraw()
     if( redraw_done) {
         /* Only redraw if the last operation finished already. */
         redraw_done = 0;
-        gtk_idle_add( redraw_later, &redraw_done);
+        g_idle_add( redraw_later, &redraw_done);
     }
 }
 
@@ -1689,7 +1689,7 @@ static void draw_sample(GtkWidget *widget)
     }
 
     if (sample_pixmap) {
-        gdk_pixmap_unref(sample_pixmap);
+        g_object_unref(sample_pixmap);
     }
 
     sample_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
@@ -1987,7 +1987,7 @@ static void draw_summary_pixmap(GtkWidget *widget)
     }
 
     if (summary_pixmap) {
-        gdk_pixmap_unref(summary_pixmap);
+        g_object_unref(summary_pixmap);
     }
 
     summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
@@ -2084,7 +2084,7 @@ static void draw_summary_pixmap(GtkWidget *widget)
                 new_color->red = MOODBAR_BLEND( new_color->red, moodbarData.frames[moodbar_pos].red);
                 new_color->green = MOODBAR_BLEND( new_color->green, moodbarData.frames[moodbar_pos].green);
                 new_color->blue = MOODBAR_BLEND( new_color->blue, moodbarData.frames[moodbar_pos].blue);
-                gdk_color_alloc( gtk_widget_get_colormap(main_window), new_color);
+                gdk_colormap_alloc_color( gtk_widget_get_colormap(main_window), new_color, TRUE, TRUE);
             }
             gdk_gc_set_foreground(gc, new_color);
             gdk_draw_line(summary_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
@@ -2379,7 +2379,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     play_marker = cursor_marker;
     switch (play_sample(cursor_marker, &play_marker)) {
         case 0:
-            idle_func_num = gtk_idle_add(file_play_progress_idle_func, NULL);
+            idle_func_num = g_idle_add(file_play_progress_idle_func, NULL);
             set_stop_icon();
             break;
         case 1:
@@ -2483,7 +2483,7 @@ static void menu_save_as(gpointer callback_data, guint callback_action, GtkWidge
 void wavbreaker_write_files(char *dirname) {
     sample_write_files(track_break_list, &write_info, dirname);
 
-    idle_func_num = gtk_idle_add(file_write_progress_idle_func, NULL);
+    idle_func_num = g_idle_add(file_write_progress_idle_func, NULL);
 }
 
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
@@ -3060,12 +3060,13 @@ int main(int argc, char **argv)
     bg_color.red   =
     bg_color.green =
     bg_color.blue  = 255*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &bg_color);
+    gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &bg_color, TRUE, TRUE);
+
 
     nowrite_color.red   = 
     nowrite_color.green =
     nowrite_color.blue  = 220*(65535/255);
-    gdk_color_alloc(gtk_widget_get_colormap(main_window), &nowrite_color);
+    gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &nowrite_color, TRUE, TRUE);
 
     for( i=0; i<SAMPLE_COLORS; i++) {
         for( x=0; x<SAMPLE_SHADES; x++) {
@@ -3074,7 +3075,7 @@ int main(int argc, char **argv)
             sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+255*factor_white;
             sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+255*factor_white;
             sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+255*factor_white;
-            gdk_color_alloc( gtk_widget_get_colormap(main_window), &sample_colors[i][x]);
+            gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &sample_colors[i][x], TRUE, TRUE);
         }
     }
 
