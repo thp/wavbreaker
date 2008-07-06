@@ -100,6 +100,9 @@ static GtkActionGroup *action_group;
 static GtkAccelGroup *accel_group;
 
 static GtkWidget *cursor_marker_spinner;
+static GtkWidget *cursor_marker_min_spinner;
+static GtkWidget *cursor_marker_sec_spinner;
+static GtkWidget *cursor_marker_subsec_spinner;
 static GtkWidget *button_add_break;
 static GtkWidget *button_remove_break;
 static GtkWidget *button_rename;
@@ -107,6 +110,9 @@ static GtkWidget *button_rename;
 static GtkWidget *toolbar;
 
 static GtkAdjustment *cursor_marker_spinner_adj;
+static GtkAdjustment *cursor_marker_min_spinner_adj;
+static GtkAdjustment *cursor_marker_sec_spinner_adj;
+static GtkAdjustment *cursor_marker_subsec_spinner_adj;
 
 static GraphData graphData;
 
@@ -318,13 +324,16 @@ static void save_window_sizes();
 static void check_really_quit();
 
 static void
-offset_to_time(guint, gchar *);
+offset_to_time(guint, gchar *, gboolean);
+ 
+static guint 
+time_to_offset(gint min, gint sec, gint subsec);
 
 static void
 offset_to_duration(guint, guint, gchar *);
 
 static void
-update_status();
+update_status(gboolean);
 
 /*
 static char *status_message = NULL;
@@ -1037,7 +1046,7 @@ void track_break_add_entry()
     track_break->write = 1;
     track_break->offset = cursor_marker;
     track_break->editable = TRUE;
-    offset_to_time(cursor_marker, track_break->time);
+    offset_to_time(cursor_marker, track_break->time, TRUE);
     track_break->filename = NULL;
 
     track_break_list = g_list_insert_sorted(track_break_list, track_break,
@@ -1071,7 +1080,7 @@ void track_break_add_offset( char* filename, guint offset)
 
     track_break->editable = TRUE;
     track_break->offset = offset;
-    offset_to_time( track_break->offset, track_break->time);
+    offset_to_time( track_break->offset, track_break->time, FALSE);
 
     if( filename == NULL) {
         track_break->write = 0;
@@ -1383,7 +1392,7 @@ file_play_progress_idle_func(gpointer data) {
     gtk_widget_queue_draw(scrollbar);
 
     redraw();
-    update_status();
+    update_status(FALSE);
     usleep( 50000);
 
     if (sample_get_playing()) {
@@ -1478,6 +1487,10 @@ file_open_progress_idle_func(gpointer data) {
  
         gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
         gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_spinner_adj), 0);
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_min_spinner_adj), 0);
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_sec_spinner_adj), 0);
+        gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_subsec_spinner_adj), 0);
+
         gtk_widget_queue_draw(scrollbar);
 
         /* TODO: Remove FIX !!!!!!!!!!! */
@@ -1536,6 +1549,9 @@ static void open_file() {
     gtk_action_set_sensitive( action_prev_silence, TRUE);
 
     gtk_widget_set_sensitive( cursor_marker_spinner, TRUE);
+    gtk_widget_set_sensitive( cursor_marker_min_spinner, TRUE);
+    gtk_widget_set_sensitive( cursor_marker_sec_spinner, TRUE);
+    gtk_widget_set_sensitive( cursor_marker_subsec_spinner, TRUE);
     gtk_widget_set_sensitive( button_add_break, TRUE);
     gtk_widget_set_sensitive( button_remove_break, TRUE);
     gtk_widget_set_sensitive( button_rename, TRUE);
@@ -2288,6 +2304,25 @@ static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
     return TRUE;
 }
 
+static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer data)
+{
+    gint min, sec, subsec;
+
+    if (sample_get_playing()) {
+        return;
+    }
+
+    min = cursor_marker_min_spinner_adj->value;
+    sec = cursor_marker_sec_spinner_adj->value;
+    subsec = cursor_marker_subsec_spinner_adj->value;
+
+    cursor_marker = time_to_offset (min, sec, subsec);
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_spinner), cursor_marker);
+
+    redraw();
+    update_status(FALSE);
+}
+
 static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
 {
     if (sample_get_playing()) {
@@ -2300,7 +2335,7 @@ static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
     printf("pixmap_offset: %lu\n", pixmap_offset);
     */
 
-    update_status();
+    update_status(TRUE);
     redraw();
 }
 
@@ -2336,7 +2371,7 @@ static gboolean scroll_event( GtkWidget *widget, GdkEventScroll *event, gpointer
     gtk_widget_queue_draw( scrollbar);
 
     redraw();
-    update_status();
+    update_status(FALSE);
 
     return TRUE;
 }
@@ -2374,7 +2409,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     */
     /* DEBUG CODE END */
 
-    update_status();
+    update_status(FALSE);
     redraw();
 
     return TRUE;
@@ -2386,10 +2421,19 @@ static void offset_to_duration(guint start_time, guint end_time, gchar *str) {
 printf("start time: %d\n", start_time);
 printf("end time: %d\n", end_time);
 */
-    offset_to_time(duration, str);
+    offset_to_time(duration, str, FALSE);
 }
 
-static void offset_to_time(guint time, gchar *str) {
+static guint time_to_offset(gint min, gint sec, gint subsec) {
+    guint offset;
+
+    offset = (min * CD_BLOCKS_PER_SEC * 60) + sec * CD_BLOCKS_PER_SEC + subsec;
+
+    return offset;
+}
+
+static void offset_to_time(guint time, gchar *str, gboolean time_offset_update) {
+
     int min, sec, subsec;
 
     if (time > 0) {
@@ -2400,23 +2444,30 @@ static void offset_to_time(guint time, gchar *str) {
     } else {
         min = sec = subsec = 0;
     }
+
+    if (time_offset_update) {
+        gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_min_spinner), min);
+        gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_sec_spinner), sec);
+        gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_subsec_spinner), subsec);
+    }
+
     sprintf(str, "%d:%02d.%02d", min, sec, subsec);
 }
 
-static void update_status() {
+static void update_status(gboolean update_time_offset) {
     char str[1024];
     char strbuf[1024];
 
     sprintf( str, _("Cursor"));
     strcat( str, ": ");
-    offset_to_time(cursor_marker, strbuf);
+    offset_to_time(cursor_marker, strbuf, update_time_offset);
     strcat(str, strbuf);
 
     if( sample_is_playing()) {
         strcat( str, "\t");
         strcat( str, _("Playing"));
         strcat( str, ": ");
-        offset_to_time(play_marker, strbuf);
+        offset_to_time(play_marker, strbuf, update_time_offset);
         strcat(str, strbuf);
     }
 
@@ -2427,7 +2478,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
 {
     if( sample_is_playing()) {
         menu_stop( NULL, NULL);
-        update_status();
+        update_status(FALSE);
         set_play_icon();
         return;
     }
@@ -2443,7 +2494,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
             break;
         case 2:
             menu_stop( NULL, NULL);
-            update_status();
+            update_status(FALSE);
             set_play_icon();
 //            printf("already playing\n");
 //            menu_stop(NULL, NULL);
@@ -2486,7 +2537,7 @@ static void menu_next_silence( GtkWidget* widget, gpointer user_data)
         if( c==SILENCE_MIN_LENGTH) {
             cursor_marker = i;
             jump_to_cursor_marker( widget, NULL);
-            update_status();
+            update_status(FALSE);
             return;
         }
     }
@@ -2508,7 +2559,7 @@ static void menu_prev_silence( GtkWidget* widget, gpointer user_data)
         if( c==SILENCE_MIN_LENGTH) {
             cursor_marker = i;
             jump_to_cursor_marker( widget, NULL);
-            update_status();
+            update_status(FALSE);
             return;
         }
     }
@@ -3241,6 +3292,33 @@ int main(int argc, char **argv)
     gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_spinner, FALSE, FALSE, 0);
     g_signal_connect(G_OBJECT(cursor_marker_spinner_adj), "value-changed",
              G_CALLBACK(cursor_marker_spinner_changed), NULL);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new( _("Time offset:")), FALSE, FALSE, 0);
+
+    cursor_marker_min_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 74.0);
+    cursor_marker_min_spinner = gtk_spin_button_new(cursor_marker_min_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_min_spinner, FALSE);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_min_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_min_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new(":"), FALSE, FALSE, 0);
+
+    cursor_marker_sec_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 59.0, 1.0, 74.0, 74.0);
+    cursor_marker_sec_spinner = gtk_spin_button_new(cursor_marker_sec_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_sec_spinner, FALSE);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_sec_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_sec_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new("."), FALSE, FALSE, 0);
+
+    cursor_marker_subsec_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, CD_BLOCKS_PER_SEC-1, 1.0, 74.0, 74.0);
+    cursor_marker_subsec_spinner = gtk_spin_button_new(cursor_marker_subsec_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_subsec_spinner, FALSE);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_subsec_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_subsec_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
 
     hbbox = gtk_hbutton_box_new();
     gtk_box_pack_start(GTK_BOX(hbox), hbbox, FALSE, FALSE, 0);
