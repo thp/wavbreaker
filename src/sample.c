@@ -42,6 +42,7 @@ SampleInfo sampleInfo;
 static AudioFunctionPointers *audio_function_pointers;
 static unsigned long sample_start = 0;
 static int playing = 0;
+static int writing = 0;
 static gboolean kill_play_thread = FALSE;
 static int audio_type;
 
@@ -194,6 +195,11 @@ static gpointer play_thread(gpointer thread_data)
 int sample_is_playing()
 {
     return playing;
+}
+
+int sample_is_writing()
+{
+    return writing;
 }
 
 int play_sample(gulong startpos, gulong *play_marker)
@@ -583,6 +589,7 @@ write_thread(gpointer data)
 
     fclose(write_sample_fp);
 
+    writing = 0;
     return NULL;
 }
 
@@ -592,13 +599,17 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
     wtd.write_info = write_info;
     wtd.outputdir = outputdir;
 
+    writing = 1;
+
     if (sample_file == NULL) {
         perror("Must open file first\n");
+        writing = 0;
         return;
     }
 
     if ((write_sample_fp = fopen(sample_file, "rb")) == NULL) {
         printf("error opening %s\n", sample_file);
+        writing = 0;
         return;
     }
 
@@ -606,6 +617,7 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
     thread = g_thread_create(write_thread, &wtd, FALSE, NULL);
     if (thread == NULL) {
         perror("Return from g_thread_create was NULL");
+        writing = 0;
         return;
     }
     /* end new thread stuff */

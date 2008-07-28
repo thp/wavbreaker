@@ -2588,9 +2588,11 @@ static void menu_save_as(gpointer callback_data, guint callback_action, GtkWidge
 }
 
 void wavbreaker_write_files(char *dirname) {
-    sample_write_files(track_break_list, &write_info, dirname);
+    if (!sample_is_writing()) {
+        sample_write_files(track_break_list, &write_info, dirname);
 
-    idle_func_num = g_idle_add(file_write_progress_idle_func, NULL);
+        idle_func_num = g_idle_add(file_write_progress_idle_func, NULL);
+    }
 }
 
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
