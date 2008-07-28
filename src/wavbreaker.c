@@ -1395,7 +1395,7 @@ file_play_progress_idle_func(gpointer data) {
     update_status(FALSE);
     usleep( 50000);
 
-    if (sample_get_playing()) {
+    if (sample_is_playing()) {
         return TRUE;
     } else {
         set_play_icon();
@@ -1924,7 +1924,7 @@ static gboolean expose_event(GtkWidget *widget,
         cairo_stroke( cr);
     }
 
-    if( sample_is_playing()) {
+    if (sample_is_playing()) {
         /**
          * Draw GREEN play marker
          **/
@@ -2236,7 +2236,7 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
     int x_scale, x_scale_leftover, x_scale_mod;
     int leftover_count;
 
-    if (sample_get_playing()) {
+    if (sample_is_playing()) {
         return TRUE;
     }
 
@@ -2293,7 +2293,7 @@ void reset_sample_display(guint midpoint)
 
 static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
 {
-    if( sample_get_playing()) {
+    if (sample_is_playing()) {
         return FALSE;
     }
 
@@ -2308,7 +2308,7 @@ static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer dat
 {
     gint min, sec, subsec;
 
-    if (sample_get_playing()) {
+    if (sample_is_playing()) {
         return;
     }
 
@@ -2325,7 +2325,7 @@ static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer dat
 
 static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
 {
-    if (sample_get_playing()) {
+    if (sample_is_playing()) {
         return;
     }
     cursor_marker = adj->value;
@@ -2384,7 +2384,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     if (event->x + pixmap_offset > graphData.numSamples) {
         return TRUE;
     }
-    if (sample_get_playing()) {
+    if (sample_is_playing()) {
         return TRUE;
     }
 
@@ -2463,7 +2463,7 @@ static void update_status(gboolean update_time_offset) {
     offset_to_time(cursor_marker, strbuf, update_time_offset);
     strcat(str, strbuf);
 
-    if( sample_is_playing()) {
+    if (sample_is_playing()) {
         strcat( str, "\t");
         strcat( str, _("Playing"));
         strcat( str, ": ");
@@ -2476,7 +2476,7 @@ static void update_status(gboolean update_time_offset) {
 
 static void menu_play(GtkWidget *widget, gpointer user_data)
 {
-    if( sample_is_playing()) {
+    if (sample_is_playing()) {
         menu_stop( NULL, NULL);
         update_status(FALSE);
         set_play_icon();

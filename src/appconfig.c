@@ -844,7 +844,7 @@ void appconfig_show(GtkWidget *main_window)
         gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
     }
 #endif
-    gtk_widget_set_sensitive( GTK_WIDGET(combo_box), sample_get_playing()?FALSE:TRUE);
+    gtk_widget_set_sensitive( GTK_WIDGET(combo_box), sample_is_playing()?FALSE:TRUE);
     gtk_table_attach(GTK_TABLE(table), combo_box,
             1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(combo_box), "changed",
@@ -857,7 +857,7 @@ void appconfig_show(GtkWidget *main_window)
 
     output_device_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
-    gtk_widget_set_sensitive( GTK_WIDGET(output_device_entry), sample_get_playing()?FALSE:TRUE);
+    gtk_widget_set_sensitive( GTK_WIDGET(output_device_entry), sample_is_playing()?FALSE:TRUE);
     gtk_table_attach(GTK_TABLE(table), output_device_entry,
             1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
 

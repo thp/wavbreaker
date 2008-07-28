@@ -93,11 +93,6 @@ void sample_set_error_message(const char *val)
     strncpy(error_message, val, ERROR_MESSAGE_SIZE);
 }
 
-gint sample_get_playing()
-{
-    return playing;
-}
-
 void sample_init()
 {
     mutex = g_mutex_new();
