@@ -31,7 +31,7 @@
 #define URL "http://wavbreaker.sourceforge.net/"
 
 #define AUTHOR_A "Timothy Robinson <tdrobinson@huli.org>"
-#define AUTHOR_B "Thomas Perl <thp@perli.net>"
+#define AUTHOR_B "Thomas Perl <m@thp.io>"
 
 
 void about_show(GtkWidget *main_window)

@@ -2,7 +2,7 @@
 #
 # wavbreaker autogen.sh
 #
-# Thomas Perl <thp@perli.net> 2007-03-11
+# Thomas Perl <m@thp.io> 2007-03-11
 #
 
 echo -n "Cleaning up..."
