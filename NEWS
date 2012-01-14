@@ -1,3 +1,14 @@
+version 0.11 (2012-01-14)
+    * Catch-up release to finally get all patches in SVN into a release
+    * About dialog code now uses gtk_show_about_dialog
+    * Replace deprecated GTK+ functions with current ones
+    * Save and restore main window position
+    * Add check/uncheck context menu entries, jump to cursor
+    * Time offset controls on main window
+    * Get rid of "sample_get_playing" (code duplication)
+    * Fix segfault when pressing Ctrl+S twice (reported by Avuton Olrich)
+    * Added Spanish translation by Ricardo Mones (from Debian's patchset)
+
 version 0.10 (2008-06-02)
     + PulseAudio support
     ! Better driver selection
