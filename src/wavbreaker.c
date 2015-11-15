@@ -83,12 +83,11 @@ static GtkAction *action_jump_break;
 static GtkAction *action_rename;
 static GtkAction *action_moodbar;
 static GtkAction *action_split;
-static GtkAction *action_export_toc;
+static GtkAction *action_export;
 static GtkAction *action_check_all;
 static GtkAction *action_check_none;
 static GtkAction *action_check_invert;
 static GtkAction *action_jump_cursor;
-static GtkAction *action_export_text;
 static GtkAction *action_import_text;
 static GtkAction *action_import_toc;
 static GtkAction *action_playback;
@@ -204,7 +203,7 @@ void track_break_add_entry();
 void track_break_set_durations();
 void track_break_set_duration(gpointer data, gpointer user_data);
 
-int track_breaks_save_to_file( char* filename);
+int track_breaks_export_to_file( char* filename);
 int track_breaks_load_from_file( char* filename);
 void track_break_write_file( gpointer data, gpointer user_data);
 
@@ -259,9 +258,6 @@ static void
 menu_delete_track_break(GtkWidget *widget, gpointer user_data);
 
 static void
-menu_export_text(GtkWidget *widget, gpointer user_data);
-
-static void
 menu_import_text(GtkWidget *widget, gpointer user_data);
 
 static void
@@ -292,7 +288,7 @@ static void
 menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
-menu_export_toc(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -1541,8 +1537,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_rename, TRUE);
     gtk_action_set_sensitive( action_split, TRUE);
     gtk_action_set_sensitive( action_moodbar, TRUE);
-    gtk_action_set_sensitive( action_export_toc, TRUE);
-    gtk_action_set_sensitive( action_export_text, TRUE);
+    gtk_action_set_sensitive( action_export, TRUE);
     gtk_action_set_sensitive( action_import_text, TRUE);
     gtk_action_set_sensitive( action_import_toc, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
@@ -2596,74 +2591,37 @@ void wavbreaker_write_files(char *dirname) {
     }
 }
 
-static void menu_export_toc(gpointer callback_data, guint callback_action, GtkWidget *widget)
-{
-    int write_err = -1;
-    char *data_filename = NULL;
-
-    GtkWidget *dialog;
-
-    if (sample_filename == NULL) {
-       return;
-    }
-
-    dialog = gtk_file_chooser_dialog_new( _("Select name for TOC file to export"),
-                                          GTK_WINDOW(main_window),
-                                          GTK_FILE_CHOOSER_ACTION_SAVE,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
-                                          NULL);
-
-    if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        data_filename = basename(sample_filename);
-        write_err = toc_write_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER( dialog)), data_filename, track_break_list);
-
-        if( write_err) {
-            popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
-        } else {
-            popupmessage_show( NULL, _("TOC export successful"), _("The track breaks have been exported to a TOC file that can be used to burn a CD from the wave file."));
-        }
-    }
-
-    gtk_widget_destroy( GTK_WIDGET(dialog));
-}
-
-void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
-{
-    track_break_delete_entry();
-}
-
-void menu_export_text(GtkWidget *widget, gpointer user_data)
+static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     GtkWidget *dialog;
-    GtkFileFilter *filter_all;
-    GtkFileFilter *filter_supported;
+    GtkFileFilter *filter_text;
+    GtkFileFilter *filter_toc;
     gchar* filename = NULL;
 
     filename = g_strdup( sample_filename);
     strcpy( filename + strlen( filename) - 3, "txt");
 
-    filter_all = gtk_file_filter_new();
-    gtk_file_filter_set_name( filter_all, _("All files"));
-    gtk_file_filter_add_pattern( filter_all, "*");
+    filter_text = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_text, _("Text files"));
+    gtk_file_filter_add_pattern( filter_text, "*.txt");
 
-    filter_supported = gtk_file_filter_new();
-    gtk_file_filter_set_name( filter_supported, _("Text files"));
-    gtk_file_filter_add_pattern( filter_supported, "*.txt");
+    filter_toc = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_toc, _("TOC files"));
+    gtk_file_filter_add_pattern( filter_toc, "*.toc");
 
-    dialog = gtk_file_chooser_dialog_new(_("Save track breaks to file"), GTK_WINDOW(main_window),
+    dialog = gtk_file_chooser_dialog_new(_("Export track breaks to file"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
 
-    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
-    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
-    gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_text);
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_toc);
+    gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_text);
 
     gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(dialog), basename( filename));
     gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(dialog), dirname( filename));
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        track_breaks_save_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
+        track_breaks_export_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
     }
 
     if( filename != NULL) {
@@ -2671,6 +2629,11 @@ void menu_export_text(GtkWidget *widget, gpointer user_data)
     }
 
     gtk_widget_destroy(dialog);
+}
+
+void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
+{
+    track_break_delete_entry();
 }
 
 void menu_import_text(GtkWidget *widget, gpointer user_data)
@@ -2987,22 +2950,17 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, action_split, "<control>A");
     gtk_action_set_sensitive( action_split, FALSE);
 
-    action_export_toc = gtk_action_new( "export-toc", _("Export to TOC"), _("Export to CD-ROM TOC file for burning"), GTK_STOCK_CDROM);
-    g_signal_connect( action_export_toc, "activate", G_CALLBACK(menu_export_toc), NULL);
-    gtk_action_set_accel_group( action_export_toc, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_export_toc, "<control>E");
-    gtk_action_set_sensitive( action_export_toc, FALSE);
+    action_export = gtk_action_new( "export", _("Export track breaks..."), _("Export track breaks to text or TOC"), GTK_STOCK_CDROM);
+    g_signal_connect( action_export, "activate", G_CALLBACK(menu_export), NULL);
+    gtk_action_set_accel_group( action_export, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_export, "<control>E");
+    gtk_action_set_sensitive( action_export, FALSE);
 
     action_import_toc = gtk_action_new( "import-toc", _("_Import from TOC"), _("Import track breaks from TOC file"), GTK_STOCK_CDROM);
     g_signal_connect( action_import_toc, "activate", G_CALLBACK(menu_import_toc), NULL);
     gtk_action_set_accel_group( action_import_toc, accel_group);
     gtk_action_group_add_action_with_accel( action_group, action_import_toc, "<control>I");
     gtk_action_set_sensitive( action_import_toc, FALSE);
-
-    action_export_text = gtk_action_new( "export-text", _("_Save offsets to text file"), _("Save track breaks to text file"), GTK_STOCK_SAVE);
-    g_signal_connect( action_export_text, "activate", G_CALLBACK(menu_export_text), NULL);
-    gtk_action_set_accel_group( action_export_text, accel_group);
-    gtk_action_set_sensitive( action_export_text, FALSE);
 
     action_import_text = gtk_action_new( "import-text", _("_Load offsets from text file"), _("Load track breaks from text file"), GTK_STOCK_OPEN);
     g_signal_connect( action_import_text, "activate", G_CALLBACK(menu_import_text), NULL);
@@ -3118,6 +3076,8 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_to));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_guimerge));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_preferences));
@@ -3134,11 +3094,9 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_rename));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_text));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_text));
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_Go"));
     gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
@@ -3178,7 +3136,7 @@ int main(int argc, char **argv)
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save_to)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_split)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export_toc)), -1);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_playback)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
@@ -3433,21 +3391,41 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int track_breaks_save_to_file( char* filename) {
-    FILE *fp;
+int track_breaks_export_to_file( char* filename) {
+    FILE *fp = NULL;
+    int write_err = -1;
+    char *data_filename = NULL;
 
-    fp = fopen( filename, "w");
-    if( !fp) {
-        fprintf( stderr, "Error opening %s.\n", filename);
+    if( g_str_has_suffix (filename, ".txt")) {
+
+	fp = fopen( filename, "w");
+	if( !fp) {
+	    fprintf( stderr, "Error opening %s.\n", filename);
+	    return -1;
+	}
+
+	fprintf( fp, "\n; Created by " PACKAGE " " VERSION "\n; http://thpinfo.com/2006/wavbreaker/tb-file-format.txt\n\n");
+
+	g_list_foreach( track_break_list, track_break_write_file, fp);
+
+	fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_filename);
+
+	fclose( fp);
+
+    } else if( g_str_has_suffix (filename, ".toc")) {
+
+        data_filename = basename(sample_filename);
+        write_err = toc_write_file( filename, data_filename, track_break_list);
+
+        if( write_err) {
+            popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
+	    return -1;
+        }
+
+    } else {
+	popupmessage_show( main_window, _("Export failed"), _("Unrecognised export type"));
+	return -1;
     }
-
-    fprintf( fp, "\n; Created by " PACKAGE " " VERSION "\n; http://thpinfo.com/2006/wavbreaker/tb-file-format.txt\n\n");
-
-    g_list_foreach( track_break_list, track_break_write_file, fp);
-
-    fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_filename);
-
-    fclose( fp);
 
     return 0;
 }
