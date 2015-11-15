@@ -935,9 +935,7 @@ track_break_setup_filename(gpointer data, gpointer user_data)
         strcat(fn, buf);
     }
 
-    if (track_break->filename != NULL) {
-        g_free(track_break->filename);
-    }
+    g_free(track_break->filename);
     track_break->filename = g_strdup(fn);
 }
 
@@ -2663,9 +2661,7 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
         track_breaks_export_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
     }
 
-    if( filename != NULL) {
-        g_free( filename);
-    }
+    g_free( filename);
 
     gtk_widget_destroy(dialog);
 }
@@ -2708,9 +2704,7 @@ void menu_import_text(GtkWidget *widget, gpointer user_data)
         track_breaks_load_from_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
     }
 
-    if( filename != NULL) {
-        g_free( filename);
-    }
+    g_free( filename);
 
     gtk_widget_destroy(dialog);
 }
@@ -2758,9 +2752,7 @@ menu_import_toc(GtkWidget *widget, gpointer user_data)
         }
     }
 
-    if( filename != NULL) {
-        g_free( filename);
-    }
+    g_free( filename);
 
     gtk_widget_destroy(dialog);
 
