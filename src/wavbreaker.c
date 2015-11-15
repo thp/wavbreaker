@@ -89,7 +89,7 @@ static GtkAction *action_check_none;
 static GtkAction *action_check_invert;
 static GtkAction *action_jump_cursor;
 static GtkAction *action_export_text;
-static GtkAction *action_load_breaks;
+static GtkAction *action_import_text;
 static GtkAction *action_import_toc;
 static GtkAction *action_playback;
 static GtkAction *action_next_silence;
@@ -262,7 +262,7 @@ static void
 menu_export_text(GtkWidget *widget, gpointer user_data);
 
 static void
-menu_load_track_breaks(GtkWidget *widget, gpointer user_data);
+menu_import_text(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_import_toc(GtkWidget *widget, gpointer user_data);
@@ -1543,7 +1543,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_moodbar, TRUE);
     gtk_action_set_sensitive( action_export_toc, TRUE);
     gtk_action_set_sensitive( action_export_text, TRUE);
-    gtk_action_set_sensitive( action_load_breaks, TRUE);
+    gtk_action_set_sensitive( action_import_text, TRUE);
     gtk_action_set_sensitive( action_import_toc, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
     gtk_action_set_sensitive( action_next_silence, TRUE);
@@ -2673,7 +2673,7 @@ void menu_export_text(GtkWidget *widget, gpointer user_data)
     gtk_widget_destroy(dialog);
 }
 
-void menu_load_track_breaks(GtkWidget *widget, gpointer user_data)
+void menu_import_text(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
@@ -3004,10 +3004,10 @@ void init_actions()
     gtk_action_set_accel_group( action_export_text, accel_group);
     gtk_action_set_sensitive( action_export_text, FALSE);
 
-    action_load_breaks = gtk_action_new( "load-breaks", _("_Load offsets from text file"), _("Load track breaks from text file"), GTK_STOCK_OPEN);
-    g_signal_connect( action_load_breaks, "activate", G_CALLBACK(menu_load_track_breaks), NULL);
-    gtk_action_set_accel_group( action_load_breaks, accel_group);
-    gtk_action_set_sensitive( action_load_breaks, FALSE);
+    action_import_text = gtk_action_new( "import-text", _("_Load offsets from text file"), _("Load track breaks from text file"), GTK_STOCK_OPEN);
+    g_signal_connect( action_import_text, "activate", G_CALLBACK(menu_import_text), NULL);
+    gtk_action_set_accel_group( action_import_text, accel_group);
+    gtk_action_set_sensitive( action_import_text, FALSE);
 
     action_playback = gtk_action_new( "playback", _("Play"), _("Start/Stop playback of media"), GTK_STOCK_MEDIA_PLAY);
     g_signal_connect( action_playback, "activate", G_CALLBACK(menu_play), NULL);
@@ -3137,7 +3137,7 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_breaks));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_text));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_text));
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_Go"));
