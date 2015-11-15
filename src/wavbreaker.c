@@ -83,7 +83,7 @@ static GtkAction *action_jump_break;
 static GtkAction *action_rename;
 static GtkAction *action_moodbar;
 static GtkAction *action_split;
-static GtkAction *action_export;
+static GtkAction *action_export_toc;
 static GtkAction *action_check_all;
 static GtkAction *action_check_none;
 static GtkAction *action_check_invert;
@@ -292,7 +292,7 @@ static void
 menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
-menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_export_toc(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -1541,7 +1541,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_rename, TRUE);
     gtk_action_set_sensitive( action_split, TRUE);
     gtk_action_set_sensitive( action_moodbar, TRUE);
-    gtk_action_set_sensitive( action_export, TRUE);
+    gtk_action_set_sensitive( action_export_toc, TRUE);
     gtk_action_set_sensitive( action_save_breaks, TRUE);
     gtk_action_set_sensitive( action_load_breaks, TRUE);
     gtk_action_set_sensitive( action_load_toc, TRUE);
@@ -2596,7 +2596,7 @@ void wavbreaker_write_files(char *dirname) {
     }
 }
 
-static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
+static void menu_export_toc(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     int write_err = -1;
     char *data_filename = NULL;
@@ -2987,11 +2987,11 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, action_split, "<control>A");
     gtk_action_set_sensitive( action_split, FALSE);
 
-    action_export = gtk_action_new( "export", _("Export to TOC"), _("Export to CD-ROM TOC file for burning"), GTK_STOCK_CDROM);
-    g_signal_connect( action_export, "activate", G_CALLBACK(menu_export), NULL);
-    gtk_action_set_accel_group( action_export, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_export, "<control>E");
-    gtk_action_set_sensitive( action_export, FALSE);
+    action_export_toc = gtk_action_new( "export-toc", _("Export to TOC"), _("Export to CD-ROM TOC file for burning"), GTK_STOCK_CDROM);
+    g_signal_connect( action_export_toc, "activate", G_CALLBACK(menu_export_toc), NULL);
+    gtk_action_set_accel_group( action_export_toc, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_export_toc, "<control>E");
+    gtk_action_set_sensitive( action_export_toc, FALSE);
 
     action_load_toc = gtk_action_new( "load-toc", _("_Import from TOC"), _("Import track breaks from TOC file"), GTK_STOCK_CDROM);
     g_signal_connect( action_load_toc, "activate", G_CALLBACK(menu_load_toc_breaks), NULL);
@@ -3134,7 +3134,7 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_rename));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_breaks));
@@ -3178,7 +3178,7 @@ int main(int argc, char **argv)
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save_to)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_split)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export)), -1);
+    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export_toc)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_playback)), -1);
     gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
