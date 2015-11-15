@@ -90,7 +90,7 @@ static GtkAction *action_check_invert;
 static GtkAction *action_jump_cursor;
 static GtkAction *action_export_text;
 static GtkAction *action_load_breaks;
-static GtkAction *action_load_toc;
+static GtkAction *action_import_toc;
 static GtkAction *action_playback;
 static GtkAction *action_next_silence;
 static GtkAction *action_prev_silence;
@@ -265,7 +265,7 @@ static void
 menu_load_track_breaks(GtkWidget *widget, gpointer user_data);
 
 static void
-menu_load_toc_breaks(GtkWidget *widget, gpointer user_data);
+menu_import_toc(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -1544,7 +1544,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_export_toc, TRUE);
     gtk_action_set_sensitive( action_export_text, TRUE);
     gtk_action_set_sensitive( action_load_breaks, TRUE);
-    gtk_action_set_sensitive( action_load_toc, TRUE);
+    gtk_action_set_sensitive( action_import_toc, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
     gtk_action_set_sensitive( action_next_silence, TRUE);
     gtk_action_set_sensitive( action_prev_silence, TRUE);
@@ -2719,7 +2719,7 @@ void menu_add_track_break(GtkWidget *widget, gpointer user_data)
 }
 
 void
-menu_load_toc_breaks(GtkWidget *widget, gpointer user_data)
+menu_import_toc(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
@@ -2993,11 +2993,11 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, action_export_toc, "<control>E");
     gtk_action_set_sensitive( action_export_toc, FALSE);
 
-    action_load_toc = gtk_action_new( "load-toc", _("_Import from TOC"), _("Import track breaks from TOC file"), GTK_STOCK_CDROM);
-    g_signal_connect( action_load_toc, "activate", G_CALLBACK(menu_load_toc_breaks), NULL);
-    gtk_action_set_accel_group( action_load_toc, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_load_toc, "<control>I");
-    gtk_action_set_sensitive( action_load_toc, FALSE);
+    action_import_toc = gtk_action_new( "import-toc", _("_Import from TOC"), _("Import track breaks from TOC file"), GTK_STOCK_CDROM);
+    g_signal_connect( action_import_toc, "activate", G_CALLBACK(menu_import_toc), NULL);
+    gtk_action_set_accel_group( action_import_toc, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_import_toc, "<control>I");
+    gtk_action_set_sensitive( action_import_toc, FALSE);
 
     action_export_text = gtk_action_new( "export-text", _("_Save offsets to text file"), _("Save track breaks to text file"), GTK_STOCK_SAVE);
     g_signal_connect( action_export_text, "activate", G_CALLBACK(menu_export_text), NULL);
@@ -3135,7 +3135,7 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_toc));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_toc));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_breaks));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_text));
