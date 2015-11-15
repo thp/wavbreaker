@@ -2591,6 +2591,43 @@ void wavbreaker_write_files(char *dirname) {
     }
 }
 
+static void filter_changed (GtkFileChooser* chooser, gpointer user_data)
+{
+    gchar *old_filename;
+    gchar *base;
+    gchar *dot;
+    gchar *new_filename;
+    GtkFileFilter *filter;
+
+    filter = gtk_file_chooser_get_filter (chooser);
+    if (!filter) {
+	return;
+    }
+
+    old_filename = gtk_file_chooser_get_uri( chooser);
+
+    base = basename( old_filename);
+    new_filename = malloc( strlen(base) + 4);
+    strcpy( new_filename, base);
+    dot = g_strrstr( new_filename, ".");
+    if ( !dot) {
+	dot = new_filename + strlen(new_filename);
+    } else {
+	*dot = '\0';
+    }
+
+    if( strcmp( gtk_file_filter_get_name( filter), _("Text files")) == 0) {
+	strcat( new_filename, ".txt");
+    } else if( strcmp( gtk_file_filter_get_name( filter), _("TOC files")) == 0) {
+	strcat( new_filename, ".toc");
+    }
+
+    gtk_file_chooser_set_current_name( chooser, new_filename);
+
+    g_free( old_filename);
+    free( new_filename);
+}
+
 static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     GtkWidget *dialog;
@@ -2619,6 +2656,8 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
 
     gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(dialog), basename( filename));
     gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(dialog), dirname( filename));
+
+    g_signal_connect ( GTK_FILE_CHOOSER(dialog), "notify::filter", G_CALLBACK( filter_changed), NULL);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         track_breaks_export_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
