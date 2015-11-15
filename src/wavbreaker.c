@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 4 -*- */
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2006 Timothy Robinson
  * Copyright (C) 2006-2007 Thomas Perl
@@ -325,8 +326,8 @@ static void check_really_quit();
 
 static void
 offset_to_time(guint, gchar *, gboolean);
- 
-static guint 
+
+static guint
 time_to_offset(gint min, gint sec, gint subsec);
 
 static void
@@ -1480,11 +1481,11 @@ file_open_progress_idle_func(gpointer data) {
         /* --------------------------------------------------- */
         /* Reset things because we have a new file             */
         /* --------------------------------------------------- */
- 
+
         cursor_marker = 0;
         track_break_clear_list();
         track_break_add_entry();
- 
+
         gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
         gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_spinner_adj), 0);
         gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_min_spinner_adj), 0);
@@ -2609,7 +2610,7 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     dialog = gtk_file_chooser_dialog_new( _("Select name for TOC file to export"),
                                           GTK_WINDOW(main_window),
                                           GTK_FILE_CHOOSER_ACTION_SAVE,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, 
+                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                           GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
                                           NULL);
 
@@ -2851,7 +2852,7 @@ menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget)
 static void save_window_sizes()
 {
     gint x, y, w, h;
- 
+
     gdk_window_get_root_origin (GDK_WINDOW(main_window->window), &x, &y);
     gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
     /*
@@ -3192,7 +3193,7 @@ int main(int argc, char **argv)
     gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &bg_color, TRUE, TRUE);
 
 
-    nowrite_color.red   = 
+    nowrite_color.red   =
     nowrite_color.green =
     nowrite_color.blue  = 220*(65535/255);
     gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &nowrite_color, TRUE, TRUE);
@@ -3396,7 +3397,7 @@ int main(int argc, char **argv)
     sample_init();
 
     if (appconfig_get_main_window_xpos() > 0) {
-        gtk_window_move (GTK_WINDOW (main_window), 
+        gtk_window_move (GTK_WINDOW (main_window),
                     appconfig_get_main_window_xpos(),
                     appconfig_get_main_window_ypos());
     }
