@@ -88,7 +88,7 @@ static GtkAction *action_check_all;
 static GtkAction *action_check_none;
 static GtkAction *action_check_invert;
 static GtkAction *action_jump_cursor;
-static GtkAction *action_save_breaks;
+static GtkAction *action_export_text;
 static GtkAction *action_load_breaks;
 static GtkAction *action_load_toc;
 static GtkAction *action_playback;
@@ -259,7 +259,7 @@ static void
 menu_delete_track_break(GtkWidget *widget, gpointer user_data);
 
 static void
-menu_save_track_breaks(GtkWidget *widget, gpointer user_data);
+menu_export_text(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_load_track_breaks(GtkWidget *widget, gpointer user_data);
@@ -1542,7 +1542,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_split, TRUE);
     gtk_action_set_sensitive( action_moodbar, TRUE);
     gtk_action_set_sensitive( action_export_toc, TRUE);
-    gtk_action_set_sensitive( action_save_breaks, TRUE);
+    gtk_action_set_sensitive( action_export_text, TRUE);
     gtk_action_set_sensitive( action_load_breaks, TRUE);
     gtk_action_set_sensitive( action_load_toc, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
@@ -2633,7 +2633,7 @@ void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
     track_break_delete_entry();
 }
 
-void menu_save_track_breaks(GtkWidget *widget, gpointer user_data)
+void menu_export_text(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
@@ -2999,10 +2999,10 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, action_load_toc, "<control>I");
     gtk_action_set_sensitive( action_load_toc, FALSE);
 
-    action_save_breaks = gtk_action_new( "save-breaks", _("_Save offsets to text file"), _("Save track breaks to text file"), GTK_STOCK_SAVE);
-    g_signal_connect( action_save_breaks, "activate", G_CALLBACK(menu_save_track_breaks), NULL);
-    gtk_action_set_accel_group( action_save_breaks, accel_group);
-    gtk_action_set_sensitive( action_save_breaks, FALSE);
+    action_export_text = gtk_action_new( "export-text", _("_Save offsets to text file"), _("Save track breaks to text file"), GTK_STOCK_SAVE);
+    g_signal_connect( action_export_text, "activate", G_CALLBACK(menu_export_text), NULL);
+    gtk_action_set_accel_group( action_export_text, accel_group);
+    gtk_action_set_sensitive( action_export_text, FALSE);
 
     action_load_breaks = gtk_action_new( "load-breaks", _("_Load offsets from text file"), _("Load track breaks from text file"), GTK_STOCK_OPEN);
     g_signal_connect( action_load_breaks, "activate", G_CALLBACK(menu_load_track_breaks), NULL);
@@ -3138,7 +3138,7 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_toc));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_load_breaks));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_breaks));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export_text));
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_Go"));
     gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
