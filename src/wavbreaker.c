@@ -205,7 +205,8 @@ void track_break_set_duration(gpointer data, gpointer user_data);
 
 int track_breaks_export_to_file( char* filename);
 int track_breaks_load_from_file( char* filename);
-void track_break_write_file( gpointer data, gpointer user_data);
+void track_break_write_text( gpointer data, gpointer user_data);
+void track_break_write_cue( gpointer data, gpointer user_data);
 
 /* File Functions */
 void filesel_ok_clicked(GtkWidget *widget, gpointer data);
@@ -2618,6 +2619,8 @@ static void filter_changed (GtkFileChooser* chooser, gpointer user_data)
 	strcat( new_filename, ".txt");
     } else if( strcmp( gtk_file_filter_get_name( filter), _("TOC files")) == 0) {
 	strcat( new_filename, ".toc");
+    } else if( strcmp( gtk_file_filter_get_name( filter), _("CUE files")) == 0) {
+	strcat( new_filename, ".cue");
     }
 
     gtk_file_chooser_set_current_name( chooser, new_filename);
@@ -2631,6 +2634,7 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     GtkWidget *dialog;
     GtkFileFilter *filter_text;
     GtkFileFilter *filter_toc;
+    GtkFileFilter *filter_cue;
     gchar* filename = NULL;
 
     filename = g_strdup( sample_filename);
@@ -2644,12 +2648,17 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     gtk_file_filter_set_name( filter_toc, _("TOC files"));
     gtk_file_filter_add_pattern( filter_toc, "*.toc");
 
+    filter_cue = gtk_file_filter_new();
+    gtk_file_filter_set_name( filter_cue, _("CUE files"));
+    gtk_file_filter_add_pattern( filter_cue, "*.cue");
+
     dialog = gtk_file_chooser_dialog_new(_("Export track breaks to file"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
 
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_text);
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_toc);
+    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_cue);
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_text);
 
     gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(dialog), basename( filename));
@@ -3422,10 +3431,17 @@ int main(int argc, char **argv)
     return 0;
 }
 
+struct WriteStatus {
+    FILE* fp;
+    int index;
+};
+
 int track_breaks_export_to_file( char* filename) {
     FILE *fp = NULL;
     int write_err = -1;
     char *data_filename = NULL;
+
+    data_filename = basename(sample_filename);
 
     if( g_str_has_suffix (filename, ".txt")) {
 
@@ -3437,7 +3453,7 @@ int track_breaks_export_to_file( char* filename) {
 
 	fprintf( fp, "\n; Created by " PACKAGE " " VERSION "\n; http://thpinfo.com/2006/wavbreaker/tb-file-format.txt\n\n");
 
-	g_list_foreach( track_break_list, track_break_write_file, fp);
+	g_list_foreach( track_break_list, track_break_write_text, fp);
 
 	fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_filename);
 
@@ -3445,13 +3461,29 @@ int track_breaks_export_to_file( char* filename) {
 
     } else if( g_str_has_suffix (filename, ".toc")) {
 
-        data_filename = basename(sample_filename);
         write_err = toc_write_file( filename, data_filename, track_break_list);
 
         if( write_err) {
             popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
 	    return -1;
         }
+
+    } else if( g_str_has_suffix (filename, ".cue")) {
+
+	fp = fopen( filename, "w");
+	if( !fp) {
+	    fprintf( stderr, "Error opening %s.\n", filename);
+	    return -1;
+	}
+
+	fprintf( fp, "FILE \"%s\" WAVE\n", data_filename);
+
+	struct WriteStatus ws;
+	ws.fp = fp;
+	ws.index = 1;
+
+	g_list_foreach( track_break_list, track_break_write_cue, &ws);
+	fclose( fp);
 
     } else {
 	popupmessage_show( main_window, _("Export failed"), _("Unrecognised export type"));
@@ -3461,7 +3493,7 @@ int track_breaks_export_to_file( char* filename) {
     return 0;
 }
 
-void track_break_write_file( gpointer data, gpointer user_data) {
+void track_break_write_text( gpointer data, gpointer user_data) {
     FILE* fp = (FILE*)user_data;
     TrackBreak* track_break = (TrackBreak*)data;
 
@@ -3470,6 +3502,26 @@ void track_break_write_file( gpointer data, gpointer user_data) {
     } else {
         fprintf( fp, "%d\n", track_break->offset);
     }
+}
+
+void track_break_write_cue( gpointer data, gpointer user_data) {
+    struct WriteStatus* ws = (struct WriteStatus*)user_data;
+    TrackBreak* track_break = (TrackBreak*)data;
+    char* time;
+    char* p;
+
+    time = strdup( track_break->time);
+    p = time;
+    while (*p != '\0') {
+	if (*p == '.') {
+	    *p = ':';
+	}
+	++p;
+    }
+
+    fprintf( ws->fp, "TRACK %02d AUDIO\n", ws->index);
+    fprintf( ws->fp, "INDEX 01 %s\n", time);
+    ws->index++;
 }
 
 int track_breaks_load_from_file( char* filename) {
