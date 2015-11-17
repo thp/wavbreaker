@@ -1,3 +1,7 @@
+2015-11-17  gettextize  <bug-gnu-gettext@gnu.org>
+
+	* Makefile.am (EXTRA_DIST): Add config.rpath.
+
 2012-01-14 Thomas Perl <m@thp.io>
 
 	* NEWS: See the NEWS file for release information and changes.
