@@ -67,9 +67,9 @@ int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
 
     /* DEBUG CODE START */
     if (debug) {
-        printf("WaveHeader Size:\t%u\n", sizeof(WaveHeader));
-        printf("ChunkHeader Size:\t%u\n", sizeof(ChunkHeader));
-        printf("FormatChunk Size:\t%u\n", sizeof(FormatChunk));
+        printf("WaveHeader Size:\t%lu\n", sizeof(WaveHeader));
+        printf("ChunkHeader Size:\t%lu\n", sizeof(ChunkHeader));
+        printf("FormatChunk Size:\t%lu\n", sizeof(FormatChunk));
     }
     /* DEBUG CODE END */
 

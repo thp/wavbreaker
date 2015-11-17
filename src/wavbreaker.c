@@ -495,7 +495,7 @@ void parts_check_cb(GtkWidget *widget, gpointer data) {
         list_data = g_list_nth_data(track_break_list, list_pos);
         track_break = (TrackBreak *)list_data;
 
-        switch ((gint) data) {
+        switch ((glong)data) {
 
             case CHECK_ALL:
                 track_break->write = TRUE;
@@ -3078,7 +3078,6 @@ int main(int argc, char **argv)
     textdomain( PACKAGE);
     bindtextdomain( PACKAGE, LOCALEDIR);
 
-    g_thread_init(NULL);
     gdk_threads_init();
     gtk_init(&argc, &argv);
 
@@ -3414,10 +3413,6 @@ int main(int argc, char **argv)
         gtk_widget_show_all( GTK_WIDGET(toolbar));
     } else {
         gtk_widget_hide_all( GTK_WIDGET(toolbar));
-    }
-
-    if( !g_thread_supported()) {
-        g_thread_init( NULL);
     }
 
     handle_arguments( argc, argv);

@@ -51,7 +51,7 @@ static FILE *read_sample_fp = NULL;
 static FILE *write_sample_fp = NULL;
 
 static GThread *thread;
-static GMutex *mutex = NULL;
+static GMutex mutex;
 
 /* typedef and struct stuff for new thread open junk */
 
@@ -96,17 +96,13 @@ void sample_set_error_message(const char *val)
 
 void sample_init()
 {
-    mutex = g_mutex_new();
-    if (mutex == NULL) {
-        perror("Return from g_mutex_init was NULL");
-        exit(1);
-    }
+    g_mutex_init(&mutex);
 }
 
 static gpointer play_thread(gpointer thread_data)
 {
     int read_ret = 0;
-    int write_ret, i;
+    int i;
     guint *play_marker = (guint *)thread_data;
     unsigned char *devbuf;
 
@@ -119,10 +115,10 @@ static gpointer play_thread(gpointer thread_data)
     if (audio_function_pointers->audio_open_device(
         audio_function_pointers->get_outputdev(), &sampleInfo) != 0) {
 
-        g_mutex_lock(mutex);
+        g_mutex_lock(&mutex);
         playing = 0;
         audio_function_pointers->audio_close_device();
-        g_mutex_unlock(mutex);
+        g_mutex_unlock(&mutex);
         //printf("play_thread: return from open_audio_device != 0\n");
         return NULL;
     }
@@ -132,10 +128,10 @@ static gpointer play_thread(gpointer thread_data)
 
     devbuf = malloc(sampleInfo.bufferSize);
     if (devbuf == NULL) {
-        g_mutex_lock(mutex);
+        g_mutex_lock(&mutex);
         playing = 0;
         audio_function_pointers->audio_close_device();
-        g_mutex_unlock(mutex);
+        g_mutex_unlock(&mutex);
         printf("play_thread: out of memory\n");
         return NULL;
     }
@@ -155,17 +151,17 @@ static gpointer play_thread(gpointer thread_data)
         }
         */
 
-        write_ret = audio_function_pointers->audio_write(devbuf, read_ret);
+        audio_function_pointers->audio_write(devbuf, read_ret);
 
-        if (g_mutex_trylock(mutex)) {
+        if (g_mutex_trylock(&mutex)) {
             if (kill_play_thread == TRUE) {
                 audio_function_pointers->audio_close_device();
                 playing = 0;
                 kill_play_thread = FALSE;
-                g_mutex_unlock(mutex);
+                g_mutex_unlock(&mutex);
                 return NULL;
             }
-            g_mutex_unlock(mutex);
+            g_mutex_unlock(&mutex);
         }
 
         if (audio_type == CDDA) {
@@ -182,12 +178,12 @@ static gpointer play_thread(gpointer thread_data)
 	    sampleInfo.blockSize;
     }
 
-    g_mutex_lock(mutex);
+    g_mutex_lock(&mutex);
 
     audio_function_pointers->audio_close_device();
     playing = 0;
 
-    g_mutex_unlock(mutex);
+    g_mutex_unlock(&mutex);
 
     return NULL;
 }
@@ -204,14 +200,14 @@ int sample_is_writing()
 
 int play_sample(gulong startpos, gulong *play_marker)
 {       
-    g_mutex_lock(mutex);
+    g_mutex_lock(&mutex);
     if (playing) {
-        g_mutex_unlock(mutex);
+        g_mutex_unlock(&mutex);
         return 2;
     }
 
     if (sample_file == NULL) {
-        g_mutex_unlock(mutex);
+        g_mutex_unlock(&mutex);
         return 3;
     }
 
@@ -222,14 +218,9 @@ int play_sample(gulong startpos, gulong *play_marker)
 
     //printf("creating the thread\n");
     fflush(stdout);
-    thread = g_thread_create(play_thread, play_marker, FALSE, NULL);
-    if (thread == NULL) {
-        perror("Return from g_thread_create was NULL");
-        g_mutex_unlock(mutex);
-        return 1;
-    }
+    thread = g_thread_new("play_sample", play_thread, play_marker);
 
-    g_mutex_unlock(mutex);
+    g_mutex_unlock(&mutex);
     g_thread_yield();
     //printf("finished creating the thread\n");
     return 0;
@@ -237,15 +228,15 @@ int play_sample(gulong startpos, gulong *play_marker)
 
 void stop_sample()
 {       
-    g_mutex_lock(mutex);
+    g_mutex_lock(&mutex);
 
     if (!playing) {
-        g_mutex_unlock(mutex);
+        g_mutex_unlock(&mutex);
         return;
     }
 
     kill_play_thread = TRUE;
-    g_mutex_unlock(mutex);
+    g_mutex_unlock(&mutex);
 }
 
 static gpointer open_thread(gpointer data)
@@ -321,14 +312,8 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     open_thread_data.graphData = graphData;
     open_thread_data.pct = pct;
 
-    /* start new thread stuff */
     fflush(stdout);
-    thread = g_thread_create(open_thread, &open_thread_data, FALSE, NULL);
-    if (thread == NULL) {
-        perror("Return from g_thread_create was NULL");
-        return 3;
-    }
-    /* end new thread stuff */
+    thread = g_thread_new("open file", open_thread, &open_thread_data);
 
     g_thread_yield();
     return 0;
@@ -484,7 +469,6 @@ write_thread(gpointer data)
     WriteInfo *write_info = thread_data->write_info;
 
     int i;
-    int ret;
     int index;
     unsigned long start_pos, end_pos;
     char filename[1024];
@@ -562,10 +546,10 @@ write_thread(gpointer data)
 
             if (write_info->skip_file > 0) {
                 if (audio_type == CDDA) {
-                    ret = cdda_write_file(write_sample_fp, filename,
+                    cdda_write_file(write_sample_fp, filename,
                         sampleInfo.bufferSize, start_pos, end_pos);
                 } else if (audio_type == WAV) {
-                    ret = wav_write_file(write_sample_fp, filename,
+                    wav_write_file(write_sample_fp, filename,
 					 sampleInfo.blockSize,
 					 &sampleInfo, start_pos, end_pos,
 					 &write_info->pct_done);
@@ -613,14 +597,7 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
         return;
     }
 
-    /* start new thread stuff */
-    thread = g_thread_create(write_thread, &wtd, FALSE, NULL);
-    if (thread == NULL) {
-        perror("Return from g_thread_create was NULL");
-        writing = 0;
-        return;
-    }
-    /* end new thread stuff */
+    thread = g_thread_new("write data", write_thread, &wtd);
 }
 
 static gpointer
@@ -677,12 +654,6 @@ void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write
     }
     write_info->merge_filename = mtd.merge_filename;
 
-    /* start new thread stuff */
-    thread = g_thread_create(merge_thread, &mtd, FALSE, NULL);
-    if (thread == NULL) {
-        perror("Return from g_thread_create was NULL");
-        return;
-    }
-    /* end new thread stuff */
+    thread = g_thread_new("merge files", merge_thread, &mtd);
 }
 
