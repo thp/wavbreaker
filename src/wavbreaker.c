@@ -984,7 +984,7 @@ guint track_break_find_offset()
     GtkTreeSelection *selection;
     GtkTreeIter iter;
     GtkTreeModel *model;
-    guint offset;
+    guint offset = 0;
     gchar *time;
     gchar *duration;
     gchar *filename;
