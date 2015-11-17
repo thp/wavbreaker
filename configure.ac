@@ -9,6 +9,8 @@ AM_CONFIG_HEADER(config.h)
 
 AM_GNU_GETTEXT([external])
 
+AM_SILENT_RULES([yes])
+
 # Parameters to configure
 AC_ARG_ENABLE(alsa,
     [  --disable-alsa      Disable detection of ALSA],
