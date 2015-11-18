@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
         printf( "Header info for: %s\n", argv[i]);
     
         if( wav_read_header( argv[i], &sampleInfo, 1) != 0) {
-            printf( wav_get_error_message());
+            printf("%s", wav_get_error_message());
         }
 
         printf("\n");

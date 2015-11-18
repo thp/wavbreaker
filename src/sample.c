@@ -260,12 +260,12 @@ int ask_open_as_raw()
                                      GTK_DIALOG_DESTROY_WITH_PARENT,
                                      GTK_MESSAGE_QUESTION,
                                      GTK_BUTTONS_CANCEL,
-                                     message);
+                                     "%s", message);
     
     gtk_dialog_add_button( GTK_DIALOG(dialog), _("Big endian"), WB_RESPONSE_BIG_ENDIAN);
     gtk_dialog_add_button( GTK_DIALOG(dialog), _("Little endian"), WB_RESPONSE_LITTLE_ENDIAN);
 
-    gtk_message_dialog_format_secondary_text( dialog, info_text);
+    gtk_message_dialog_format_secondary_text( dialog, "%s", info_text);
     gtk_window_set_title( GTK_WINDOW(dialog), message);
 
     result = gtk_dialog_run( GTK_DIALOG(dialog));

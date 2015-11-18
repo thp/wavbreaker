@@ -36,11 +36,11 @@ void reallyquit_show(GtkWidget *main_window)
                                      GTK_DIALOG_DESTROY_WITH_PARENT,
                                      GTK_MESSAGE_QUESTION,
                                      GTK_BUTTONS_YES_NO,
-                                     message);
+                                     "%s", message);
 
 
     gtk_window_set_title( GTK_WINDOW(dialog), message);
-    gtk_message_dialog_format_secondary_text( dialog, info_text);
+    gtk_message_dialog_format_secondary_text( dialog, "%s", info_text);
 
     result = gtk_dialog_run( GTK_DIALOG(dialog));
     switch( result) {

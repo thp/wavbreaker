@@ -38,9 +38,9 @@ void popupmessage_show( GtkWidget *main_window, const char *message, const char 
                                      GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
                                      GTK_MESSAGE_INFO,
                                      buttons_type,
-                                     message);
+                                     "%s", message);
 
-    gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(dialog), description);
+    gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(dialog), "%s", description);
     gtk_window_set_title( GTK_WINDOW(dialog), message);
 
     g_signal_connect( G_OBJECT(dialog), "response", (GtkSignalFunc)popupmessage_hide, dialog);
