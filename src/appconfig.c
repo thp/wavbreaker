@@ -554,16 +554,11 @@ void set_config_filename(const char *val)
 
 char *default_config_filename()
 {
-    char str[1024];
-
     if (config_filename != NULL) {
         g_free(config_filename);
     }
 
-    str[0] = '\0';
-    strncat(str, getenv("HOME"), 1024);
-    strncat(str, APPCONFIG_FILENAME, 1024);
-    config_filename = g_strdup(str);
+    config_filename = g_strdup_printf("%s%s", getenv("HOME"), APPCONFIG_FILENAME);
 
     return config_filename;
 }

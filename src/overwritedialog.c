@@ -69,7 +69,6 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
     GtkWidget *hseparator;
     GtkWidget *checkbox;
     GtkWidget *button;
-    gchar message[1024];
     OverwriteData* overwrite_data = g_malloc(sizeof(OverwriteData));
 
     overwrite_data->write_info = write_info;
@@ -95,10 +94,10 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
     gtk_widget_show(vbox);
 
 
-    message[0] = '\0';
-    strncat(message, write_info->cur_filename, 1024);
-    strncat(message, _(" already exists.\n\nDo you want to overwrite the existing file?"), 1024);
+    gchar *message = g_strdup_printf(_("%s already exists.\n\nDo you want to overwrite the existing file?"),
+                                     write_info->cur_filename);
     status_label = gtk_label_new(message);
+    g_free(message);
     gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
     gtk_widget_show(status_label);
 
