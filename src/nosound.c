@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <sys/soundcard.h>
 
 #include "nosound.h"
 
