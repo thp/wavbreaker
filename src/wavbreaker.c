@@ -1794,7 +1794,7 @@ static void draw_sample(GtkWidget *widget)
         y_min = graphData.data[i + pixmap_offset].min;
         y_max = graphData.data[i + pixmap_offset].max;
 
-        y_min = xaxis + fabs(y_min) / scale;
+        y_min = xaxis + fabs((double)y_min) / scale;
         y_max = xaxis - y_max / scale;
 
         /* find the track break we are drawing now */
@@ -2114,7 +2114,7 @@ static void draw_summary_pixmap(GtkWidget *widget)
         y_min = min;
         y_max = max;
 
-        y_min = xaxis + fabs(y_min) / scale;
+        y_min = xaxis + fabs((double)y_min) / scale;
         y_max = xaxis - y_max / scale;
 
         count = 0;
