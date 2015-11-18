@@ -1,4 +1,4 @@
-INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) $(PULSE_CFLAGS)
+INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) $(PULSE_CFLAGS) $(AO_CFLAGS)
 AM_CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DICONDIR="\"$(datadir)/pixmaps/\""
 
 localedir = $(datadir)/locale
@@ -19,6 +19,10 @@ if NEED_PULSE
 wavbreaker_SOURCES += pulseaudio.c
 endif
 
+if NEED_AO
+wavbreaker_SOURCES += aoaudio.c
+endif
+
 if NEED_OSS
 wavbreaker_SOURCES += linuxaudio.c
 endif
@@ -28,7 +32,8 @@ wavinfo_SOURCES = wavinfo.c wav.c
 
 noinst_HEADERS = cdda.h linuxaudio.h sample.h wav.h wavbreaker.h about.h pulseaudio.h \
 	appconfig.h autosplit.h popupmessage.h alsaaudio.h saveas.h browsedir.h \
+	aoaudio.h \
 	toc.h nosound.h reallyquit.h fileutils.h overwritedialog.h guimerge.h gettext.h
 
-wavbreaker_LDADD = $(WAVBREAKER_LIBS) $(ALSA_LIBS) $(PULSE_LIBS)
+wavbreaker_LDADD = $(WAVBREAKER_LIBS) $(ALSA_LIBS) $(PULSE_LIBS) $(AO_LIBS)
 

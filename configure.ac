@@ -22,6 +22,11 @@ AC_ARG_ENABLE(pulse,
     [enable_pulse=$enableval],
     [enable_pulse=yes])
 
+AC_ARG_ENABLE(ao,
+    [  --disable-ao      Disable detection of libao],
+    [enable_ao=$enableval],
+    [enable_ao=yes])
+
 AC_ARG_ENABLE(oss,
     [  --disable-oss       Disable detection of OSS],
     [enable_oss=$enableval],
@@ -80,6 +85,20 @@ then
 fi
 AC_SUBST(PULSE_LIBS)
 
+if test "x$enable_ao" = "xyes"
+then
+    PKG_CHECK_MODULES(AO, ao,
+                      [found_ao=yes],
+                      [found_ao=no])
+    if test "x$found_ao" = "xyes"
+    then
+        AC_DEFINE([HAVE_AO], 1, [Define if you have libao installed])
+    else
+        enable_ao=no
+    fi
+fi
+AC_SUBST(AO_LIBS)
+
 if test "x$enable_oss" = "xyes"
 then
     AC_CHECK_HEADERS(sys/soundcard.h machine/soundcard.h, found_oss=yes)
@@ -95,6 +114,7 @@ fi
 PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 gthread-2.0 libxml-2.0)
 AM_CONDITIONAL(NEED_ALSA, test "x$enable_alsa" = "xyes")
 AM_CONDITIONAL(NEED_PULSE, test "x$enable_pulse" = "xyes")
+AM_CONDITIONAL(NEED_AO, test "x$enable_ao" = "xyes")
 AM_CONDITIONAL(NEED_OSS, test "x$enable_oss" = "xyes")
 AC_SUBST(WAVBREAKER_CFLAGS)
 AC_SUBST(WAVBREAKER_LIBS)
@@ -111,6 +131,7 @@ AC_OUTPUT
 echo
 echo "ALSA Driver.......................   $enable_alsa"
 echo "PulseAudio Driver.................   $enable_pulse"
+echo "libao Driver......................   $enable_ao"
 echo "OSS Driver........................   $enable_oss"
 echo
 echo "    Configure finished.  Do 'make && make install'"
