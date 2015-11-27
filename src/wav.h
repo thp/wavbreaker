@@ -56,6 +56,11 @@ int wav_read_header(char *, SampleInfo *, int);
 int wav_read_sample(FILE *, unsigned char *, int, unsigned long);
 
 int
+wav_write_file_header(FILE *fp,
+                      SampleInfo *sample_info,
+                      unsigned long num_bytes);
+
+int
 wav_write_file(FILE *fp,
                char *filename,
                int buf_size,

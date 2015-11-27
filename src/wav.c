@@ -281,7 +281,7 @@ wav_read_sample(FILE *fp,
     return ret;
 }
 
-static int
+int
 wav_write_file_header(FILE *fp,
                       SampleInfo *sample_info,
                       unsigned long num_bytes)
@@ -347,15 +347,17 @@ wav_write_file(FILE *fp,
     int ret;
     FILE *new_fp;
     unsigned long cur_pos, num_bytes;
-    unsigned char buf[buf_size];
+    unsigned char *buf = (unsigned char *)malloc(buf_size);
 
     if ((new_fp = fopen(filename, "wb")) == NULL) {
         printf("error opening %s for writing\n", filename);
+        free(buf);
         return -1;
     }
 
     if (start_pos > wavDataSize) {
         fclose(new_fp);
+        free(buf);
         return -1;
     }
 
@@ -370,11 +372,13 @@ wav_write_file(FILE *fp,
 
     if ((wav_write_file_header(new_fp, sample_info, num_bytes)) != 0) {
         fclose(new_fp);
+        free(buf);
         return -1;
     }
 
     if (fseek(fp, cur_pos, SEEK_SET)) {
         fclose(new_fp);
+        free(buf);
         return -1;
     }
 
@@ -398,6 +402,7 @@ wav_write_file(FILE *fp,
         if ((fwrite(buf, 1, ret, new_fp)) < ret) {
             printf("error writing to file %s\n", filename);
             fclose(new_fp);
+            free(buf);
             return -1;
         }
         cur_pos += ret;
@@ -420,6 +425,7 @@ wav_write_file(FILE *fp,
     */
     /* DEBUG CODE END */
 
+    free(buf);
     fclose(new_fp);
 
     *pct_done = 1.0;
