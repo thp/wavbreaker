@@ -1,4 +1,4 @@
-INCLUDES = $(WAVBREAKER_CFLAGS) -I$(srcdir) $(PULSE_CFLAGS) $(AO_CFLAGS)
+INCLUDES = $(GTK2_CFLAGS) $(LIBXML2_CFLAGS) -I$(srcdir) $(PULSE_CFLAGS) $(AO_CFLAGS)
 AM_CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DICONDIR="\"$(datadir)/pixmaps/\""
 
 localedir = $(datadir)/locale
@@ -35,5 +35,5 @@ noinst_HEADERS = cdda.h linuxaudio.h sample.h wav.h wavbreaker.h about.h pulseau
 	aoaudio.h \
 	toc.h nosound.h reallyquit.h fileutils.h overwritedialog.h guimerge.h gettext.h
 
-wavbreaker_LDADD = $(WAVBREAKER_LIBS) $(ALSA_LIBS) $(PULSE_LIBS) $(AO_LIBS)
+wavbreaker_LDADD = $(GTK2_LIBS) $(LIBXML2_LIBS) $(ALSA_LIBS) $(PULSE_LIBS) $(AO_LIBS)
 

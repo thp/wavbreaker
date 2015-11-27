@@ -56,7 +56,6 @@ AC_FUNC_STAT
 AC_CHECK_FUNCS([strchr strdup strrchr strstr])
 
 
-echo "TDR: $WAVBREAKER_LIBS"
 if test "x$enable_alsa" = "xyes"
 then
     AC_CHECK_LIB([asound], [snd_pcm_open],
@@ -111,20 +110,23 @@ then
     fi
 fi
 
-PKG_CHECK_MODULES(WAVBREAKER, gtk+-2.0 gthread-2.0 libxml-2.0)
+PKG_CHECK_MODULES(GTK2, gtk+-2.0)
+AC_SUBST(GTK2_CFLAGS)
+AC_SUBST(GTK2_LIBS)
+
+PKG_CHECK_MODULES(LIBXML2, libxml-2.0)
+AC_SUBST(LIBXML2_CFLAGS)
+AC_SUBST(LIBXML2_LIBS)
+
 AM_CONDITIONAL(NEED_ALSA, test "x$enable_alsa" = "xyes")
 AM_CONDITIONAL(NEED_PULSE, test "x$enable_pulse" = "xyes")
 AM_CONDITIONAL(NEED_AO, test "x$enable_ao" = "xyes")
 AM_CONDITIONAL(NEED_OSS, test "x$enable_oss" = "xyes")
-AC_SUBST(WAVBREAKER_CFLAGS)
-AC_SUBST(WAVBREAKER_LIBS)
 
 AC_CONFIG_FILES([Makefile po/Makefile.in
                  images/Makefile
                  src/Makefile
                  doc/Makefile])
-
-echo "TDR: $WAVBREAKER_LIBS"
 
 AC_OUTPUT
 
