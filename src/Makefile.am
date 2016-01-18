@@ -36,5 +36,5 @@ noinst_HEADERS = cdda.h linuxaudio.h sample.h wav.h wavbreaker.h about.h pulseau
 	aoaudio.h \
 	toc.h nosound.h reallyquit.h fileutils.h overwritedialog.h guimerge.h gettext.h
 
-wavbreaker_LDADD = $(GTK2_LIBS) $(LIBXML2_LIBS) $(ALSA_LIBS) $(PULSE_LIBS) $(AO_LIBS)
+wavbreaker_LDADD = $(GTK2_LIBS) $(LIBXML2_LIBS) $(ALSA_LIBS) $(PULSE_LIBS) $(AO_LIBS) $(MPG123_LIBS)
 wavgen_LDADD = $(GTK2_LIBS)

@@ -16,6 +16,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +39,18 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-#define CDDA 1
-#define WAV  2 
+#if defined(HAVE_MPG123)
+#include <mpg123.h>
+#endif
+
+enum AudioType {
+    UNKNOWN = 0,
+    CDDA = 1,
+    WAV = 2,
+#if defined(HAVE_MPG123)
+    MP3 = 3,
+#endif
+};
 
 SampleInfo sampleInfo;
 static AudioFunctionPointers *audio_function_pointers;
@@ -44,11 +58,16 @@ static unsigned long sample_start = 0;
 static int playing = 0;
 static int writing = 0;
 static gboolean kill_play_thread = FALSE;
-static int audio_type;
+static enum AudioType audio_type;
 
 static char *sample_file = NULL;
 static FILE *read_sample_fp = NULL;
 static FILE *write_sample_fp = NULL;
+
+#if defined(HAVE_MPG123)
+static mpg123_handle *mpg123 = NULL;
+static size_t mpg123_offset = 0;
+#endif
 
 static GThread *thread;
 static GMutex mutex;
@@ -94,9 +113,39 @@ void sample_set_error_message(const char *val)
     strncpy(error_message, val, ERROR_MESSAGE_SIZE);
 }
 
+#if defined(HAVE_MPG123)
+int
+mp3_read_sample(mpg123_handle *handle,
+                unsigned char *buf,
+                int buf_size,
+                unsigned long start_pos)
+{
+    unsigned long result = -1;
+
+    if (mpg123_offset != start_pos) {
+        mpg123_seek(handle, start_pos / sampleInfo.blockAlign, SEEK_SET);
+        mpg123_offset = start_pos;
+    }
+
+    if (mpg123_read(handle, buf, buf_size, &result) == MPG123_OK) {
+        mpg123_offset += result;
+    } else {
+        fprintf(stderr, "MP3 decoding failed: %s\n", mpg123_strerror(mpg123));
+    }
+
+    return result;
+}
+#endif
+
 void sample_init()
 {
     g_mutex_init(&mutex);
+
+#if defined(HAVE_MPG123)
+    if (mpg123_init() != MPG123_OK) {
+        fprintf(stderr, "Failed to initialize libmpg123\n");
+    }
+#endif
 }
 
 static gpointer play_thread(gpointer thread_data)
@@ -142,6 +191,11 @@ static gpointer play_thread(gpointer thread_data)
     } else if (audio_type == WAV) {
         read_ret = wav_read_sample(read_sample_fp, devbuf, sampleInfo.bufferSize,
             sample_start + (sampleInfo.bufferSize * i++));
+#if defined(HAVE_MPG123)
+    } else if (audio_type == MP3) {
+        read_ret = mp3_read_sample(mpg123, devbuf, sampleInfo.bufferSize,
+            sample_start + (sampleInfo.bufferSize * i++));
+#endif
     }
 
     while (read_ret > 0 && read_ret <= sampleInfo.bufferSize) {
@@ -172,6 +226,12 @@ static gpointer play_thread(gpointer thread_data)
             read_ret = wav_read_sample(read_sample_fp, devbuf,
                 sampleInfo.bufferSize,
                 sample_start + (sampleInfo.bufferSize * i++));
+#if defined(HAVE_MPG123)
+        } else if (audio_type == MP3) {
+            read_ret = mp3_read_sample(mpg123, devbuf,
+                sampleInfo.bufferSize,
+                sample_start + (sampleInfo.bufferSize * i++));
+#endif
         }
 
         *play_marker = ((sampleInfo.bufferSize * i) + sample_start) /
@@ -281,12 +341,72 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
     sample_file = strdup(filename);
 
-    audio_type = 0;
+    audio_type = UNKNOWN;
     if( wav_read_header(sample_file, &sampleInfo, 0) == 0) {
         audio_type = WAV;
     }
-    
-    if( audio_type == 0) {
+
+#if defined(HAVE_MPG123)
+    if (audio_type == UNKNOWN) {
+        fprintf(stderr, "Trying to open as MP3...\n");
+
+        if (mpg123 != NULL) {
+            mpg123_close(mpg123), mpg123 = NULL;
+        }
+
+        if ((mpg123 = mpg123_new(NULL, NULL)) == NULL) {
+            fprintf(stderr, "Failed to create MP3 decoder\n");
+        }
+
+        if (mpg123_open(mpg123, sample_file) == MPG123_OK) {
+            fprintf(stderr, "Detected MP3 format\n");
+
+            long rate;
+            int channels;
+            int encoding;
+            if (mpg123_getformat(mpg123, &rate, &channels, &encoding) != MPG123_OK ) {
+                fprintf(stderr, "Could not get file format\n");
+            }
+
+            fprintf(stderr, "Scanning MP3 file...\n");
+            if (mpg123_scan(mpg123) != MPG123_OK) {
+                fprintf(stderr, "Failed to scan MP3\n");
+            }
+
+            struct mpg123_frameinfo fi;
+            memset(&fi, 0, sizeof(fi));
+
+            if (mpg123_info(mpg123, &fi) == MPG123_OK) {
+                sampleInfo.channels = (fi.mode == MPG123_M_MONO) ? 1 : 2;
+                sampleInfo.samplesPerSec = fi.rate;
+                sampleInfo.bitsPerSample = 16;
+
+                sampleInfo.blockAlign = sampleInfo.channels * (sampleInfo.bitsPerSample / 8);
+                sampleInfo.avgBytesPerSec = sampleInfo.blockAlign * sampleInfo.samplesPerSec;
+                sampleInfo.bufferSize = DEFAULT_BUF_SIZE;
+                sampleInfo.blockSize = sampleInfo.avgBytesPerSec / CD_BLOCKS_PER_SEC;
+                sampleInfo.numBytes = mpg123_length(mpg123) * sampleInfo.blockAlign;
+                fprintf(stderr, "Channels: %d, rate: %d, bits: %d, decoded size: %u\n",
+                        sampleInfo.channels, sampleInfo.samplesPerSec,
+                        sampleInfo.bitsPerSample, sampleInfo.numBytes);
+
+                mpg123_format_none(mpg123);
+                if (mpg123_format(mpg123, sampleInfo.samplesPerSec,
+                                  (sampleInfo.channels == 1) ? MPG123_STEREO : MPG123_MONO,
+                                  MPG123_ENC_SIGNED_16) != MPG123_OK) {
+                    fprintf(stderr, "Failed to set mpg123 format\n");
+                } else {
+                    fprintf(stderr, "MP3 file reading successfully set up\n");
+                    audio_type = MP3;
+                }
+            }
+        }
+
+    }
+#endif
+
+
+    if (audio_type == UNKNOWN) {
         ask_result = ask_open_as_raw();
         if( ask_result == GTK_RESPONSE_CANCEL) {
             sample_set_error_message( wav_get_error_message());
@@ -300,13 +420,16 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         }
     }
 
-    sampleInfo.blockSize = (((sampleInfo.bitsPerSample / 8) *
-			     sampleInfo.channels * sampleInfo.samplesPerSec) /
-			    CD_BLOCKS_PER_SEC);
+    if (audio_type == WAV || audio_type == CDDA) {
+        sampleInfo.blockSize = (((sampleInfo.bitsPerSample / 8) *
+                                 sampleInfo.channels * sampleInfo.samplesPerSec) /
+                                CD_BLOCKS_PER_SEC);
 
-    if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
-        snprintf(error_message, ERROR_MESSAGE_SIZE, _("Error opening %s: %s"), sample_file, strerror( errno));
-        return 2;
+        if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
+            snprintf(error_message, ERROR_MESSAGE_SIZE, _("Error opening %s: %s"),
+                     sample_file, strerror( errno));
+            return 2;
+        }
     }
 
     open_thread_data.graphData = graphData;
@@ -321,6 +444,12 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
 void sample_close_file()
 {
+#if defined(HAVE_MPG123)
+    if (mpg123 != NULL) {
+        mpg123_close(mpg123), mpg123 = NULL;
+    }
+#endif
+
     if( read_sample_fp != NULL) {
         fclose( read_sample_fp);
         read_sample_fp = NULL;
@@ -373,6 +502,11 @@ static void sample_max_min(GraphData *graphData, double *pct)
     } else if (audio_type == WAV) {
         ret = wav_read_sample(read_sample_fp, devbuf, sampleInfo.blockSize,
 			      sampleInfo.blockSize * i);
+#if defined(HAVE_MPG123)
+    } else if (audio_type == MP3) {
+        ret = mp3_read_sample(mpg123, devbuf, sampleInfo.blockSize,
+			      sampleInfo.blockSize * i);
+#endif
     }
 
     min_sample = SHRT_MAX; /* highest value for 16-bit samples */
@@ -423,6 +557,12 @@ static void sample_max_min(GraphData *graphData, double *pct)
             ret = wav_read_sample(read_sample_fp, devbuf,
 				  sampleInfo.blockSize,
 				  sampleInfo.blockSize * i);
+#if defined(HAVE_MPG123)
+        } else if (audio_type == MP3) {
+            ret = mp3_read_sample(mpg123, devbuf,
+				  sampleInfo.blockSize,
+				  sampleInfo.blockSize * i);
+#endif
         }
 
         *pct = (double) i / numSampleBlocks;
@@ -523,6 +663,10 @@ write_thread(gpointer data)
                 strcat(filename, ".wav");
             } else if ((audio_type == CDDA) && (!strstr(filename, ".dat"))) {
                 strcat(filename, ".dat");
+#if defined(HAVE_MPG123)
+            } else if ((audio_type == MP3) && (!strstr(filename, ".mp3"))) {
+                strcat(filename, ".mp3");
+#endif
             }
             write_info->pct_done = 0.0;
             write_info->cur_file++;
@@ -553,6 +697,11 @@ write_thread(gpointer data)
 					 sampleInfo.blockSize,
 					 &sampleInfo, start_pos, end_pos,
 					 &write_info->pct_done);
+#if defined(HAVE_MPG123)
+                } else if (audio_type == MP3) {
+                    // TODO
+                    printf("Not implemented\n");
+#endif
                 }
                 i++;
             }

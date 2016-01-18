@@ -27,6 +27,11 @@ AC_ARG_ENABLE(ao,
     [enable_ao=$enableval],
     [enable_ao=yes])
 
+AC_ARG_ENABLE(mpg123,
+    [  --disable-mpg123      Disable detection of libmpg123],
+    [enable_mpg123=$enableval],
+    [enable_mpg123=yes])
+
 AC_ARG_ENABLE(oss,
     [  --disable-oss       Disable detection of OSS],
     [enable_oss=$enableval],
@@ -98,6 +103,20 @@ then
 fi
 AC_SUBST(AO_LIBS)
 
+if test "x$enable_mpg123" = "xyes"
+then
+    PKG_CHECK_MODULES(MPG123, libmpg123,
+                      [found_mpg123=yes],
+                      [found_mpg123=no])
+    if test "x$found_mpg123" = "xyes"
+    then
+        AC_DEFINE([HAVE_MPG123], 1, [Define if you have libmpg123 installed])
+    else
+        enable_mpg123=no
+    fi
+fi
+AC_SUBST(MPG123_LIBS)
+
 if test "x$enable_oss" = "xyes"
 then
     AC_CHECK_HEADERS(sys/soundcard.h machine/soundcard.h, found_oss=yes)
@@ -121,6 +140,7 @@ AC_SUBST(LIBXML2_LIBS)
 AM_CONDITIONAL(NEED_ALSA, test "x$enable_alsa" = "xyes")
 AM_CONDITIONAL(NEED_PULSE, test "x$enable_pulse" = "xyes")
 AM_CONDITIONAL(NEED_AO, test "x$enable_ao" = "xyes")
+AM_CONDITIONAL(NEED_MPG123, test "x$enable_mpg123" = "xyes")
 AM_CONDITIONAL(NEED_OSS, test "x$enable_oss" = "xyes")
 
 AC_CONFIG_FILES([Makefile po/Makefile.in
@@ -135,6 +155,8 @@ echo "ALSA Driver.......................   $enable_alsa"
 echo "PulseAudio Driver.................   $enable_pulse"
 echo "libao Driver......................   $enable_ao"
 echo "OSS Driver........................   $enable_oss"
+echo ""
+echo "MP3 access using libmpg123 .......   $enable_mpg123"
 echo
 echo "    Configure finished.  Do 'make && make install'"
 echo "    to compile and install wavbreaker."
