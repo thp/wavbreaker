@@ -135,6 +135,135 @@ mp3_read_sample(mpg123_handle *handle,
 
     return result;
 }
+
+//#define WAVBREAKER_MP3_DEBUG
+
+static gboolean
+mp3_parse_header(uint32_t header, uint32_t *bitrate, uint32_t *frequency, uint32_t *samples, uint32_t *framesize)
+{
+    // http://www.datavoyage.com/mpgscript/mpeghdr.htm
+    int a = ((header >> 21) & 0x07ff);
+    int b = ((header >> 19) & 0x0003);
+    int c = ((header >> 17) & 0x0003);
+    int e = ((header >> 12) & 0x000f);
+    int f = ((header >> 10) & 0x0003);
+    int g = ((header >> 9) & 0x0001);
+
+    static const int BITRATES_V1_L3[] = { -1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1 };
+    static const int FREQUENCIES[] = { 44100, 48000, 32000, 0 };
+
+    if (a != 0x7ff /* sync */ ||
+            b != 0x3 /* MPEG1 */ ||
+            c != 0x1 /* Layer III */ ||
+            e == 0x0 /* freeform bitrate */ || e == 0xf /* invalid bitrate */ ||
+            f == 0x3 /* invalid frequency */) {
+        return FALSE;
+    }
+
+    *bitrate = BITRATES_V1_L3[e];
+    *frequency = FREQUENCIES[f];
+    *samples = 1152;
+    *framesize = (int)((*samples) / 8 * 1000 * (*bitrate) / (*frequency)) + g /* padding */;
+
+#if defined(WAVBREAKER_MP3_DEBUG)
+    static const char *VERSIONS[] = { "MPEG 2.5", NULL, "MPEG 2", "MPEG 1" };
+    static const char *LAYERS[] = { NULL, "III", "II", "I" };
+
+    const char *mpeg_version = VERSIONS[b];
+    const char *layer = LAYERS[c];
+
+    fprintf(stderr, "MP3 frame: %s %s, %dHz, %dkbps, %d samples (%d bytes)\n", mpeg_version, layer,
+            *frequency, *bitrate, *samples, *framesize);
+#endif /* WAVBREAKER_MP3_DEBUG */
+
+    return TRUE;
+}
+
+void
+mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, unsigned long start_pos, unsigned long end_pos)
+{
+    start_pos /= sampleInfo->blockSize;
+    end_pos /= sampleInfo->blockSize;
+
+    FILE *output_file = fopen(filename, "wb");
+
+    if (!output_file) {
+        fprintf(stderr, "Could not open '%s' for writing\n", filename);
+        return;
+    }
+
+    fseek(input_file, 0, SEEK_SET);
+
+    uint32_t header = 0x00000000;
+    uint32_t sample_position = 0;
+    uint32_t file_offset = 0;
+    uint32_t last_frame_end = 0;
+    uint32_t frames_written = 0;
+
+    while (!feof(input_file)) {
+        fseek(input_file, file_offset, SEEK_SET);
+
+        int a = fgetc(input_file);
+        if (a == EOF) {
+            break;
+        }
+
+        header = ((header & 0xffffff) << 8) | (a & 0xff);
+
+        uint32_t bitrate = 0;
+        uint32_t frequency = 0;
+        uint32_t samples = 0;
+        uint32_t framesize = 0;
+
+        if (mp3_parse_header(header, &bitrate, &frequency, &samples, &framesize)) {
+            uint32_t frame_start = file_offset - 3;
+
+            if (last_frame_end < frame_start) {
+                fprintf(stderr, "Skipped non-frame data in MP3 @ 0x%08x (%d bytes)\n",
+                        last_frame_end, frame_start - last_frame_end);
+            }
+
+            uint32_t start_samples = start_pos * frequency / CD_BLOCKS_PER_SEC;
+            if (start_samples <= sample_position) {
+                // Write this frame to the output file
+                char *buf = malloc(framesize);
+                fseek(input_file, frame_start, SEEK_SET);
+                if (fread(buf, 1, framesize, input_file) != framesize) {
+                    fprintf(stderr, "Tried to read over the end of the input file\n");
+                    break;
+                }
+                if (fwrite(buf, 1, framesize, output_file) != framesize) {
+                    fprintf(stderr, "Failed to write %d bytes to output file\n", framesize);
+                    break;
+                }
+                free(buf);
+
+                frames_written++;
+
+                uint32_t end_samples = end_pos * frequency / CD_BLOCKS_PER_SEC;
+                if (end_samples > 0 && end_samples <= sample_position + samples) {
+                    // Done writing this part
+                    break;
+                }
+            }
+
+            sample_position += samples;
+
+            file_offset = frame_start + framesize;
+            last_frame_end = file_offset;
+
+            header = 0x00000000;
+        } else {
+            file_offset++;
+        }
+    }
+
+#if defined(WAVBREAKER_MP3_DEBUG)
+    fprintf(stderr, "Wrote %d MP3 frames from '%s' to '%s'\n", frames_written, sample_file, filename);
+#endif /* WAVBREAKER_MP3_DEBUG */
+
+    fclose(output_file);
+}
 #endif
 
 void sample_init()
@@ -699,8 +828,7 @@ write_thread(gpointer data)
 					 &write_info->pct_done);
 #if defined(HAVE_MPG123)
                 } else if (audio_type == MP3) {
-                    // TODO
-                    printf("Not implemented\n");
+                    mp3_write_file(write_sample_fp, filename, &sampleInfo, start_pos, end_pos);
 #endif
                 }
                 i++;
