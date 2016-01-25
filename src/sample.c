@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <gtk/gtk.h>
+#include <stdint.h>
  
 #include "wavbreaker.h"
 
