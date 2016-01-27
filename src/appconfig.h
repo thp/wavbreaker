@@ -26,9 +26,8 @@ typedef struct AudioFunctionPointers_ AudioFunctionPointers;
 
 struct AudioFunctionPointers_ {
     void (*audio_close_device)();
-    int (*audio_open_device)(const char *, SampleInfo *);
+    int (*audio_open_device)(SampleInfo *);
     int (*audio_write)(unsigned char *, int);
-    char *(*get_outputdev)();
 };
 
 void appconfig_show(GtkWidget *);
@@ -63,10 +62,6 @@ int appconfig_get_show_toolbar();
 void appconfig_set_show_toolbar(int x);
 int appconfig_get_show_moodbar();
 void appconfig_set_show_moodbar(int x);
-
-char *audio_options_get_output_device();
-void set_audio_oss_options_output_device(const char *);
-void set_audio_alsa_options_output_device(const char *);
 
 #endif /* APPCONFIG_H */
 

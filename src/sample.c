@@ -289,11 +289,8 @@ static gpointer play_thread(gpointer thread_data)
 
     /*
     printf("play_thread: calling open_audio_device\n");
-    printf("devault outputdev: %s\n", audio_function_pointers->get_outputdev());
     */
-    if (audio_function_pointers->audio_open_device(
-        audio_function_pointers->get_outputdev(), &sampleInfo) != 0) {
-
+    if (audio_function_pointers->audio_open_device(&sampleInfo) != 0) {
         g_mutex_lock(&mutex);
         playing = 0;
         audio_function_pointers->audio_close_device();

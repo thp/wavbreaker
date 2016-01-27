@@ -23,7 +23,7 @@
 #include "sample.h"
 
 void ao_audio_close_device();
-int ao_audio_open_device(const char *, SampleInfo *);
+int ao_audio_open_device(SampleInfo *);
 int ao_audio_write(unsigned char *, int);
 
 #endif /* AOAUDIO_H */

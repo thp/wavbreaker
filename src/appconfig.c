@@ -22,25 +22,10 @@
 #include "appconfig.h"
 #include "sample.h"
 #include "popupmessage.h"
-#include "nosound.h"
 
 #include "gettext.h"
 
-#ifdef HAVE_ALSA
-#include "alsaaudio.h"
-#endif
-
-#ifdef HAVE_PULSE
-#include "pulseaudio.h"
-#endif
-
-#ifdef HAVE_AO
 #include "aoaudio.h"
-#endif
-
-#ifdef HAVE_OSS
-#include "linuxaudio.h"
-#endif
 
 #include <gtk/gtk.h>
 
@@ -54,39 +39,12 @@
 
 #define APPCONFIG_FILENAME "/.wavbreaker"
 
-#define NOSOUND 0
-#define OSS     1
-#define ALSA    2
-#define PULSE   3
-#define AO      4
-
-/**
- * Descriptive name of our output modules
- **/
-#define NOSOUND_STR _("Disable audio output")
-#define OSS_STR       "OSS"
-#define ALSA_STR      "ALSA"
-#define PULSE_STR     "PulseAudio"
-#define AO_STR        "libao"
-
 static GtkWidget *window;
 
 static int config_file_version = 1;
 
 /* Function pointers to the currently selected audio driver. */
-static int audio_driver_type = -1;
 static AudioFunctionPointers audio_function_pointers;
-static GtkWidget *combo_box = NULL;
-
-/* oss audio driver options */
-static char *oss_output_device = NULL;
-
-/* alsa audio driver options */
-static char *alsa_output_device = NULL;
-
-/* default audio driver options */
-static GtkWidget *output_device_entry = NULL;
-static GtkWidget *output_device_label = NULL;
 
 /* Output directory for wave files. */
 static int use_outputdir = 0;
@@ -145,13 +103,6 @@ static int appconfig_read_file();
 static void default_all_strings();
 static void open_select_outputdir();
 
-static int get_combo_box_selected_type();
-
-static char *get_audio_nosound_options_output_device();
-static char *get_audio_oss_options_output_device();
-static char *get_audio_alsa_options_output_device();
-static char *get_audio_pulse_options_output_device();
-
 int get_config_file_version()
 {
     return config_file_version;
@@ -165,16 +116,6 @@ void set_config_file_version(int x)
 AudioFunctionPointers *get_audio_function_pointers()
 {
     return &audio_function_pointers;
-}
-
-int get_audio_driver_type()
-{
-    return audio_driver_type;
-}
-
-void set_audio_driver_type(int x)
-{
-    audio_driver_type = x;
 }
 
 void set_audio_close_device(void (*f))
@@ -192,177 +133,16 @@ void set_audio_write(void (*f))
     audio_function_pointers.audio_write = f;
 }
 
-void set_audio_get_outputdev(void (*f))
-{
-    audio_function_pointers.get_outputdev = f;
-}
-
-void set_nosound_driver() {
-    set_audio_driver_type(NOSOUND);
-    set_audio_close_device(nosound_audio_close_device);
-    set_audio_open_device(nosound_audio_open_device);
-    set_audio_write(nosound_audio_write);
-    set_audio_get_outputdev(get_audio_nosound_options_output_device);
-}
-
-void set_audio_function_pointers_with_index(int index)
-{
-
-    switch (index) {
-#ifdef HAVE_OSS
-        case OSS:
-            set_audio_driver_type(OSS);
-            set_audio_close_device(oss_audio_close_device);
-            set_audio_open_device(oss_audio_open_device);
-            set_audio_write(oss_audio_write);
-            set_audio_get_outputdev(get_audio_oss_options_output_device);
-            break;
-#endif
-#ifdef HAVE_ALSA
-        case ALSA:
-            set_audio_driver_type(ALSA);
-            set_audio_close_device(alsa_audio_close_device);
-            set_audio_open_device(alsa_audio_open_device);
-            set_audio_write(alsa_audio_write);
-            set_audio_get_outputdev(get_audio_alsa_options_output_device);
-            break;
-#endif
-#ifdef HAVE_PULSE
-        case PULSE:
-            set_audio_driver_type(PULSE);
-            set_audio_close_device(pulse_audio_close_device);
-            set_audio_open_device(pulse_audio_open_device);
-            set_audio_get_outputdev(get_audio_pulse_options_output_device);
-            set_audio_write(pulse_audio_write);
-            break;
-#endif
-#ifdef HAVE_AO
-        case AO:
-            set_audio_driver_type(AO);
-            set_audio_close_device(ao_audio_close_device);
-            set_audio_open_device(ao_audio_open_device);
-            // Can use the PulseAudio options function, as we don't use it
-            set_audio_get_outputdev(get_audio_pulse_options_output_device);
-            set_audio_write(ao_audio_write);
-            break;
-#endif
-        case NOSOUND:
-            set_nosound_driver();
-            break;
-        default:
-            set_nosound_driver();
-            break;
-    }
-}
-
 void set_audio_function_pointers()
 {
-    if (get_audio_driver_type() == OSS) {
-        set_audio_oss_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(output_device_entry)));
-    } else if (get_audio_driver_type() == ALSA) {
-        set_audio_alsa_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(output_device_entry)));
-    }
-
-    set_audio_function_pointers_with_index(get_combo_box_selected_type());
-
-    if (get_audio_driver_type() == NOSOUND) {
-        gtk_widget_hide( output_device_label);
-        gtk_widget_hide( output_device_entry);
-    } else {
-        if( get_audio_driver_type() == ALSA ||
-            get_audio_driver_type() == PULSE ||
-            get_audio_driver_type() == AO) {
-            gtk_widget_hide( output_device_label);
-            gtk_widget_hide( output_device_entry);
-        } else {
-            gtk_widget_show( output_device_label);
-            gtk_widget_show( output_device_entry);
-        }
-        gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
-    }
+    set_audio_close_device(ao_audio_close_device);
+    set_audio_open_device(ao_audio_open_device);
+    set_audio_write(ao_audio_write);
 }
 
 void default_audio_function_pointers()
 {
-    set_audio_function_pointers_with_index(NOSOUND);
-#ifdef HAVE_AO
-    set_audio_function_pointers_with_index(AO);
-#endif
-#ifdef HAVE_PULSE
-    set_audio_function_pointers_with_index(PULSE);
-#endif
-#ifdef HAVE_OSS
-    set_audio_function_pointers_with_index(OSS);
-#endif
-#ifdef HAVE_ALSA
-    set_audio_function_pointers_with_index(ALSA);
-#endif
-}
-
-/* nosound audio driver options */
-char *get_audio_nosound_options_output_device() {
-    return "";
-}
-
-/* oss audio driver options */
-char *get_audio_oss_options_output_device() {
-    return oss_output_device;
-}
-
-void set_audio_oss_options_output_device(const char *val) {
-    if (oss_output_device != NULL) {
-        g_free(oss_output_device);
-    }
-    oss_output_device = g_strdup(val);
-}
-
-void default_audio_oss_options_output_device() {
-    set_audio_oss_options_output_device("/dev/dsp");
-}
-
-/* alsa audio driver options */
-char *get_audio_alsa_options_output_device() {
-    return alsa_output_device;
-}
-
-void set_audio_alsa_options_output_device(const char *val) {
-    if (alsa_output_device != NULL) {
-        g_free(alsa_output_device);
-    }
-    alsa_output_device = g_strdup(val);
-}
-
-void default_audio_alsa_options_output_device() {
-    set_audio_alsa_options_output_device("default");
-}
-
-/* pulseaudio driver options */
-char *get_audio_pulse_options_output_device() {
-    /**
-     * This is currently a placeholder function, and the
-     * return value is not used in the PulseAudio driver.
-     **/
-    return "";
-}
-
-/* generic audio driver functions */
-
-char *audio_options_get_output_device()
-{
-    if (get_audio_driver_type() == NOSOUND) {
-        return get_audio_nosound_options_output_device();
-    } else if (get_audio_driver_type() == OSS) {
-        return get_audio_oss_options_output_device();
-    } else if (get_audio_driver_type() == ALSA) {
-        return get_audio_alsa_options_output_device();
-    } else if (get_audio_driver_type() == PULSE || get_audio_driver_type() == AO) {
-        return get_audio_pulse_options_output_device();
-    }
-
-    /* Wrong setting - return empty string */
-    return "";
+    set_audio_function_pointers();
 }
 
 int appconfig_get_main_window_xpos()
@@ -664,45 +444,13 @@ static void open_select_outputdir() {
     gtk_widget_destroy(dialog);
 }
 
-static int get_combo_box_selected_type() {
-    char *selected;
-
-    selected = gtk_combo_box_get_active_text(GTK_COMBO_BOX(combo_box));
-    
-    if (selected == NULL) {
-        return NOSOUND;
-    }
-
-    if (strcmp(selected, OSS_STR) == 0) {
-        return OSS;
-    } else if (strcmp(selected, ALSA_STR) == 0) {
-        return ALSA;
-    } else if (strcmp(selected, PULSE_STR) == 0) {
-        return PULSE;
-    } else if (strcmp(selected, AO_STR) == 0) {
-        return AO;
-    }
-
-    g_free(selected);
-    return NOSOUND;
-}
-
 static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 {
     set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
     set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
     set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
     appconfig_set_silence_percentage( gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(silence_spin_button)));
-
-    set_audio_function_pointers_with_index(get_combo_box_selected_type());
-
-    if (get_audio_driver_type() == OSS) {
-        set_audio_oss_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(output_device_entry)));
-    } else if (get_audio_driver_type() == ALSA) {
-        set_audio_alsa_options_output_device(gtk_entry_get_text(
-            GTK_ENTRY(output_device_entry)));
-    }
+    set_audio_function_pointers();
 
     track_break_rename( FALSE);
     appconfig_hide(GTK_WIDGET(user_data));
@@ -714,12 +462,10 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *vbox;
     GtkWidget *table;
     GtkWidget *hbbox;
-    GtkWidget *outputdev_label;
     GtkWidget *ok_button;
     GtkWidget *label;
 
     GtkWidget *notebook;
-    int driver_type, pos;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_realize(window);
@@ -822,70 +568,6 @@ void appconfig_show(GtkWidget *main_window)
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry,
             2, 3, 5, 6, GTK_EXPAND | GTK_FILL, 0, 5, 2);
 
-    /* Audio Output Device */
-    table = gtk_table_new(2, 2, FALSE);
-    gtk_table_set_row_spacings( GTK_TABLE(table), 10);
-    gtk_container_set_border_width(GTK_CONTAINER(table), 10);
-    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("Audio Device")));
-
-    outputdev_label = gtk_label_new(_("Audio Device:"));
-    gtk_misc_set_alignment(GTK_MISC(outputdev_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), outputdev_label,
-            0, 1, 0, 1, GTK_FILL, 0, 5, 0);
-
-    combo_box = gtk_combo_box_new_text ();
-    
-    driver_type = get_audio_driver_type();
-    pos = 0;
-
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), NOSOUND_STR);
-    gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
-#ifdef HAVE_OSS
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), OSS_STR);
-    pos++;
-    if (driver_type == OSS) {
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
-    }
-#endif
-#ifdef HAVE_ALSA
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), ALSA_STR);
-    pos++;
-    if (driver_type == ALSA) {
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
-    }
-#endif
-#ifdef HAVE_PULSE
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), PULSE_STR);
-    pos++;
-    if (driver_type == PULSE) {
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
-    }
-#endif
-#ifdef HAVE_AO
-    gtk_combo_box_append_text(GTK_COMBO_BOX(combo_box), AO_STR);
-    pos++;
-    if (driver_type == AO) {
-        gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), pos);
-    }
-#endif
-    gtk_widget_set_sensitive( GTK_WIDGET(combo_box), sample_is_playing()?FALSE:TRUE);
-    gtk_table_attach(GTK_TABLE(table), combo_box,
-            1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-    g_signal_connect(G_OBJECT(combo_box), "changed",
-            (GtkSignalFunc)set_audio_function_pointers, NULL);
-
-    output_device_label = gtk_label_new(_("Output device:"));
-    gtk_misc_set_alignment( GTK_MISC(output_device_label), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), output_device_label,
-            0, 1, 1, 2, GTK_FILL, 0, 5, 0);
-
-    output_device_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(output_device_entry), audio_options_get_output_device());
-    gtk_widget_set_sensitive( GTK_WIDGET(output_device_entry), sample_is_playing()?FALSE:TRUE);
-    gtk_table_attach(GTK_TABLE(table), output_device_entry,
-            1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-
-
     /* OK and Cancel Buttons */
     hbbox = gtk_hbutton_box_new();
     gtk_container_add(GTK_CONTAINER(vbox), hbbox);
@@ -982,19 +664,6 @@ static int appconfig_read_file() {
             nkey = atoi((char *)key);
             set_config_file_version(nkey);
             xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "oss_options_output_device"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_audio_oss_options_output_device((char *)key);
-            xmlFree(key);
-        /***
-         * Don't load ALSA output device config parameter (always use "default")
-         *
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "alsa_options_output_device"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_audio_alsa_options_output_device((char *)key);
-            xmlFree(key);
-         *
-         ***/
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdir"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_outputdir((char *)key);
@@ -1014,11 +683,6 @@ static int appconfig_read_file() {
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "etree_cd_length"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
             set_etree_cd_length((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "audio_driver_type"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            set_audio_function_pointers_with_index(nkey);
             xmlFree(key);
         } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_xpos"))) {
             key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
@@ -1138,28 +802,6 @@ int appconfig_write_file() {
         return 3;
     }
 
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"oss_options_output_device",
-        (const xmlChar *) get_audio_oss_options_output_device());
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating oss_options_output_device node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"alsa_options_output_device",
-            (const xmlChar *) get_audio_alsa_options_output_device());
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating alsa_options_output_device node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
     sprintf(tmp_str, "%d", get_use_etree_filename_suffix());
     cur = xmlNewChild(root, NULL, (const xmlChar *)"use_etree_filename_suffix",
             (const xmlChar *) tmp_str);
@@ -1230,18 +872,6 @@ int appconfig_write_file() {
         return 3;
     }
 
-    sprintf(tmp_str, "%d", get_audio_driver_type());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"audio_driver_type",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating audio_driver_type node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
- 
     sprintf(tmp_str, "%d", appconfig_get_main_window_width());
     cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_width",
         (const xmlChar *) tmp_str);
@@ -1390,15 +1020,6 @@ void default_all_strings() {
         default_etree_cd_length();
     }
 
-    if (get_audio_oss_options_output_device() == NULL) {
-        default_audio_oss_options_output_device();
-    }
-    if (get_audio_alsa_options_output_device() == NULL) {
-        default_audio_alsa_options_output_device();
-    }
-
-    if (get_audio_driver_type() == -1) {
-        default_audio_function_pointers();
-    }
+    default_audio_function_pointers();
 }
 

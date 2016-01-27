@@ -51,7 +51,7 @@ int ao_audio_write(unsigned char *devbuf, int size)
     return -1;
 }
 
-int ao_audio_open_device(const char *audio_dev, SampleInfo *sampleInfo)
+int ao_audio_open_device(SampleInfo *sampleInfo)
 {
     int default_driver;
     ao_sample_format format;
