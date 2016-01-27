@@ -36,10 +36,7 @@
 
 void about_show(GtkWidget *main_window)
 {
-        GdkPixbuf* icon;
         const char* authors[] = { AUTHOR_A, AUTHOR_B, 0 };
-
-        icon = gdk_pixbuf_new_from_file( WAVBREAKER_ICON, NULL);
 
         gtk_show_about_dialog (GTK_WINDOW(main_window),
                           "name", PACKAGE,
@@ -49,7 +46,7 @@ void about_show(GtkWidget *main_window)
                           "website", URL,
                           "website-label", URL,
                           "authors", authors,
-                          "logo", icon,
+                          "logo-icon-name", PACKAGE,
                           NULL);
 }
 

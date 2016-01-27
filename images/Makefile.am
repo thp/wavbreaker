@@ -1,8 +1,6 @@
 EXTRA_DIST = *.png *.svg
 
 install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(datarootdir)/pixmaps/
-	$(INSTALL_DATA) wavbreaker.png $(DESTDIR)$(datarootdir)/pixmaps/wavbreaker.png
 	$(mkinstalldirs) $(DESTDIR)$(datarootdir)/icons/hicolor/scalable/apps/
 	$(INSTALL_DATA) wavbreaker.svg $(DESTDIR)$(datarootdir)/icons/hicolor/scalable/apps/wavbreaker.svg
 	$(mkinstalldirs) $(DESTDIR)$(datarootdir)/icons/hicolor/48x48/apps/
