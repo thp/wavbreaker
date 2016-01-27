@@ -1342,7 +1342,9 @@ file_write_progress_idle_func(gpointer data) {
         }
 
         sprintf( str, _("Writing %s"), str_ptr);
-        sprintf( tmp_str, "<i>%s</i>", str);
+        gchar *tmp = g_markup_escape_text(str, -1);
+        sprintf(tmp_str, "<i>%s</i>", str);
+        g_free(tmp);
         gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
 
         cur_file_displayed = write_info.cur_file;
@@ -1454,7 +1456,9 @@ file_open_progress_idle_func(gpointer data) {
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
 
         sprintf( tmp_str, _("Analyzing %s"), basename( sample_filename));
-        sprintf( tmp_str2, "<i>%s</i>", tmp_str);
+        gchar *str = g_markup_escape_text(tmp_str, -1);
+        sprintf( tmp_str2, "<i>%s</i>", str);
+        g_free(str);
 
         label = gtk_label_new( NULL);
         gtk_label_set_markup( GTK_LABEL(label), tmp_str2);
