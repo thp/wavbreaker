@@ -31,16 +31,17 @@ struct AudioFunctionPointers_ {
 };
 
 void appconfig_show(GtkWidget *);
-int appconfig_write_file();
+void appconfig_write_file();
 void appconfig_init();
 
-int get_use_outputdir();
-char *get_outputdir();
 AudioFunctionPointers *get_audio_function_pointers();
-int get_use_etree_filename_suffix();
-int get_prepend_file_number();
-char *get_etree_filename_suffix();
-char *get_etree_cd_length();
+
+int appconfig_get_use_outputdir();
+char *appconfig_get_outputdir();
+int appconfig_get_use_etree_filename_suffix();
+int appconfig_get_prepend_file_number();
+char *appconfig_get_etree_filename_suffix();
+char *appconfig_get_etree_cd_length();
 
 int appconfig_get_main_window_xpos();
 void appconfig_set_main_window_xpos(int x);

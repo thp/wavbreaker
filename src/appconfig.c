@@ -28,20 +28,15 @@
 #include "aoaudio.h"
 
 #include <gtk/gtk.h>
+#include <glib.h>
 
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-
-#define APPCONFIG_FILENAME "/.wavbreaker"
-
 static GtkWidget *window;
 
-static int config_file_version = 1;
+static int config_file_version = 2;
 
 /* Function pointers to the currently selected audio driver. */
 static AudioFunctionPointers audio_function_pointers;
@@ -103,12 +98,12 @@ static int appconfig_read_file();
 static void default_all_strings();
 static void open_select_outputdir();
 
-int get_config_file_version()
+int appconfig_get_config_file_version()
 {
     return config_file_version;
 }
 
-void set_config_file_version(int x)
+void appconfig_set_config_file_version(int x)
 {
     config_file_version = x;
 }
@@ -138,11 +133,6 @@ void set_audio_function_pointers()
     set_audio_close_device(ao_audio_close_device);
     set_audio_open_device(ao_audio_open_device);
     set_audio_write(ao_audio_write);
-}
-
-void default_audio_function_pointers()
-{
-    set_audio_function_pointers();
 }
 
 int appconfig_get_main_window_xpos()
@@ -243,22 +233,22 @@ void appconfig_set_show_moodbar(int x)
     show_moodbar = x;
 }
 
-int get_use_outputdir()
+int appconfig_get_use_outputdir()
 {
     return use_outputdir;
 }
 
-void set_use_outputdir(const char *val)
+void appconfig_set_use_outputdir(int x)
 {
-    use_outputdir = atoi(val);
+    use_outputdir = x;
 }
 
-char *get_outputdir()
+char *appconfig_get_outputdir()
 {
     return outputdir;
 }
 
-void set_outputdir(const char *val)
+void appconfig_set_outputdir(const char *val)
 {
     if (outputdir != NULL) {
         g_free(outputdir);
@@ -266,31 +256,22 @@ void set_outputdir(const char *val)
     outputdir = g_strdup(val);
 }
 
-char *default_outputdir()
-{
-    if (outputdir != NULL) {
-        g_free(outputdir);
-    }
-    outputdir = g_strdup(getenv("PWD"));
-    return outputdir;
-}
-
-int get_use_etree_filename_suffix()
+int appconfig_get_use_etree_filename_suffix()
 {
     return use_etree_filename_suffix;
 }
 
-void set_use_etree_filename_suffix(const char *val)
+void appconfig_set_use_etree_filename_suffix(int x)
 {
-    use_etree_filename_suffix = atoi(val);
+    use_etree_filename_suffix = x;
 }
 
-char *get_etree_filename_suffix()
+char *appconfig_get_etree_filename_suffix()
 {
     return etree_filename_suffix;
 }
 
-void set_etree_filename_suffix(const char *val)
+void appconfig_set_etree_filename_suffix(const char *val)
 {
     if (etree_filename_suffix != NULL) {
         g_free(etree_filename_suffix);
@@ -298,45 +279,27 @@ void set_etree_filename_suffix(const char *val)
     etree_filename_suffix = g_strdup(val);
 }
 
-char *default_etree_filename_suffix()
-{
-    if (etree_filename_suffix != NULL) {
-        g_free(etree_filename_suffix);
-    }
-    etree_filename_suffix = g_strdup("-");
-    return etree_filename_suffix;
-}
-
-int get_prepend_file_number()
+int appconfig_get_prepend_file_number()
 {
     return prepend_file_number;
 }
 
-void set_prepend_file_number(const char *val)
+void appconfig_set_prepend_file_number(int x)
 {
-    prepend_file_number = atoi(val);
+    prepend_file_number = x;
 }
 
-char *get_etree_cd_length()
+char *appconfig_get_etree_cd_length()
 {
     return etree_cd_length;
 }
 
-void set_etree_cd_length(const char *val)
+void appconfig_set_etree_cd_length(const char *val)
 {
     if (etree_cd_length != NULL) {
         g_free(etree_cd_length);
     }
     etree_cd_length = g_strdup(val);
-}
-
-char *default_etree_cd_length()
-{
-    if (etree_cd_length != NULL) {
-        g_free(etree_cd_length);
-    }
-    etree_cd_length = g_strdup("80");
-    return etree_cd_length;
 }
 
 char *get_config_filename()
@@ -352,38 +315,27 @@ void set_config_filename(const char *val)
     config_filename = g_strdup(val);
 }
 
-char *default_config_filename()
-{
-    if (config_filename != NULL) {
-        g_free(config_filename);
-    }
-
-    config_filename = g_strdup_printf("%s%s", getenv("HOME"), APPCONFIG_FILENAME);
-
-    return config_filename;
-}
-
 static void use_outputdir_toggled(GtkWidget *widget, gpointer user_data)
 {
-    if (get_use_outputdir()) {
+    if (appconfig_get_use_outputdir()) {
         // disable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, FALSE);
         gtk_widget_set_sensitive(browse_button, FALSE);
-        set_use_outputdir("0");
+        appconfig_set_use_outputdir(0);
     } else {
         // enable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, TRUE);
         gtk_widget_set_sensitive(browse_button, TRUE);
-        set_use_outputdir("1");
+        appconfig_set_use_outputdir(1);
     }
 }
 
 static void use_etree_filename_suffix_toggled(GtkWidget *widget, gpointer user_data)
 {
-    if (get_use_etree_filename_suffix()) {
-        set_use_etree_filename_suffix("0");
+    if (appconfig_get_use_etree_filename_suffix()) {
+        appconfig_set_use_etree_filename_suffix(0);
     } else {
-        set_use_etree_filename_suffix("1");
+        appconfig_set_use_etree_filename_suffix(1);
     }
 }
 
@@ -406,10 +358,10 @@ static void radio_buttons_toggled(GtkWidget *widget, gpointer user_data)
 
 static void prepend_file_number_toggled(GtkWidget *widget, gpointer user_data)
 {
-    if (get_prepend_file_number()) {
-        set_prepend_file_number("0");
+    if (appconfig_get_prepend_file_number()) {
+        appconfig_set_prepend_file_number(0);
     } else {
-        set_prepend_file_number("1");
+        appconfig_set_prepend_file_number(1);
     }
 }
 
@@ -446,9 +398,9 @@ static void open_select_outputdir() {
 
 static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 {
-    set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
-    set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
-    set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
+    appconfig_set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
+    appconfig_set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
+    appconfig_set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
     appconfig_set_silence_percentage( gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(silence_spin_button)));
     set_audio_function_pointers();
 
@@ -582,7 +534,7 @@ void appconfig_show(GtkWidget *main_window)
     g_signal_connect(GTK_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
 
-    if (get_use_outputdir()) {
+    if (appconfig_get_use_outputdir()) {
         // enable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, TRUE);
         gtk_widget_set_sensitive(browse_button, TRUE);
@@ -600,13 +552,13 @@ void appconfig_show(GtkWidget *main_window)
         GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = FALSE;
     }
 
-    if (get_prepend_file_number()) {
+    if (appconfig_get_prepend_file_number()) {
         GTK_TOGGLE_BUTTON(prepend_file_number_toggle)->active = TRUE;
     } else {
         GTK_TOGGLE_BUTTON(prepend_file_number_toggle)->active = FALSE;
     }
 
-    if (get_use_etree_filename_suffix()) {
+    if (appconfig_get_use_etree_filename_suffix()) {
         // set directly so the toggled event is not emitted
         GTK_TOGGLE_BUTTON(radio1)->active = FALSE;
         GTK_TOGGLE_BUTTON(radio2)->active = TRUE;
@@ -621,386 +573,152 @@ void appconfig_show(GtkWidget *main_window)
     radio_buttons_toggled( NULL, NULL);
 }
 
+enum ConfigOptionType {
+    INVALID = 0,
+    STRING,
+    INTEGER,
+    BOOLEAN,
+};
+
+typedef struct ConfigOption_ ConfigOption;
+
+struct ConfigOption_ {
+    const char *key;
+    enum ConfigOptionType type;
+    void *setter;
+    void *getter;
+} config_options[] = {
+#define OPTION(name, type) { #name, type, appconfig_set_ ## name, appconfig_get_ ## name }
+    OPTION(config_file_version, INTEGER),
+
+    OPTION(use_outputdir, BOOLEAN),
+    OPTION(outputdir, STRING),
+
+    OPTION(use_etree_filename_suffix, BOOLEAN),
+    OPTION(etree_filename_suffix, STRING),
+    OPTION(etree_cd_length, STRING),
+    OPTION(prepend_file_number, BOOLEAN),
+
+    OPTION(main_window_xpos, INTEGER),
+    OPTION(main_window_ypos, INTEGER),
+    OPTION(main_window_width, INTEGER),
+    OPTION(main_window_height, INTEGER),
+
+    OPTION(vpane1_position, INTEGER),
+    OPTION(vpane2_position, INTEGER),
+
+    OPTION(silence_percentage, INTEGER),
+    OPTION(ask_really_quit, BOOLEAN),
+    OPTION(show_toolbar, BOOLEAN),
+    OPTION(show_moodbar, BOOLEAN),
+#undef OPTION
+    { NULL, INVALID, NULL, NULL },
+};
+
+
+void config_option_set_string(ConfigOption *option, gchar *value)
+{
+    ((void (*)(const char *))(option->setter))(value);
+    g_free(value);
+}
+
+void config_option_set_integer(ConfigOption *option, int value)
+{
+    ((void (*)(int))(option->setter))(value);
+}
+
+const char *config_option_get_string(ConfigOption *option)
+{
+    return ((const char *(*)())(option->getter))();
+}
+
+int config_option_get_integer(ConfigOption *option)
+{
+    return ((int (*)())(option->getter))();
+}
+
 static int appconfig_read_file() {
-    xmlDocPtr doc;
-    xmlNodePtr cur;
+    GKeyFile *keyfile = g_key_file_new();
 
-    doc = xmlParseFile(get_config_filename());
-
-    if (doc == NULL) {
-        fprintf(stderr, "error reading wavbreaker config file\n");
-        fprintf(stderr, "Document not parsed successfully.\n");
-        return 1;
+    if (!g_key_file_load_from_file(keyfile, config_filename, G_KEY_FILE_NONE, NULL)) {
+        g_key_file_free(keyfile);
+        return 0;
     }
 
-    cur = xmlDocGetRootElement(doc);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error reading wavbreaker config file\n");
-        fprintf(stderr, "empty document\n");
-        xmlFreeDoc(doc);
-        return 2;
-    }
-
-    if (xmlStrcmp(cur->name, (const xmlChar *) "wavbreaker")) {
-        fprintf(stderr, "error reading wavbreaker config file\n");
-        fprintf(stderr, "wrong document type, root node != wavbreaker\n");
-        fprintf(stderr, "document type is: %s\n", cur->name);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    cur = cur->xmlChildrenNode;
-    while (cur != NULL) {
-        xmlChar *key;
-        int nkey;
-
-        if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_outputdir"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_use_outputdir((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "config_file_version"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            set_config_file_version(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "outputdir"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_outputdir((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "use_etree_filename_suffix"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_use_etree_filename_suffix((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "prepend_file_number"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_prepend_file_number((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "etree_filename_suffix"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_etree_filename_suffix((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "etree_cd_length"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            set_etree_cd_length((char *)key);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_xpos"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_main_window_xpos(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_ypos"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_main_window_ypos(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_width"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_main_window_width(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "main_window_height"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_main_window_height(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "vpane1_position"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_vpane1_position(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "vpane2_position"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_vpane2_position(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "silence_percentage"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_silence_percentage(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "ask_really_quit"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_ask_really_quit(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "show_toolbar"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_show_toolbar(nkey);
-            xmlFree(key);
-        } else if (!(xmlStrcmp(cur->name, (const xmlChar *) "show_moodbar"))) {
-            key = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-            nkey = atoi((char *)key);
-            appconfig_set_show_moodbar(nkey);
-            xmlFree(key);
+    ConfigOption *option = config_options;
+    for (option=config_options; option->key; option++) {
+        switch (option->type) {
+            case INTEGER:
+                config_option_set_integer(option,
+                        g_key_file_get_integer(keyfile, "wavbreaker", option->key, NULL));
+                break;
+            case BOOLEAN:
+                config_option_set_integer(option,
+                        g_key_file_get_boolean(keyfile, "wavbreaker", option->key, NULL));
+                break;
+            case STRING:
+                config_option_set_string(option,
+                        g_key_file_get_string(keyfile, "wavbreaker", option->key, NULL));
+                break;
+            default:
+                g_warning("Invalid option type: %d\n", option->type);
+                break;
         }
-        cur = cur->next;
     }
 
-    return 0;
+    g_key_file_free(keyfile);
+
+    return 1;
 }
 
-/*
-static int check_xml_node_ptr_for_null(xmlNodePtr ptr) {
-}
-*/
 
-int appconfig_write_file() {
-    xmlDocPtr doc;
-    xmlNodePtr root;
-    xmlNodePtr cur;
-    char tmp_str[32];
+void appconfig_write_file() {
+    GKeyFile *keyfile = g_key_file_new();
 
-    doc = xmlNewDoc((const xmlChar *)"1.0");
+    g_key_file_load_from_file(keyfile, config_filename, G_KEY_FILE_KEEP_COMMENTS, NULL);
 
-    if (doc == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error with xmlNewDoc\n");
-        return 1;
+    ConfigOption *option = config_options;
+    for (option=config_options; option->key; option++) {
+        switch (option->type) {
+            case INTEGER:
+                g_key_file_set_integer(keyfile, "wavbreaker", option->key,
+                        config_option_get_integer(option));
+                break;
+            case BOOLEAN:
+                g_key_file_set_boolean(keyfile, "wavbreaker", option->key,
+                        config_option_get_integer(option));
+                break;
+            case STRING:
+                g_key_file_set_string(keyfile, "wavbreaker", option->key,
+                        config_option_get_string(option));
+                break;
+            default:
+                g_warning("Invalid option type: %d\n", option->type);
+                break;
+        }
     }
 
-    root = xmlNewDocNode(doc, NULL, (const xmlChar *)"wavbreaker", (xmlChar*) "");
-
-    if (root == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating doc node\n");
-        xmlFreeDoc(doc);
-        return 2;
+    if (!g_key_file_save_to_file(keyfile, config_filename, NULL)) {
+        g_warning("Could not save settings");
     }
 
-    sprintf(tmp_str, "%d", get_config_file_version());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"config_file_version", (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating config_file_version node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", get_use_outputdir());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"use_outputdir", (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating use_outputdir node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"outputdir",
-        (const xmlChar *) get_outputdir());
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating outputdir node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", get_use_etree_filename_suffix());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"use_etree_filename_suffix",
-            (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating use_etree_filename_suffix node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", get_prepend_file_number());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"prepend_file_number",
-            (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating prepend_file_number node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_main_window_xpos());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_xpos",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating main_window_xpos node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_main_window_ypos());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_ypos",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating main_window_ypos node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_filename_suffix",
-        (const xmlChar *) get_etree_filename_suffix());
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating etree_filename_suffix node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"etree_cd_length",
-        (const xmlChar *) get_etree_cd_length());
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating etree_cd_length node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_main_window_width());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_width",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating main_window_width node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_main_window_height());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"main_window_height",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating main_window_height node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_vpane1_position());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"vpane1_position",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating vpane1_position node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_vpane2_position());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"vpane2_position",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating vpane2_position node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_silence_percentage());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"silence_percentage",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating silence_percentage node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_ask_really_quit());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"ask_really_quit",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating ask_really_quit node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_show_toolbar());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"show_toolbar",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating show_toolbar node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    sprintf(tmp_str, "%d", appconfig_get_show_moodbar());
-    cur = xmlNewChild(root, NULL, (const xmlChar *)"show_moodbar",
-        (const xmlChar *) tmp_str);
-
-    if (cur == NULL) {
-        fprintf(stderr, "error creating wavbreaker config file\n");
-        fprintf(stderr, "error creating show_moodbar node\n");
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 3;
-    }
-
-    root = xmlDocSetRootElement(doc, root);
-    /*
-    if (root == NULL) {
-        fprintf(stderr, "error setting doc root node\n");
-        xmlFreeDoc(doc);
-        return 4;
-    }
-    */
-
-    xmlIndentTreeOutput = 1;
-
-    if (! xmlSaveFormatFile(get_config_filename(), doc, 1)) {
-        fprintf(stderr, "error writing config file: %s", get_config_filename());
-        xmlFreeNodeList(root);
-        xmlFreeDoc(doc);
-        return 5;
-    }
-
-    xmlFreeNodeList(root);
-    xmlFreeDoc(doc);
-
-    return 0;
+    g_key_file_free(keyfile);
 }
 
 void appconfig_init()
 {
-    default_config_filename();
+    gchar *config_filename = g_build_path("/", g_get_user_config_dir(),
+            "wavbreaker", "wavbreaker.conf", NULL);
+    set_config_filename(config_filename);
 
-    /*
-     * See if we can read and write the config file,
-     * then try to read in the values.
-     */
-    if( access( get_config_filename(), W_OK | F_OK) || appconfig_read_file()) {
+    gchar *config_dir = g_path_get_dirname(config_filename);
+    if (g_mkdir_with_parents(config_dir, 0700) != 0) {
+        g_warning("Could not create configuration directory: %s", config_dir);
+    }
+    g_free(config_dir);
+    g_free(config_filename);
+
+    if (!appconfig_read_file()) {
         default_all_strings();
         appconfig_write_file();
     } else {
@@ -1010,16 +728,15 @@ void appconfig_init()
 
 void default_all_strings() {
     /* default any values that where not in the config file */
-    if (get_outputdir() == NULL) {
-        default_outputdir();
+    if (appconfig_get_outputdir() == NULL) {
+        outputdir = g_strdup(getenv("PWD"));
     }
-    if (get_etree_filename_suffix() == NULL) {
-        default_etree_filename_suffix();
+    if (appconfig_get_etree_filename_suffix() == NULL) {
+        etree_filename_suffix = g_strdup("-");
     }
-    if (get_etree_cd_length() == NULL) {
-        default_etree_cd_length();
+    if (appconfig_get_etree_cd_length() == NULL) {
+        etree_cd_length = g_strdup("80");
     }
 
-    default_audio_function_pointers();
+    set_audio_function_pointers();
 }
-

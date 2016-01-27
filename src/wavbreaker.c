@@ -873,14 +873,14 @@ track_break_setup_filename(gpointer data, gpointer user_data)
             char cmp_str[1024];
             cmp_str[0] = '\0';
 
-            if (get_use_etree_filename_suffix()) {
+            if (appconfig_get_use_etree_filename_suffix()) {
                 // remove the dXtXX from the end
                 int length = strlen(track_break->filename);
                 if (length > 5) {
                     strncpy(cmp_str, track_break->filename, length - 5);
                     cmp_str[length - 4] = '\0';
                 }
-            } else if (get_prepend_file_number()) {
+            } else if (appconfig_get_prepend_file_number()) {
                 // remove the XX- from the beginning
                 int length = strlen(track_break->filename);
                 if (length > 3) {
@@ -904,8 +904,8 @@ track_break_setup_filename(gpointer data, gpointer user_data)
 
     index = g_list_index(track_break_list, track_break);
     index++;
-    if (get_use_etree_filename_suffix()) {
-        int cd_length = atoi(get_etree_cd_length());
+    if (appconfig_get_use_etree_filename_suffix()) {
+        int cd_length = atoi(appconfig_get_etree_cd_length());
         disc_num = (track_break->offset / CD_BLOCKS_PER_SEC / 60) / cd_length;
         disc_num++;
         if (index == 1) {
@@ -919,16 +919,16 @@ track_break_setup_filename(gpointer data, gpointer user_data)
         prev_disc_num = disc_num;
         sprintf(buf, "d%dt%02d", disc_num, track_num);
     } else {
-        if (get_prepend_file_number()) {
-            sprintf(buf, "%02d%s", index, get_etree_filename_suffix());
+        if (appconfig_get_prepend_file_number()) {
+            sprintf(buf, "%02d%s", index, appconfig_get_etree_filename_suffix());
         } else {
-            sprintf(buf, "%s%02d", get_etree_filename_suffix(), index);
+            sprintf(buf, "%s%02d", appconfig_get_etree_filename_suffix(), index);
         }
     }
 
     fn[0] = '\0';
 
-    if (!get_use_etree_filename_suffix() && get_prepend_file_number()) {
+    if (!appconfig_get_use_etree_filename_suffix() && appconfig_get_prepend_file_number()) {
         strcat(fn, buf);
         strcat(fn, orig_filename);
     } else {
@@ -2569,8 +2569,8 @@ static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *
         return;
     }
 
-    if( get_use_outputdir()) {
-        wavbreaker_write_files( get_outputdir());
+    if( appconfig_get_use_outputdir()) {
+        wavbreaker_write_files( appconfig_get_outputdir());
     } else {
         wavbreaker_write_files( ".");
     }
