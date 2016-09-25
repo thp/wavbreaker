@@ -459,7 +459,7 @@ void appconfig_show(GtkWidget *main_window)
     use_outputdir_toggle = gtk_check_button_new_with_label(_("Save output files in folder:"));
     gtk_table_attach(GTK_TABLE(table), use_outputdir_toggle,
         0, 2, 0, 1, GTK_FILL, 0, 5, 0);
-    g_signal_connect(GTK_OBJECT(use_outputdir_toggle), "toggled",
+    g_signal_connect(G_OBJECT(use_outputdir_toggle), "toggled",
         G_CALLBACK(use_outputdir_toggled), NULL);
 
     outputdir_entry = gtk_entry_new();
@@ -494,7 +494,7 @@ void appconfig_show(GtkWidget *main_window)
 
     radio1 = gtk_radio_button_new_with_label(NULL, _("Standard (##)"));
     gtk_table_attach(GTK_TABLE(table), radio1, 0, 3, 0, 1, GTK_FILL, 0, 5, 2);
-    g_signal_connect(GTK_OBJECT(radio1), "toggled",
+    g_signal_connect(G_OBJECT(radio1), "toggled",
         G_CALLBACK(radio_buttons_toggled), NULL);
 
     label = gtk_label_new("   ");
@@ -505,7 +505,7 @@ void appconfig_show(GtkWidget *main_window)
     prepend_file_number_toggle = gtk_check_button_new_with_label(_("Prepend number before filename"));
     gtk_table_attach(GTK_TABLE(table), prepend_file_number_toggle,
             1, 3, 2, 3, GTK_FILL, 0, 5, 0);
-    g_signal_connect(GTK_OBJECT(prepend_file_number_toggle), "toggled",
+    g_signal_connect(G_OBJECT(prepend_file_number_toggle), "toggled",
         G_CALLBACK(prepend_file_number_toggled), NULL);
 
     etree_filename_suffix_label = gtk_label_new(_("Separator:"));
@@ -545,7 +545,7 @@ void appconfig_show(GtkWidget *main_window)
     g_signal_connect(G_OBJECT(ok_button), "clicked",
         (GCallback)ok_button_clicked, window);
 
-    g_signal_connect(GTK_OBJECT(radio2), "toggled",
+    g_signal_connect(G_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
 
     loading_ui = TRUE;

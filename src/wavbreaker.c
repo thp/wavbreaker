@@ -229,10 +229,7 @@ configure_event(GtkWidget *widget,
                 gpointer data);
 
 static gboolean
-expose_event(GtkWidget *widget,
-             GdkEventExpose *event,
-             gpointer data);
-
+draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data);
 
 static gboolean
 draw_summary_configure_event(GtkWidget *widget,
@@ -240,9 +237,7 @@ draw_summary_configure_event(GtkWidget *widget,
                              gpointer user_data);
 
 static gboolean
-draw_summary_expose_event(GtkWidget *widget,
-                          GdkEventExpose *event,
-                          gpointer user_data);
+draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data);
 
 static gboolean
 draw_summary_button_release(GtkWidget *widget,
@@ -465,7 +460,6 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
         moodbarData.frames[pos].red = tmp[0]*(65535/255);
         moodbarData.frames[pos].green = tmp[1]*(65535/255);
         moodbarData.frames[pos].blue = tmp[2]*(65535/255);
-        gdk_colormap_alloc_color ( gtk_widget_get_colormap(main_window), &(moodbarData.frames[pos]), TRUE, TRUE);
         pos++;
     }
 
@@ -1903,11 +1897,8 @@ static gboolean configure_event(GtkWidget *widget,
     return TRUE;
 }
 
-static gboolean expose_event(GtkWidget *widget,
-    GdkEventExpose *event, gpointer data)
+static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
-    cairo_t *cr;
-
     GList *tbl;
     TrackBreak *tb_cur = NULL, *tb_first = NULL;
     TrackBreak **tbs;
@@ -1923,8 +1914,6 @@ static gboolean expose_event(GtkWidget *widget,
 
     guint width = allocation.width,
           height = allocation.height;
-
-    cr = gdk_cairo_create(gtk_widget_get_window(widget));
 
     blit_cairo_surface(cr, sample_surface, width, height);
 
@@ -2034,8 +2023,6 @@ static gboolean expose_event(GtkWidget *widget,
     if( tbs != NULL) {
         free( tbs);
     }
-
-    cairo_destroy( cr);
 
     return FALSE;
 }
@@ -2203,12 +2190,8 @@ draw_summary_configure_event(GtkWidget *widget,
 }
 
 static gboolean
-draw_summary_expose_event(GtkWidget *widget,
-                          GdkEventExpose *event,
-                          gpointer user_data)
+draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-    cairo_t *cr;
-
     GtkAllocation allocation;
     gtk_widget_get_allocation(widget, &allocation);
     guint width = allocation.width,
@@ -2221,8 +2204,6 @@ draw_summary_expose_event(GtkWidget *widget,
     /**
      * Draw shadow in summary pixmap to show current view
      **/
-
-    cr = gdk_cairo_create(gtk_widget_get_window(widget));
 
     blit_cairo_surface(cr, summary_surface, width, height);
 
@@ -2239,8 +2220,6 @@ draw_summary_expose_event(GtkWidget *widget,
     cairo_move_to( cr, (int)((pixmap_offset+width) / summary_scale) + 0.5, 0);
     cairo_line_to( cr, (int)((pixmap_offset+width) / summary_scale) + 0.5, height);
     cairo_stroke( cr);
-
-    cairo_destroy( cr);
 
     return FALSE;
 }
@@ -2869,7 +2848,7 @@ static void save_window_sizes()
 
 void wavbreaker_quit() {
     save_window_sizes();
-    gtk_object_destroy(GTK_OBJECT(main_window));
+    gtk_widget_destroy(main_window);
 }
 
 static void check_really_quit()
@@ -3177,13 +3156,10 @@ int main(int argc, char **argv)
     bg_color.red   =
     bg_color.green =
     bg_color.blue  = 255*(65535/255);
-    gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &bg_color, TRUE, TRUE);
-
 
     nowrite_color.red   =
     nowrite_color.green =
     nowrite_color.blue  = 220*(65535/255);
-    gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &nowrite_color, TRUE, TRUE);
 
     for( i=0; i<SAMPLE_COLORS; i++) {
         for( x=0; x<SAMPLE_SHADES; x++) {
@@ -3192,7 +3168,6 @@ int main(int argc, char **argv)
             sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+255*factor_white;
             sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+255*factor_white;
             sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+255*factor_white;
-            gdk_colormap_alloc_color (gtk_widget_get_colormap(main_window), &sample_colors[i][x], TRUE, TRUE);
         }
     }
 
@@ -3212,8 +3187,8 @@ int main(int argc, char **argv)
     draw_summary = gtk_drawing_area_new();
     gtk_widget_set_size_request(draw_summary, 500, 75);
 
-    g_signal_connect(G_OBJECT(draw_summary), "expose_event",
-             G_CALLBACK(draw_summary_expose_event), NULL);
+    g_signal_connect(G_OBJECT(draw_summary), "draw",
+             G_CALLBACK(draw_summary_draw_event), NULL);
     g_signal_connect(G_OBJECT(draw_summary), "configure_event",
              G_CALLBACK(draw_summary_configure_event), NULL);
     g_signal_connect(G_OBJECT(draw_summary), "button_release_event",
@@ -3237,8 +3212,8 @@ int main(int argc, char **argv)
     draw = gtk_drawing_area_new();
     gtk_widget_set_size_request(draw, 500, 200);
 
-    g_signal_connect(G_OBJECT(draw), "expose_event",
-             G_CALLBACK(expose_event), NULL);
+    g_signal_connect(G_OBJECT(draw), "draw",
+             G_CALLBACK(draw_draw_event), NULL);
     g_signal_connect(G_OBJECT(draw), "configure_event",
              G_CALLBACK(configure_event), NULL);
     g_signal_connect(G_OBJECT(draw), "button_release_event",

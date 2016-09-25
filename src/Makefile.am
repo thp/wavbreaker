@@ -1,5 +1,6 @@
-INCLUDES = $(AO_CFLAGS) $(GTK2_CFLAGS) -I$(srcdir)
-AM_CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DGTK_DISABLE_SINGLE_INCLUDES -DGSEAL_ENABLE -DGTK_DISABLE_DEPRECATED -DGDK_DISABLE_DEPRECATED
+INCLUDES = $(AO_CFLAGS) $(GTK3_CFLAGS) -I$(srcdir)
+AM_CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DGTK_DISABLE_SINGLE_INCLUDES -DGSEAL_ENABLE -DGDK_DISABLE_DEPRECATED
+# -DGTK_DISABLE_DEPRECATED
 
 localedir = $(datadir)/locale
 DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@
@@ -19,5 +20,5 @@ noinst_HEADERS = cdda.h sample.h wav.h wavbreaker.h about.h \
 	appconfig.h autosplit.h popupmessage.h saveas.h browsedir.h aoaudio.h \
 	toc.h reallyquit.h fileutils.h overwritedialog.h guimerge.h gettext.h
 
-wavbreaker_LDADD = $(GTK2_LIBS) $(AO_LIBS) $(MPG123_LIBS)
-wavgen_LDADD = $(GTK2_LIBS)
+wavbreaker_LDADD = $(GTK3_LIBS) $(AO_LIBS) $(MPG123_LIBS)
+wavgen_LDADD = $(GTK3_LIBS)
