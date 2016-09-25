@@ -55,8 +55,8 @@
 
 #define SILENCE_MIN_LENGTH 4
 
-static GdkPixmap *sample_pixmap;
-static GdkPixmap *summary_pixmap;
+static cairo_surface_t *sample_surface;
+static cairo_surface_t *summary_surface;
 
 static GtkWidget *main_window;
 static GtkWidget *vpane1, *vpane2;
@@ -219,8 +219,8 @@ static void force_redraw();
 static void redraw();
 static gboolean redraw_later( gpointer data);
 
-static void draw_sample(GtkWidget *widget);
-static void draw_summary_pixmap(GtkWidget *widget);
+static void draw_sample_surface(GtkWidget *widget);
+static void draw_summary_surface(GtkWidget *widget);
 static void reset_sample_display(guint);
 
 static gboolean
@@ -1679,16 +1679,45 @@ void set_sample_filename(const char *f) {
  *-------------------------------------------------------------------------
  */
 
-static void force_redraw()
+static inline void blit_cairo_surface(cairo_t *cr, cairo_surface_t *surface, int width, int height)
 {
-    if( sample_pixmap) {
-        g_object_unref( sample_pixmap);
-        sample_pixmap = NULL;
+    if (!surface) {
+        return;
     }
 
-    if( summary_pixmap) {
-        g_object_unref( summary_pixmap);
-        summary_pixmap = NULL;
+    cairo_set_source_surface(cr, surface, 0.f, 0.f);
+    cairo_rectangle(cr, 0.f, 0.f, (float)width, (float)height);
+    cairo_fill(cr);
+}
+
+static inline void set_cairo_source(cairo_t *cr, GdkColor *color)
+{
+    cairo_set_source_rgb(cr, (float)color->red / 65535.f, (float)color->green / 65535.f, (float)color->blue / 65535.f);
+}
+
+static inline void fill_cairo_rectangle(cairo_t *cr, GdkColor *color, int width, int height)
+{
+    set_cairo_source(cr, color);
+    cairo_rectangle(cr, 0.f, 0.f, (float)width, (float)height);
+    cairo_fill(cr);
+}
+
+static inline void draw_cairo_line(cairo_t *cr, float x, float y0, float y1)
+{
+    cairo_move_to(cr, x-0.5f, y0);
+    cairo_line_to(cr, x-0.5f, y1);
+}
+
+static void force_redraw()
+{
+    if (sample_surface) {
+        cairo_surface_destroy(sample_surface);
+        sample_surface = NULL;
+    }
+
+    if (summary_surface) {
+        cairo_surface_destroy(summary_surface);
+        summary_surface = NULL;
     }
 
     redraw();
@@ -1709,23 +1738,23 @@ static gboolean redraw_later( gpointer data)
 {
     int *redraw_done = (int*)data;
 
-    draw_sample( draw);
-    gtk_widget_queue_draw( draw);
-    draw_summary_pixmap( draw_summary);
-    gtk_widget_queue_draw( draw_summary);
+    draw_sample_surface(draw);
+    gtk_widget_queue_draw(draw);
+    draw_summary_surface(draw_summary);
+    gtk_widget_queue_draw(draw_summary);
 
     *redraw_done = 1;
     return FALSE;
 }
 
-static void draw_sample(GtkWidget *widget)
+static void draw_sample_surface(GtkWidget *widget)
 {
     int xaxis;
     int width, height;
     int y_min, y_max;
     int scale;
     int i;
-    GdkGC *gc;
+    cairo_t *cr;
 
     int shade;
 
@@ -1745,31 +1774,31 @@ static void draw_sample(GtkWidget *widget)
     width = allocation.width;
     height = allocation.height;
 
-    if( sample_pixmap != NULL && pw == width && ph == height && ppos == pixmap_offset &&
+    if( sample_surface != NULL && pw == width && ph == height && ppos == pixmap_offset &&
         (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
         return;
     }
 
-    if (sample_pixmap) {
-        g_object_unref(sample_pixmap);
+    if (sample_surface) {
+        cairo_surface_destroy(sample_surface);
     }
 
-    sample_pixmap = gdk_pixmap_new(gtk_widget_get_window(widget), width, height, -1);
+    sample_surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
+            CAIRO_CONTENT_COLOR, width, height);
 
-    if (!sample_pixmap) {
-        printf("sample_pixmap is NULL\n");
+    if (!sample_surface) {
+        printf("sample_surface is NULL\n");
         return;
     }
 
-    gc = gdk_gc_new(sample_pixmap);
+    cr = cairo_create(sample_surface);
+    cairo_set_line_width(cr, 1.f);
 
-    /* clear sample_pixmap before drawing */
-
-    gdk_gc_set_foreground(gc, &bg_color);
-    gdk_draw_rectangle(sample_pixmap, gc, TRUE, 0, 0, width, height);
+    /* clear sample_surface before drawing */
+    fill_cairo_rectangle(cr, &bg_color, width, height);
 
     if (graphData.data == NULL) {
-        g_object_unref(gc);
+        cairo_destroy(cr);
         return;
     }
 
@@ -1812,8 +1841,9 @@ static void draw_sample(GtkWidget *widget)
 
         if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
             moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
-            gdk_gc_set_foreground(gc, &(moodbarData.frames[moodbar_pos]));
-            gdk_draw_line( sample_pixmap, gc, i, 0, i, height);
+            set_cairo_source(cr, &(moodbarData.frames[moodbar_pos]));
+            draw_cairo_line(cr, i, 0.f, height);
+            cairo_stroke(cr);
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
@@ -1826,14 +1856,15 @@ static void draw_sample(GtkWidget *widget)
             } else {
                 new_color = gdk_color_copy( &nowrite_color);
             }
-            gdk_gc_set_foreground(gc, new_color);
-            gdk_draw_line(sample_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
-            gdk_draw_line(sample_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
+
+            set_cairo_source(cr, new_color);
+            draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
+            draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
+            cairo_stroke(cr);
         }
     }
 
-    //cleanup
-    g_object_unref(gc);
+    cairo_destroy(cr);
 
     pw = width;
     ph = height;
@@ -1871,7 +1902,7 @@ static gboolean configure_event(GtkWidget *widget,
     gtk_adjustment_set_value(adj, pixmap_offset);
     gtk_adjustment_set_upper(cursor_marker_spinner_adj, graphData.numSamples - 1);
 
-    draw_sample(widget);
+    draw_sample_surface(widget);
 
     return TRUE;
 }
@@ -1879,7 +1910,6 @@ static gboolean configure_event(GtkWidget *widget,
 static gboolean expose_event(GtkWidget *widget,
     GdkEventExpose *event, gpointer data)
 {
-    GdkGC *gc;
     cairo_t *cr;
 
     GList *tbl;
@@ -1898,13 +1928,9 @@ static gboolean expose_event(GtkWidget *widget,
     guint width = allocation.width,
           height = allocation.height;
 
-    if( sample_pixmap) {
-        gc = gdk_gc_new(sample_pixmap);
-        gdk_draw_drawable(gtk_widget_get_window(widget), gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
-        g_object_unref(gc);
-    }
-
     cr = gdk_cairo_create(gtk_widget_get_window(widget));
+
+    blit_cairo_surface(cr, sample_surface, width, height);
 
     cairo_set_line_width( cr, 1);
     if( cursor_marker >= pixmap_offset && cursor_marker <= pixmap_offset + width) {
@@ -2018,7 +2044,7 @@ static gboolean expose_event(GtkWidget *widget,
     return FALSE;
 }
 
-static void draw_summary_pixmap(GtkWidget *widget)
+static void draw_summary_surface(GtkWidget *widget)
 {
     int xaxis;
     int width, height;
@@ -2031,7 +2057,7 @@ static void draw_summary_pixmap(GtkWidget *widget)
 
     float x_scale;
 
-    GdkGC *gc;
+    cairo_t *cr;
     int count;
     int is_write;
     int index;
@@ -2048,30 +2074,31 @@ static void draw_summary_pixmap(GtkWidget *widget)
     width = allocation.width;
     height = allocation.height;
 
-    if( summary_pixmap != NULL && pw == width && ph == height &&
+    if( summary_surface != NULL && pw == width && ph == height &&
         (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
         return;
     }
 
-    if (summary_pixmap) {
-        g_object_unref(summary_pixmap);
+    if (summary_surface) {
+        cairo_surface_destroy(summary_surface);
     }
 
-    summary_pixmap = gdk_pixmap_new(gtk_widget_get_window(widget), width, height, -1);
+    summary_surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
+            CAIRO_CONTENT_COLOR, width, height);
 
-    if (!summary_pixmap) {
-        printf("summary_pixmap is NULL\n");
+    if (!summary_surface) {
+        printf("summary_surface is NULL\n");
         return;
     }
 
-    gc = gdk_gc_new(summary_pixmap);
+    cr = cairo_create(summary_surface);
+    cairo_set_line_width(cr, 1.f);
 
-    /* clear summary_pixmap before drawing */
-    gdk_gc_set_foreground(gc, &bg_color);
-    gdk_draw_rectangle(summary_pixmap, gc, TRUE, 0, 0, width, height);
+    /* clear sample_surface before drawing */
+    fill_cairo_rectangle(cr, &bg_color, width, height);
 
     if (graphData.data == NULL) {
-        g_object_unref(gc);
+        cairo_destroy(cr);
         return;
     }
 
@@ -2131,10 +2158,11 @@ static void draw_summary_pixmap(GtkWidget *widget)
             }
         }
 
-        if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
+        if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
             moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
-            gdk_gc_set_foreground(gc, &(moodbarData.frames[moodbar_pos]));
-            gdk_draw_line( summary_pixmap, gc, i, 0, i, height);
+            set_cairo_source(cr, &(moodbarData.frames[moodbar_pos]));
+            draw_cairo_line(cr, i, 0.f, height);
+            cairo_stroke(cr);
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
@@ -2147,20 +2175,21 @@ static void draw_summary_pixmap(GtkWidget *widget)
             } else {
                 new_color = gdk_color_copy( &nowrite_color);
             }
-            if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
-                new_color->red = MOODBAR_BLEND( new_color->red, moodbarData.frames[moodbar_pos].red);
-                new_color->green = MOODBAR_BLEND( new_color->green, moodbarData.frames[moodbar_pos].green);
-                new_color->blue = MOODBAR_BLEND( new_color->blue, moodbarData.frames[moodbar_pos].blue);
-                gdk_colormap_alloc_color( gtk_widget_get_colormap(main_window), new_color, TRUE, TRUE);
+
+            if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
+                new_color->red = MOODBAR_BLEND(new_color->red, moodbarData.frames[moodbar_pos].red);
+                new_color->green = MOODBAR_BLEND(new_color->green, moodbarData.frames[moodbar_pos].green);
+                new_color->blue = MOODBAR_BLEND(new_color->blue, moodbarData.frames[moodbar_pos].blue);
             }
-            gdk_gc_set_foreground(gc, new_color);
-            gdk_draw_line(summary_pixmap, gc, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, i, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
-            gdk_draw_line(summary_pixmap, gc, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, i, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
+
+            set_cairo_source(cr, new_color);
+            draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
+            draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
+            cairo_stroke(cr);
         }
     }
 
-    //cleanup
-    g_object_unref(gc);
+    cairo_destroy(cr);
 
     pw = width;
     ph = height;
@@ -2172,7 +2201,7 @@ draw_summary_configure_event(GtkWidget *widget,
                              GdkEventConfigure *event,
                              gpointer user_data)
 {
-    draw_summary_pixmap(widget);
+    draw_summary_surface(widget);
 
     return TRUE;
 }
@@ -2191,21 +2220,15 @@ draw_summary_expose_event(GtkWidget *widget,
 
     gfloat summary_scale;
 
-    GdkGC *gc;
-
     summary_scale = (float)(graphData.numSamples) / (float)(width);
-
-    if( summary_pixmap) {
-        gc = gdk_gc_new(summary_pixmap);
-        gdk_draw_drawable(gtk_widget_get_window(widget), gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
-        g_object_unref(gc);
-    }
 
     /**
      * Draw shadow in summary pixmap to show current view
      **/
 
     cr = gdk_cairo_create(gtk_widget_get_window(widget));
+
+    blit_cairo_surface(cr, summary_surface, width, height);
 
     cairo_set_source_rgba( cr, 0, 0, 0, 0.3);
     cairo_rectangle( cr, 0, 0, pixmap_offset / summary_scale, height);
@@ -3224,7 +3247,7 @@ int main(int argc, char **argv)
     vpane2 = gtk_vpaned_new();
     gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
 
-    /* The summary_pixmap drawing area */
+    /* The summary_surface drawing area */
     draw_summary = gtk_drawing_area_new();
     gtk_widget_set_size_request(draw_summary, 500, 75);
 
@@ -3249,7 +3272,7 @@ int main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(frame), draw_summary);
     gtk_paned_add1(GTK_PANED(vpane2), frame);
 
-    /* The sample_pixmap drawing area */
+    /* The sample_surface drawing area */
     draw = gtk_drawing_area_new();
     gtk_widget_set_size_request(draw, 500, 200);
 
