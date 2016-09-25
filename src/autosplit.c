@@ -166,12 +166,12 @@ void autosplit_show(GtkWidget *main_window)
 
     cancel_button = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
     gtk_box_pack_end(GTK_BOX(hbbox), cancel_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(cancel_button), "clicked", (GtkSignalFunc)cancel_button_clicked, window);
+    g_signal_connect(G_OBJECT(cancel_button), "clicked", (GCallback)cancel_button_clicked, window);
     gtk_widget_show(cancel_button);
 
     ok_button = gtk_button_new_from_stock(GTK_STOCK_OK);
     gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(ok_button), "clicked", (GtkSignalFunc)ok_button_clicked, window);
+    g_signal_connect(G_OBJECT(ok_button), "clicked", (GCallback)ok_button_clicked, window);
     gtk_widget_show(ok_button);
 
     gtk_widget_show(window);

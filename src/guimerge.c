@@ -344,17 +344,17 @@ void guimerge_show( GtkWidget *main_window)
 
     button = gtk_button_new_from_stock( GTK_STOCK_ADD);
     gtk_box_pack_start( GTK_BOX(vbbox), button, FALSE, FALSE, 0);
-    g_signal_connect( G_OBJECT(button), "clicked", (GtkSignalFunc)add_button_clicked, window);
+    g_signal_connect( G_OBJECT(button), "clicked", (GCallback)add_button_clicked, window);
 
     remove_button = gtk_button_new_from_stock( GTK_STOCK_REMOVE);
     gtk_box_pack_start( GTK_BOX(vbbox), remove_button, FALSE, FALSE, 0);
-    g_signal_connect( G_OBJECT(remove_button), "clicked", (GtkSignalFunc)remove_button_clicked, window);
+    g_signal_connect( G_OBJECT(remove_button), "clicked", (GCallback)remove_button_clicked, window);
     gtk_widget_set_sensitive( GTK_WIDGET(remove_button), FALSE);
 
     gtk_box_pack_start( GTK_BOX(vbbox), gtk_hseparator_new(), FALSE, FALSE, 0);
 
     ok_button = gtk_button_new();
-    g_signal_connect(G_OBJECT(ok_button), "clicked", (GtkSignalFunc)ok_button_clicked, window);
+    g_signal_connect(G_OBJECT(ok_button), "clicked", (GCallback)ok_button_clicked, window);
     gtk_box_pack_start( GTK_BOX(vbbox), ok_button, FALSE, FALSE, 0);
     gtk_widget_set_sensitive( GTK_WIDGET(ok_button), FALSE);
 
@@ -372,7 +372,7 @@ void guimerge_show( GtkWidget *main_window)
 
     cancel_button = gtk_button_new_from_stock( GTK_STOCK_CLOSE);
     gtk_box_pack_end(GTK_BOX(hbbox), cancel_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(cancel_button), "clicked", (GtkSignalFunc)cancel_button_clicked, window);
+    g_signal_connect(G_OBJECT(cancel_button), "clicked", (GCallback)cancel_button_clicked, window);
 
     gtk_window_resize( GTK_WINDOW(window), 500, 300);
     gtk_widget_show_all(window);

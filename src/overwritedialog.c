@@ -116,12 +116,12 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
 
     button = gtk_button_new_from_stock(GTK_STOCK_NO);
     gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(button), "clicked", (GtkSignalFunc)overwritedialog_no, overwrite_data);
+    g_signal_connect(G_OBJECT(button), "clicked", (GCallback)overwritedialog_no, overwrite_data);
     gtk_widget_show(button);
 
     button = gtk_button_new_from_stock(GTK_STOCK_YES);
     gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(button), "clicked", (GtkSignalFunc)overwritedialog_yes, overwrite_data);
+    g_signal_connect(G_OBJECT(button), "clicked", (GCallback)overwritedialog_yes, overwrite_data);
     gtk_widget_show(button);
 
     overwrite_data->window = window;

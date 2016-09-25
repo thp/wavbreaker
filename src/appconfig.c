@@ -472,7 +472,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_table_attach(GTK_TABLE(table), browse_button,
         1, 2, 1, 2, GTK_FILL, 0, 5, 0);
     g_signal_connect(G_OBJECT(browse_button), "clicked",
-            (GtkSignalFunc)browse_button_clicked, window);
+            (GCallback)browse_button_clicked, window);
 
     silence_spin_button = (GtkWidget*)gtk_spin_button_new_with_range( 1.0, 100.0, 1.0);
     gtk_spin_button_set_digits( GTK_SPIN_BUTTON(silence_spin_button), 0);
@@ -543,7 +543,7 @@ void appconfig_show(GtkWidget *main_window)
     ok_button = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
     gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
     g_signal_connect(G_OBJECT(ok_button), "clicked",
-        (GtkSignalFunc)ok_button_clicked, window);
+        (GCallback)ok_button_clicked, window);
 
     g_signal_connect(GTK_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);

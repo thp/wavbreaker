@@ -209,8 +209,6 @@ void track_break_write_text( gpointer data, gpointer user_data);
 void track_break_write_cue( gpointer data, gpointer user_data);
 
 /* File Functions */
-void filesel_ok_clicked(GtkWidget *widget, gpointer data);
-void filesel_cancel_clicked(GtkWidget *widget, gpointer data);
 void set_sample_filename(const char *f);
 static void open_file();
 static void handle_arguments( int argc, char** argv);
@@ -1609,22 +1607,6 @@ static void set_title( char* title)
 
   sprintf( buf, "%s (%s)", APPNAME, title);
   gtk_window_set_title( (GtkWindow*)main_window, buf);
-}
-
-void filesel_ok_clicked(GtkWidget *widget, gpointer user_data) {
-    GtkWidget *filesel;
-
-    filesel = GTK_WIDGET(user_data);
-
-    set_sample_filename((char *)gtk_file_selection_get_filename(
-        GTK_FILE_SELECTION(filesel)));
-
-    gtk_widget_destroy(user_data);
-    open_file();
-}
-
-void filesel_cancel_clicked(GtkWidget *widget, gpointer user_data) {
-    gtk_widget_destroy(user_data);
 }
 
 static void open_select_file() {
