@@ -125,7 +125,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     gtk_file_chooser_set_do_overwrite_confirmation( GTK_FILE_CHOOSER(dialog), TRUE);
 
     checkbutton = (GtkWidget*)gtk_check_button_new_with_label( _("Open file in wavbreaker after merge"));
-    gtk_box_pack_end( GTK_BOX(GTK_DIALOG(dialog)->vbox), checkbutton, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), checkbutton, FALSE, FALSE, 0);
     gtk_widget_show( GTK_WIDGET(checkbutton));
 
     if( strlen( folder) > 0) {
@@ -402,8 +402,7 @@ gboolean file_merge_progress_idle_func(gpointer data) {
                 GDK_WINDOW_TYPE_HINT_DIALOG);
         gtk_window_set_position(GTK_WINDOW(window),
                 GTK_WIN_POS_CENTER_ON_PARENT);
-        gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
-
+        gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
 
         vbox = gtk_vbox_new(FALSE, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);

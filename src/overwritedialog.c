@@ -86,7 +86,7 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
             GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_position(GTK_WINDOW(window),
             GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+    gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
 
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);

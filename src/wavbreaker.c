@@ -61,7 +61,7 @@ static GdkPixmap *summary_pixmap;
 static GtkWidget *main_window;
 static GtkWidget *vpane1, *vpane2;
 static GtkWidget *scrollbar;
-static GtkObject *adj;
+static GtkAdjustment *adj;
 static GtkWidget *draw;
 static GtkWidget *draw_summary;
 static GtkWidget *statusbar;
@@ -360,7 +360,7 @@ void cancel_moodbar_process(GtkWidget *widget, gpointer user_data)
 
 void hide_moodbar_process(GtkWidget *widget, gpointer user_data)
 {
-    gtk_widget_hide_all( (GtkWidget*)user_data);
+    gtk_widget_hide(GTK_WIDGET(user_data));
 }
 
 void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
@@ -405,19 +405,21 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
                                   GTK_BUTTONS_NONE,
                                   _("Generating moodbar"));
             gtk_widget_realize( GTK_WIDGET(moodbar_wait_dialog));
-            gdk_window_set_functions( GTK_WIDGET(moodbar_wait_dialog)->window, GDK_FUNC_MOVE);
+            gdk_window_set_functions(gtk_widget_get_window(GTK_WIDGET(moodbar_wait_dialog)), GDK_FUNC_MOVE);
 
             child = gtk_progress_bar_new();
             gtk_progress_bar_set_text( GTK_PROGRESS_BAR(child), basename( fn));
-            gtk_box_pack_start( GTK_BOX(GTK_DIALOG(moodbar_wait_dialog)->vbox), child, FALSE, TRUE, 0);
+            gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(moodbar_wait_dialog))), child, FALSE, TRUE, 0);
+
+            GtkBox *action_area = GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(moodbar_wait_dialog)));
 
             cancel_button = gtk_button_new_with_label( _("Hide window"));
             g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(hide_moodbar_process), moodbar_wait_dialog);
-            gtk_box_pack_start( GTK_BOX(GTK_DIALOG(moodbar_wait_dialog)->action_area), cancel_button, FALSE, TRUE, 0);
+            gtk_box_pack_start(action_area, cancel_button, FALSE, TRUE, 0);
 
             cancel_button = gtk_button_new_from_stock( GTK_STOCK_CANCEL);
             g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), fn);
-            gtk_box_pack_start( GTK_BOX(GTK_DIALOG(moodbar_wait_dialog)->action_area), cancel_button, FALSE, TRUE, 0);
+            gtk_box_pack_start(action_area, cancel_button, FALSE, TRUE, 0);
 
             gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(moodbar_wait_dialog), _("The moodbar tool analyzes your audio file and generates a colorful representation of the audio data."));
             gtk_window_set_title( GTK_WINDOW(moodbar_wait_dialog), _("Generating moodbar"));
@@ -1276,8 +1278,7 @@ file_write_progress_idle_func(gpointer data) {
                 GDK_WINDOW_TYPE_HINT_DIALOG);
         gtk_window_set_position(GTK_WINDOW(window),
                 GTK_WIN_POS_CENTER_ON_PARENT);
-        gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
-
+        gdk_window_set_functions(GDK_WINDOW(gtk_widget_get_window(window)), GDK_FUNC_MOVE);
 
         vbox = gtk_vbox_new(FALSE, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
@@ -1373,12 +1374,14 @@ file_write_progress_idle_func(gpointer data) {
 
 gboolean
 file_play_progress_idle_func(gpointer data) {
-    gint half_width = draw->allocation.width / 2;
-    gint offset = draw->allocation.width * (1.0/PLAY_MARKER_SCROLL);
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(draw, &allocation);
+    gint half_width = allocation.width / 2;
+    gint offset = allocation.width * (1.0/PLAY_MARKER_SCROLL);
 
     gint x = play_marker - half_width;
     gint y = play_marker - pixmap_offset;
-    gint z = draw->allocation.width * (1.0 - 1.0/PLAY_MARKER_SCROLL);
+    gint z = allocation.width * (1.0 - 1.0/PLAY_MARKER_SCROLL);
 
     if (y > z && x > 0) {
         reset_sample_display(play_marker - offset + half_width);
@@ -1429,7 +1432,7 @@ file_open_progress_idle_func(gpointer data) {
                 GDK_WINDOW_TYPE_HINT_DIALOG);
         gtk_window_set_position(GTK_WINDOW(window),
                 GTK_WIN_POS_CENTER_ON_PARENT);
-        gdk_window_set_functions(window->window, GDK_FUNC_MOVE);
+        gdk_window_set_functions(GDK_WINDOW(gtk_widget_get_window(window)), GDK_FUNC_MOVE);
 
         vbox = gtk_vbox_new(FALSE, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
@@ -1754,8 +1757,11 @@ static void draw_sample(GtkWidget *widget)
 
     static unsigned long pw, ph, ppos, mb;
 
-    width = widget->allocation.width;
-    height = widget->allocation.height;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+
+    width = allocation.width;
+    height = allocation.height;
 
     if( sample_pixmap != NULL && pw == width && ph == height && ppos == pixmap_offset &&
         (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
@@ -1766,7 +1772,7 @@ static void draw_sample(GtkWidget *widget)
         g_object_unref(sample_pixmap);
     }
 
-    sample_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
+    sample_pixmap = gdk_pixmap_new(gtk_widget_get_window(widget), width, height, -1);
 
     if (!sample_pixmap) {
         printf("sample_pixmap is NULL\n");
@@ -1856,32 +1862,32 @@ static void draw_sample(GtkWidget *widget)
 static gboolean configure_event(GtkWidget *widget,
     GdkEventConfigure *event, gpointer data)
 {
-    int width;
-    width = widget->allocation.width;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+    int width = allocation.width;
 
     if (graphData.numSamples == 0) {
         pixmap_offset = 0;
-        GTK_ADJUSTMENT(adj)->page_size = 1;
-        GTK_ADJUSTMENT(adj)->upper = 1;
-        GTK_ADJUSTMENT(adj)->page_increment = 1;
+        gtk_adjustment_set_page_size(adj, 1);
+        gtk_adjustment_set_upper(adj, 1);
+        gtk_adjustment_set_page_increment(adj, 1);
     } else if (width > graphData.numSamples) {
         pixmap_offset = 0;
-        GTK_ADJUSTMENT(adj)->page_size = graphData.numSamples;
-        GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
-        GTK_ADJUSTMENT(adj)->page_increment = width / 2;
+        gtk_adjustment_set_page_size(adj, graphData.numSamples);
+        gtk_adjustment_set_upper(adj, graphData.numSamples);
+        gtk_adjustment_set_page_increment(adj, width / 2);
     } else {
         if (pixmap_offset + width > graphData.numSamples) {
             pixmap_offset = graphData.numSamples - width;
         }
-        GTK_ADJUSTMENT(adj)->upper = graphData.numSamples;
-        GTK_ADJUSTMENT(adj)->page_size = width;
-        GTK_ADJUSTMENT(adj)->page_increment = width / 2;
+        gtk_adjustment_set_page_size(adj, width);
+        gtk_adjustment_set_upper(adj, graphData.numSamples);
+        gtk_adjustment_set_page_increment(adj, width / 2);
     }
 
-    GTK_ADJUSTMENT(adj)->step_increment = 10;
-    gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), pixmap_offset);
-
-    GTK_ADJUSTMENT(cursor_marker_spinner_adj)->upper = graphData.numSamples - 1;
+    gtk_adjustment_set_step_increment(adj, 10);
+    gtk_adjustment_set_value(adj, pixmap_offset);
+    gtk_adjustment_set_upper(cursor_marker_spinner_adj, graphData.numSamples - 1);
 
     draw_sample(widget);
 
@@ -1904,16 +1910,19 @@ static gboolean expose_event(GtkWidget *widget,
 
     cairo_text_extents_t te;
 
-    guint width = widget->allocation.width,
-          height = widget->allocation.height;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+
+    guint width = allocation.width,
+          height = allocation.height;
 
     if( sample_pixmap) {
         gc = gdk_gc_new(sample_pixmap);
-        gdk_draw_drawable(widget->window, gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
+        gdk_draw_drawable(gtk_widget_get_window(widget), gc, sample_pixmap, 0, 0, 0, 0, -1, -1);
         g_object_unref(gc);
     }
 
-    cr = gdk_cairo_create( widget->window);
+    cr = gdk_cairo_create(gtk_widget_get_window(widget));
 
     cairo_set_line_width( cr, 1);
     if( cursor_marker >= pixmap_offset && cursor_marker <= pixmap_offset + width) {
@@ -2052,8 +2061,10 @@ static void draw_summary_pixmap(GtkWidget *widget)
 
     static unsigned long pw, ph, mb;
 
-    width = widget->allocation.width;
-    height = widget->allocation.height;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+    width = allocation.width;
+    height = allocation.height;
 
     if( summary_pixmap != NULL && pw == width && ph == height &&
         (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
@@ -2064,7 +2075,7 @@ static void draw_summary_pixmap(GtkWidget *widget)
         g_object_unref(summary_pixmap);
     }
 
-    summary_pixmap = gdk_pixmap_new(widget->window, width, height, -1);
+    summary_pixmap = gdk_pixmap_new(gtk_widget_get_window(widget), width, height, -1);
 
     if (!summary_pixmap) {
         printf("summary_pixmap is NULL\n");
@@ -2191,8 +2202,10 @@ draw_summary_expose_event(GtkWidget *widget,
 {
     cairo_t *cr;
 
-    guint width = widget->allocation.width,
-          height = widget->allocation.height;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+    guint width = allocation.width,
+          height = allocation.height;
 
     gfloat summary_scale;
 
@@ -2202,7 +2215,7 @@ draw_summary_expose_event(GtkWidget *widget,
 
     if( summary_pixmap) {
         gc = gdk_gc_new(summary_pixmap);
-        gdk_draw_drawable(widget->window, gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
+        gdk_draw_drawable(gtk_widget_get_window(widget), gc, summary_pixmap, 0, 0, 0, 0, -1, -1);
         g_object_unref(gc);
     }
 
@@ -2210,7 +2223,7 @@ draw_summary_expose_event(GtkWidget *widget,
      * Draw shadow in summary pixmap to show current view
      **/
 
-    cr = gdk_cairo_create( widget->window);
+    cr = gdk_cairo_create(gtk_widget_get_window(widget));
 
     cairo_set_source_rgba( cr, 0, 0, 0, 0.3);
     cairo_rectangle( cr, 0, 0, pixmap_offset / summary_scale, height);
@@ -2242,7 +2255,9 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
         return TRUE;
     }
 
-    width = widget->allocation.width;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+    width = allocation.width;
     x_scale = graphData.numSamples / width;
     x_scale_leftover = graphData.numSamples % width;
     if (x_scale_leftover > 0) {
@@ -2266,7 +2281,9 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
 
 void reset_sample_display(guint midpoint)
 {
-    int width = draw->allocation.width;
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(draw, &allocation);
+    int width = allocation.width;
     int start = midpoint - width / 2;
 
     if (graphData.numSamples == 0) {
@@ -2299,7 +2316,7 @@ static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
         return FALSE;
     }
 
-    pixmap_offset = adj->value;
+    pixmap_offset = gtk_adjustment_get_value(adj);
 
     redraw();
 
@@ -2314,9 +2331,9 @@ static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer dat
         return;
     }
 
-    min = cursor_marker_min_spinner_adj->value;
-    sec = cursor_marker_sec_spinner_adj->value;
-    subsec = cursor_marker_subsec_spinner_adj->value;
+    min = gtk_adjustment_get_value(cursor_marker_min_spinner_adj);
+    sec = gtk_adjustment_get_value(cursor_marker_sec_spinner_adj);
+    subsec = gtk_adjustment_get_value(cursor_marker_subsec_spinner_adj);
 
     cursor_marker = time_to_offset (min, sec, subsec);
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_spinner), cursor_marker);
@@ -2330,7 +2347,7 @@ static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
     if (sample_is_playing()) {
         return;
     }
-    cursor_marker = adj->value;
+    cursor_marker = gtk_adjustment_get_value(adj);
     /*
     printf("adj->value: %lu\n", adj->value);
     printf("cursor_marker: %lu\n", cursor_marker);
@@ -2345,9 +2362,9 @@ static gboolean scroll_event( GtkWidget *widget, GdkEventScroll *event, gpointer
 {
     long step, upper, size;
 
-    step = GTK_ADJUSTMENT(adj)->page_increment;
-    upper = GTK_ADJUSTMENT(adj)->upper;
-    size = GTK_ADJUSTMENT(adj)->page_size;
+    step = gtk_adjustment_get_page_increment(adj);
+    upper = gtk_adjustment_get_upper(adj);
+    size = gtk_adjustment_get_page_size(adj);
 
     if( widget == draw) {
         /* Scroll in more detail on the zoomed view */
@@ -2799,7 +2816,7 @@ menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widg
         appconfig_set_show_toolbar( 1);
     } else {
         if( toolbar) {
-            gtk_widget_hide_all( GTK_WIDGET(toolbar));
+            gtk_widget_hide(GTK_WIDGET(toolbar));
         }
         appconfig_set_show_toolbar( 0);
     }
@@ -2863,7 +2880,7 @@ static void save_window_sizes()
 {
     gint x, y, w, h;
 
-    gdk_window_get_root_origin (GDK_WINDOW(main_window->window), &x, &y);
+    gdk_window_get_root_origin(GDK_WINDOW(gtk_widget_get_window(main_window)), &x, &y);
     gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
     /*
     g_print("w: %d\n", w);
@@ -3274,7 +3291,7 @@ int main(int argc, char **argv)
 //    gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
 
 /* Add scrollbar */
-    adj = gtk_adjustment_new(0, 0, 100, 1, 10, 100);
+    adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 100, 1, 10, 100));
     g_signal_connect(G_OBJECT(adj), "value_changed",
              G_CALLBACK(adj_value_changed), NULL);
 
@@ -3419,7 +3436,7 @@ int main(int argc, char **argv)
     if( appconfig_get_show_toolbar()) {
         gtk_widget_show_all( GTK_WIDGET(toolbar));
     } else {
-        gtk_widget_hide_all( GTK_WIDGET(toolbar));
+        gtk_widget_hide(GTK_WIDGET(toolbar));
     }
 
     handle_arguments( argc, argv);

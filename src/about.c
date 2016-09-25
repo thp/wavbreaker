@@ -21,7 +21,6 @@
 #endif
 
 #include <gtk/gtk.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "gettext.h"
 #include "wavbreaker.h"

@@ -36,6 +36,8 @@
 
 static GtkWidget *window;
 
+static gboolean loading_ui = FALSE;
+
 static int config_file_version = 2;
 
 /* Function pointers to the currently selected audio driver. */
@@ -317,6 +319,10 @@ void set_config_filename(const char *val)
 
 static void use_outputdir_toggled(GtkWidget *widget, gpointer user_data)
 {
+    if (loading_ui) {
+        return;
+    }
+
     if (appconfig_get_use_outputdir()) {
         // disable the output dir widget
         gtk_widget_set_sensitive(outputdir_entry, FALSE);
@@ -341,7 +347,11 @@ static void use_etree_filename_suffix_toggled(GtkWidget *widget, gpointer user_d
 
 static void radio_buttons_toggled(GtkWidget *widget, gpointer user_data)
 {
-    if( GTK_TOGGLE_BUTTON(radio1)->active == TRUE) {
+    if (loading_ui) {
+        return;
+    }
+
+    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio1)) == TRUE) {
         gtk_widget_set_sensitive( prepend_file_number_toggle, TRUE);
         gtk_widget_set_sensitive( etree_filename_suffix_entry, TRUE);
         gtk_widget_set_sensitive( etree_filename_suffix_label, TRUE);
@@ -358,6 +368,10 @@ static void radio_buttons_toggled(GtkWidget *widget, gpointer user_data)
 
 static void prepend_file_number_toggled(GtkWidget *widget, gpointer user_data)
 {
+    if (loading_ui) {
+        return;
+    }
+
     if (appconfig_get_prepend_file_number()) {
         appconfig_set_prepend_file_number(0);
     } else {
@@ -425,7 +439,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions( window->window, GDK_FUNC_MOVE);
+    gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
     gtk_window_set_title( GTK_WINDOW(window), _("wavbreaker Preferences"));
 
     /* create the vbox for the first tab */
@@ -534,39 +548,21 @@ void appconfig_show(GtkWidget *main_window)
     g_signal_connect(GTK_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
 
-    if (appconfig_get_use_outputdir()) {
-        // enable the output dir widget
-        gtk_widget_set_sensitive(outputdir_entry, TRUE);
-        gtk_widget_set_sensitive(browse_button, TRUE);
+    loading_ui = TRUE;
 
-        //gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), TRUE);
-        // set directly so the toggled event is not emitted
-        GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = TRUE;
-    } else {
-        // disable the output dir widget
-        gtk_widget_set_sensitive(outputdir_entry, FALSE);
-        gtk_widget_set_sensitive(browse_button, FALSE);
+    gboolean use_output_dir = appconfig_get_use_outputdir() ? TRUE : FALSE;
+    gtk_widget_set_sensitive(outputdir_entry, use_output_dir);
+    gtk_widget_set_sensitive(browse_button, use_output_dir);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), use_output_dir);
 
-        //gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_outputdir_toggle), FALSE);
-        // set directly so the toggled event is not emitted
-        GTK_TOGGLE_BUTTON(use_outputdir_toggle)->active = FALSE;
-    }
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(prepend_file_number_toggle),
+            appconfig_get_prepend_file_number() ? TRUE : FALSE);
 
-    if (appconfig_get_prepend_file_number()) {
-        GTK_TOGGLE_BUTTON(prepend_file_number_toggle)->active = TRUE;
-    } else {
-        GTK_TOGGLE_BUTTON(prepend_file_number_toggle)->active = FALSE;
-    }
+    gboolean use_etree = appconfig_get_use_etree_filename_suffix() ? TRUE : FALSE;
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio1), !use_etree);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio2), use_etree);
 
-    if (appconfig_get_use_etree_filename_suffix()) {
-        // set directly so the toggled event is not emitted
-        GTK_TOGGLE_BUTTON(radio1)->active = FALSE;
-        GTK_TOGGLE_BUTTON(radio2)->active = TRUE;
-    } else {
-        // set directly so the toggled event is not emitted
-        GTK_TOGGLE_BUTTON(radio1)->active = TRUE;
-        GTK_TOGGLE_BUTTON(radio2)->active = FALSE;
-    }
+    loading_ui = FALSE;
 
     gtk_widget_show_all(window);
     set_audio_function_pointers();
