@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 4 -*- */
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2004 Timothy Robinson
  *
@@ -25,24 +26,23 @@
 int main(int argc, char *argv[])
 {
     int i;
-    
+
     if( argc < 2) {
         printf( "Usage: %s [file1.wav] [...]\n", basename( argv[0]));
         return 1;
     }
-    
+
     for( i = 1; i < argc; i++) {
         SampleInfo sampleInfo;
-    
+
         printf( "Header info for: %s\n", argv[i]);
-    
+
         if( wav_read_header( argv[i], &sampleInfo, 1) != 0) {
             printf("%s", wav_get_error_message());
         }
 
         printf("\n");
     }
-    
+
     return 0;
 }
-
