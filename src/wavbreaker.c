@@ -88,8 +88,7 @@ static GtkAction *action_check_all;
 static GtkAction *action_check_none;
 static GtkAction *action_check_invert;
 static GtkAction *action_jump_cursor;
-static GtkAction *action_import_text;
-static GtkAction *action_import_toc;
+static GtkAction *action_import;
 static GtkAction *action_playback;
 static GtkAction *action_next_silence;
 static GtkAction *action_prev_silence;
@@ -257,10 +256,7 @@ static void
 menu_delete_track_break(GtkWidget *widget, gpointer user_data);
 
 static void
-menu_import_text(GtkWidget *widget, gpointer user_data);
-
-static void
-menu_import_toc(GtkWidget *widget, gpointer user_data);
+menu_import(GtkWidget *widget, gpointer user_data);
 
 static void
 menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -1542,8 +1538,7 @@ static void open_file() {
     gtk_action_set_sensitive( action_split, TRUE);
     gtk_action_set_sensitive( action_moodbar, TRUE);
     gtk_action_set_sensitive( action_export, TRUE);
-    gtk_action_set_sensitive( action_import_text, TRUE);
-    gtk_action_set_sensitive( action_import_toc, TRUE);
+    gtk_action_set_sensitive( action_import, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
     gtk_action_set_sensitive( action_next_silence, TRUE);
     gtk_action_set_sensitive( action_prev_silence, TRUE);
@@ -2709,71 +2704,27 @@ void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
     track_break_delete_entry();
 }
 
-void menu_import_text(GtkWidget *widget, gpointer user_data)
+void menu_import(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
     GtkFileFilter *filter_supported;
     gchar* filename = NULL;
+    int rc;
 
     filename = g_strdup( sample_filename);
     strcpy( filename + strlen( filename) - 3, "txt");
-
 
     filter_all = gtk_file_filter_new();
     gtk_file_filter_set_name( filter_all, _("All files"));
     gtk_file_filter_add_pattern( filter_all, "*");
 
     filter_supported = gtk_file_filter_new();
-    gtk_file_filter_set_name( filter_supported, _("Text files"));
+    gtk_file_filter_set_name( filter_supported, _("Supported files"));
     gtk_file_filter_add_pattern( filter_supported, "*.txt");
-
-    dialog = gtk_file_chooser_dialog_new(_("Load track breaks from file"), GTK_WINDOW(main_window),
-        GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-        GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
-
-    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
-    gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
-    gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
-
-    gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), filename);
-
-    if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        track_breaks_load_from_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
-    }
-
-    g_free( filename);
-
-    gtk_widget_destroy(dialog);
-}
-
-void menu_add_track_break(GtkWidget *widget, gpointer user_data)
-{
-    track_break_add_entry();
-}
-
-void
-menu_import_toc(GtkWidget *widget, gpointer user_data)
-{
-    GtkWidget *dialog;
-    GtkFileFilter *filter_all;
-    GtkFileFilter *filter_supported;
-    gchar* filename = NULL;
-    int  rc;
-
-    filename = g_strdup( sample_filename);
-    strcpy( filename + strlen( filename) - 3, "txt");
-
-
-    filter_all = gtk_file_filter_new();
-    gtk_file_filter_set_name( filter_all, _("All files"));
-    gtk_file_filter_add_pattern( filter_all, "*");
-
-    filter_supported = gtk_file_filter_new();
-    gtk_file_filter_set_name( filter_supported, _("TOC files"));
     gtk_file_filter_add_pattern( filter_supported, "*.toc");
 
-    dialog = gtk_file_chooser_dialog_new(_("Load track breaks from TOC file"), GTK_WINDOW(main_window),
+    dialog = gtk_file_chooser_dialog_new(_("Import track breaks from file"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
 
@@ -2784,10 +2735,15 @@ menu_import_toc(GtkWidget *widget, gpointer user_data)
     gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), filename);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        rc = toc_read_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)), track_break_list);
-        if( rc ) {
-            popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the TOC file."));
-        }
+	gchar const *selected = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
+	if (g_str_has_suffix( selected, ".toc") || g_str_has_suffix( selected, ".TOC")) {
+	    rc = toc_read_file( selected, track_break_list);
+	    if( rc ) {
+		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the TOC file."));
+	    }
+	} else {
+	    track_breaks_load_from_file( selected);
+	}
     }
 
     g_free( filename);
@@ -2795,6 +2751,11 @@ menu_import_toc(GtkWidget *widget, gpointer user_data)
     gtk_widget_destroy(dialog);
 
     force_redraw();
+}
+
+void menu_add_track_break(GtkWidget *widget, gpointer user_data)
+{
+    track_break_add_entry();
 }
 
 static void
@@ -3025,16 +2986,11 @@ void init_actions()
     gtk_action_group_add_action_with_accel( action_group, action_export, "<control>E");
     gtk_action_set_sensitive( action_export, FALSE);
 
-    action_import_toc = gtk_action_new( "import-toc", _("_Import from TOC"), _("Import track breaks from TOC file"), GTK_STOCK_CDROM);
-    g_signal_connect( action_import_toc, "activate", G_CALLBACK(menu_import_toc), NULL);
-    gtk_action_set_accel_group( action_import_toc, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_import_toc, "<control>I");
-    gtk_action_set_sensitive( action_import_toc, FALSE);
-
-    action_import_text = gtk_action_new( "import-text", _("_Load offsets from text file"), _("Load track breaks from text file"), GTK_STOCK_OPEN);
-    g_signal_connect( action_import_text, "activate", G_CALLBACK(menu_import_text), NULL);
-    gtk_action_set_accel_group( action_import_text, accel_group);
-    gtk_action_set_sensitive( action_import_text, FALSE);
+    action_import = gtk_action_new( "import", _("_Import track breaks..."), _("Import track breaks from text or TOC file"), GTK_STOCK_CDROM);
+    g_signal_connect( action_import, "activate", G_CALLBACK(menu_import), NULL);
+    gtk_action_set_accel_group( action_import, accel_group);
+    gtk_action_group_add_action_with_accel( action_group, action_import, "<control>I");
+    gtk_action_set_sensitive( action_import, FALSE);
 
     action_playback = gtk_action_new( "playback", _("Play"), _("Start/Stop playback of media"), GTK_STOCK_MEDIA_PLAY);
     g_signal_connect( action_playback, "activate", G_CALLBACK(menu_play), NULL);
@@ -3144,6 +3100,8 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_to));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import));
+    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_guimerge));
@@ -3162,9 +3120,6 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_rename));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_toc));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import_text));
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_Go"));
     gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
