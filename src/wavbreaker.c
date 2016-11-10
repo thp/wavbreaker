@@ -45,6 +45,7 @@
 #include "popupmessage.h"
 #include "overwritedialog.h"
 #include "toc.h"
+#include "cue.h"
 #include "reallyquit.h"
 #include "guimerge.h"
 
@@ -2723,6 +2724,7 @@ void menu_import(GtkWidget *widget, gpointer user_data)
     gtk_file_filter_set_name( filter_supported, _("Supported files"));
     gtk_file_filter_add_pattern( filter_supported, "*.txt");
     gtk_file_filter_add_pattern( filter_supported, "*.toc");
+    gtk_file_filter_add_pattern( filter_supported, "*.cue");
 
     dialog = gtk_file_chooser_dialog_new(_("Import track breaks from file"), GTK_WINDOW(main_window),
         GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -2740,6 +2742,11 @@ void menu_import(GtkWidget *widget, gpointer user_data)
 	    rc = toc_read_file( selected, track_break_list);
 	    if( rc ) {
 		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the TOC file."));
+	    }
+	} else if (g_str_has_suffix( selected, ".cue") || g_str_has_suffix( selected, ".CUE")) {
+	    rc = cue_read_file( selected, track_break_list);
+	    if( rc ) {
+		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the CUE file."));
 	    }
 	} else {
 	    track_breaks_load_from_file( selected);
@@ -3501,6 +3508,7 @@ void track_break_write_cue( gpointer data, gpointer user_data) {
     fprintf( ws->fp, "TRACK %02d AUDIO\n", ws->index);
     fprintf( ws->fp, "INDEX 01 %s\n", time);
     ws->index++;
+    free( time);
 }
 
 int track_breaks_load_from_file( char* filename) {
@@ -3554,4 +3562,39 @@ int track_breaks_load_from_file( char* filename) {
     fclose( fp);
     force_redraw();
     return 0;
+}
+
+/** @param str Time in MM:SS:FF format (where there are CD_BLOCKS_PER_SEC frames per second).
+ *  @return offset in frames.
+ */
+guint
+msf_time_to_offset( gchar *str )
+{
+    char   buf[1024];
+    uint   parse[3];
+    gchar  *aptr, *bptr;
+    int    index;
+    uint   offset;
+
+
+    strncpy( buf, str, 1024 );
+
+    aptr = buf;
+    for( index = 0; index < 2; index++ ) {
+	bptr = memchr( aptr, ':', 1024 );
+	if( aptr == NULL ) {
+	    return 0;
+	}
+	*bptr = '\0';
+	parse[index] = atoi( aptr );
+	aptr = ++bptr;
+    }
+
+    parse[index] = atoi( aptr );
+
+    offset  = parse[0] * CD_BLOCKS_PER_SEC * 60;
+    offset += parse[1] * CD_BLOCKS_PER_SEC;
+    offset += parse[2];
+
+    return offset;
 }

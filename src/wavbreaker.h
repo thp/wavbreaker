@@ -78,6 +78,8 @@ void track_break_add_offset( char* filename, guint offset);
 void track_break_clear_list();
 void wavbreaker_quit();
 
+guint msf_time_to_offset( gchar *str );
+
 extern char *sample_filename;
 
 enum {
@@ -91,7 +93,7 @@ enum {
 #define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
 
 /**
- * When the play marker reaches (x-1)/x (where x is the 
+ * When the play marker reaches (x-1)/x (where x is the
  * value of PLAY_MARKER_SCROLL), scroll the waveform so
  * that the play marker continues at position 1/x.
  *
