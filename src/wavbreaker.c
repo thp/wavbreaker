@@ -204,7 +204,7 @@ void track_break_set_durations();
 void track_break_set_duration(gpointer data, gpointer user_data);
 
 int track_breaks_export_to_file( char* filename);
-int track_breaks_load_from_file( char* filename);
+int track_breaks_load_from_file( gchar const *filename);
 void track_break_write_text( gpointer data, gpointer user_data);
 void track_break_write_cue( gpointer data, gpointer user_data);
 
@@ -3510,7 +3510,7 @@ void track_break_write_cue( gpointer data, gpointer user_data) {
     free( time);
 }
 
-int track_breaks_load_from_file( char* filename) {
+int track_breaks_load_from_file( gchar const *filename) {
     FILE* fp;
     char tmp[1024];
     char* ptr;
