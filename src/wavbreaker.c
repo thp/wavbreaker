@@ -3108,7 +3108,6 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_to));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_guimerge));
