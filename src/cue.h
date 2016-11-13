@@ -19,7 +19,7 @@
 #ifndef CUE_H
 #define CUE_H
 
-#include <gtk/gtk.h>
+#include <glib.h>
 
 int cue_read_file(const char *cue_filename, GList *breaks);
 
