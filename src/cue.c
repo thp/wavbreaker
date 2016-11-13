@@ -23,45 +23,56 @@
 int cue_read_file(const char *cue_filename, GList *breaks)
 {
 	FILE *fp;
+	/* These buffers must have the same length */
+	char line_buf[1024];
 	char buf[1024];
 	int next_track = 1;
 
-	fp = fopen( cue_filename, "r" );
-	if( !fp ) return 1;
+	fp = fopen(cue_filename, "r");
+	if (!fp) return 1;
 
 	track_break_clear_list();
 
-	/* Ignore FILE "foo.wav" WAVE line */
-	if (!fgets( buf, 1024, fp)) {
-		fclose( fp );
+	/* Read the first line: FILE "foo.wav" WAVE */
+	if (!fgets(line_buf, sizeof(line_buf), fp)) {
+		fclose(fp);
+		return 1;
+	}
+
+	/* Check that it starts with FILE and ends with WAVE */
+	if (sscanf(line_buf, "FILE %s WAVE", buf) != 1) {
+		fclose(fp);
 		return 1;
 	}
 
 	while (!feof(fp)) {
-		char A[64];
 		int N;
-		char B[64];
 		int read;
 		guint offset;
 
-		read = fscanf( fp, "%s %02d %s", A, &N, B);
+		read = fscanf(fp, "TRACK %02d AUDIO\n", &N);
 		if (read == EOF) {
 			return 0;
 		}
 
-		if (strcmp( A, "TRACK") || strcmp( B, "AUDIO") || N != next_track) {
-			fclose( fp);
+		if (read != 1 || N != next_track) {
+			fclose(fp);
 			return 1;
 		}
 
-		read = fscanf( fp, "%s %02d %s", A, &N, B);
-		if (read != 3 || strcmp( A, "INDEX") || N != 1) {
-			fclose( fp);
+		if (!fgets(line_buf, sizeof(line_buf), fp)) {
+			fclose(fp);
 			return 1;
 		}
 
-		offset = msf_time_to_offset( B);
-		track_break_add_offset( (char *)-1, offset );
+		read = sscanf(line_buf, "INDEX %02d %s", &N, buf);
+		if (read != 2 || N != 1) {
+			fclose(fp);
+			return 1;
+		}
+
+		offset = msf_time_to_offset(buf);
+		track_break_add_offset((char *)-1, offset);
 
 		++next_track;
 	}
