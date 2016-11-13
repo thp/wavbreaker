@@ -3569,31 +3569,18 @@ int track_breaks_load_from_file( gchar const *filename) {
 guint
 msf_time_to_offset( gchar *str )
 {
-    char   buf[1024];
-    uint   parse[3];
-    gchar  *aptr, *bptr;
-    int    index;
     uint   offset;
+    int    mm = 0, ss = 0, ff = 0;
+    int    consumed;
 
-
-    strncpy( buf, str, 1024 );
-
-    aptr = buf;
-    for( index = 0; index < 2; index++ ) {
-	bptr = memchr( aptr, ':', 1024 );
-	if( aptr == NULL ) {
-	    return 0;
-	}
-	*bptr = '\0';
-	parse[index] = atoi( aptr );
-	aptr = ++bptr;
+    consumed = sscanf(str, "%d:%d:%d", &mm, &ss, &ff);
+    if (consumed != 3) {
+	return 0;
     }
 
-    parse[index] = atoi( aptr );
-
-    offset  = parse[0] * CD_BLOCKS_PER_SEC * 60;
-    offset += parse[1] * CD_BLOCKS_PER_SEC;
-    offset += parse[2];
+    offset  = mm * CD_BLOCKS_PER_SEC * 60;
+    offset += ss * CD_BLOCKS_PER_SEC;
+    offset += ff;
 
     return offset;
 }
