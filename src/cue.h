@@ -1,6 +1,5 @@
-/* -*- c-basic-offset: 4 -*- */
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2004 Timothy Robinson
+ * Copyright (C) 2002-2005 Timothy Robinson
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,32 +16,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <libgen.h>
-#include "wav.h"
-#include "sample.h"
+#ifndef CUE_H
+#define CUE_H
 
-int main(int argc, char *argv[])
-{
-    int i;
+#include <glib.h>
 
-    if( argc < 2) {
-        printf( "Usage: %s [file1.wav] [...]\n", basename( argv[0]));
-        return 1;
-    }
+int cue_read_file(const char *cue_filename, GList *breaks);
 
-    for( i = 1; i < argc; i++) {
-        SampleInfo sampleInfo;
-
-        printf( "Header info for: %s\n", argv[i]);
-
-        if( wav_read_header( argv[i], &sampleInfo, 1) != 0) {
-            printf("%s", wav_get_error_message());
-        }
-
-        printf("\n");
-    }
-
-    return 0;
-}
+#endif /* CUE_H */

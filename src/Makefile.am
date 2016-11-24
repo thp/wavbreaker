@@ -6,7 +6,7 @@ DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@
 
 bin_PROGRAMS = wavbreaker wavmerge wavinfo wavgen
 
-wavbreaker_SOURCES = cdda.c sample.c wav.c wavbreaker.c about.c \
+wavbreaker_SOURCES = cdda.c cue.c sample.c wav.c wavbreaker.c about.c \
 	appconfig.c autosplit.c popupmessage.c saveas.c browsedir.c \
 	toc.c reallyquit.c fileutils.c overwritedialog.c \
 	guimerge.c aoaudio.c

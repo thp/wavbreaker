@@ -69,7 +69,7 @@ int toc_read_file(const char *toc_filename, GList *breaks)
 	eptr += 6;
 	*eptr = '\0';
 
-	offset = time_to_offset( ptr );
+	offset = msf_time_to_offset( ptr );
 	track_break_add_offset( (char *)-1, offset );
     } while( !feof( fp ) );
 
@@ -147,38 +147,6 @@ char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime) {
     #endif
 
     return tocTime;
-}
-
-guint
-time_to_offset( gchar *str )
-{
-    char   buf[1024];
-    uint   parse[3];
-    gchar  *aptr, *bptr;
-    int    index;
-    uint   offset;
-
-
-    strncpy( buf, str, 1024 );
-
-    aptr = buf;
-    for( index = 0; index < 2; index++ ) {
-	bptr = memchr( aptr, ':', 1024 );
-	if( aptr == NULL ) {
-	    return 0;
-	}
-	*bptr = '\0';
-	parse[index] = atoi( aptr );
-	aptr = ++bptr;
-    }
-
-    parse[index] = atoi( aptr );
-
-    offset  = parse[0] * CD_BLOCKS_PER_SEC * 60;
-    offset += parse[1] * CD_BLOCKS_PER_SEC;
-    offset += parse[2];
-
-    return offset;
 }
 
 /* min = time / (CD_BLOCKS_PER_SEC * 60); */
