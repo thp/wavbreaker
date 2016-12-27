@@ -722,7 +722,7 @@ void track_break_print_element(gpointer data, gpointer user_data)
     printf("filename: %s", breakup->filename);
     printf("\ttime: %s", breakup->time);
     printf("\tduration: %s", breakup->duration);
-    printf("\toffset: %d\n", breakup->offset);
+    printf("\toffset: %lu\n", breakup->offset);
 }
 /* DEBUG FUNCTION END */
 
@@ -1051,7 +1051,7 @@ void track_break_add_entry()
     force_redraw();
 }
 
-void track_break_add_offset( char* filename, guint offset)
+void track_break_add_offset( char* filename, gulong offset)
 {
     TrackBreak *track_break = NULL;
 
@@ -3483,9 +3483,9 @@ void track_break_write_text( gpointer data, gpointer user_data) {
     TrackBreak* track_break = (TrackBreak*)data;
 
     if( track_break->write) {
-        fprintf( fp, "%d=%s\n", track_break->offset, track_break->filename);
+        fprintf(fp, "%lu=%s\n", track_break->offset, track_break->filename);
     } else {
-        fprintf( fp, "%d\n", track_break->offset);
+        fprintf(fp, "%lu\n", track_break->offset);
     }
 }
 
@@ -3537,13 +3537,13 @@ int track_breaks_load_from_file( gchar const *filename) {
                 fname = strchr( tmp, '=');
                 if( fname == NULL) {
                     //DEBUG: printf( "Empty cut at %d\n", atoi( tmp));
-                    track_break_add_offset( NULL, atoi( tmp));
+                    track_break_add_offset(NULL, atol(tmp));
                 } else {
                     *(fname++) = '\0';
                     while( *fname == ' ')
                         fname++;
                     //DEBUG: printf( "Cut at %d for %s\n", atoi( tmp), fname);
-                    track_break_add_offset( fname, atoi( tmp));
+                    track_break_add_offset(fname, atol(tmp));
                 }
             }
             ptr = tmp;
