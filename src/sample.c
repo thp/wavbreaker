@@ -513,7 +513,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
                 sampleInfo.bufferSize = DEFAULT_BUF_SIZE;
                 sampleInfo.blockSize = sampleInfo.avgBytesPerSec / CD_BLOCKS_PER_SEC;
                 sampleInfo.numBytes = mpg123_length(mpg123) * sampleInfo.blockAlign;
-                fprintf(stderr, "Channels: %d, rate: %d, bits: %d, decoded size: %u\n",
+                fprintf(stderr, "Channels: %d, rate: %d, bits: %d, decoded size: %lu\n",
                         sampleInfo.channels, sampleInfo.samplesPerSec,
                         sampleInfo.bitsPerSample, sampleInfo.numBytes);
 
@@ -595,14 +595,14 @@ static void sample_max_min(GraphData *graphData, double *pct)
     int min, max, xtmp;
     int min_sample, max_sample;
     long int i, k;
-    int numSampleBlocks;
+    long int numSampleBlocks;
     long int tmp_sample_calc;
     unsigned char devbuf[sampleInfo.blockSize];
     Points *graph_data;
 
     tmp_sample_calc = sampleInfo.numBytes;
     tmp_sample_calc = tmp_sample_calc / sampleInfo.blockSize;
-    numSampleBlocks = (int) (tmp_sample_calc + 1);
+    numSampleBlocks = (tmp_sample_calc + 1);
 
     /* DEBUG CODE START */
     /*
@@ -639,7 +639,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
     min_sample = SHRT_MAX; /* highest value for 16-bit samples */
     max_sample = 0;
 
-    while (ret == sampleInfo.blockSize) {
+    while (ret == sampleInfo.blockSize && i < numSampleBlocks) {
         min = max = 0;
         for (k = 0; k < ret; k++) {
             if (sampleInfo.bitsPerSample == 8) {

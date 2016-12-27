@@ -37,7 +37,7 @@ struct SampleInfo_ {
     unsigned int    avgBytesPerSec;
     unsigned short  blockAlign;
     unsigned short  bitsPerSample;
-    unsigned int    numBytes;
+    unsigned long   numBytes;
     unsigned int    bufferSize;
     unsigned int    blockSize;
 };
