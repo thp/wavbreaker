@@ -23,6 +23,7 @@ po/stamp-po
 src/*.o
 src/wavbreaker
 src/wavinfo
+src/wavgen
 src/wavmerge
 src/Makefile
 src/Makefile.in
