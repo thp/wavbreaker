@@ -25,7 +25,6 @@
 
 #include "wav.h"
 #include "sample.h"
-#include "fileutils.h"
 
 
 typedef void (*ampfreq_func_t)(float, float *, float *);
@@ -134,7 +133,7 @@ main(int argc, char *argv[])
         printf("%s ... ", filename);
         fflush(stdout);
 
-        if (check_file_exists(filename)) {
+        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
             printf("EXISTS\n");
         } else {
             FILE *fp = fopen(filename, "wb");

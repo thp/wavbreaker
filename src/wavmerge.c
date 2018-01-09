@@ -24,7 +24,6 @@
 
 #include "sample.h"
 #include "wav.h"
-#include "fileutils.h"
 
 void usage() {
     printf("Must pass filenames of wave files to merge.\n");
@@ -56,7 +55,7 @@ int main(int argc, char *argv[])
         filenames = &argv[1];
     }
 
-    if (check_file_exists(merge_filename)) {
+    if (g_file_test(merge_filename, G_FILE_TEST_EXISTS)) {
         fprintf(stderr, "ERROR: The output file %s already exists.\n", merge_filename);
         return 2;
     }

@@ -36,7 +36,6 @@
 #include "wav.h"
 #include "cdda.h"
 #include "appconfig.h"
-#include "fileutils.h"
 #include "overwritedialog.h"
 #include "gettext.h"
 
@@ -803,7 +802,7 @@ write_thread(gpointer data)
             write_info->cur_filename = strdup(filename);
 
             if (write_info->skip_file < 2) {
-                if (check_file_exists(filename)) {
+                if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
                     write_info->skip_file = -1;
                     write_info->check_file_exists = 1;
                     // sync the threads to wait on overwrite question
