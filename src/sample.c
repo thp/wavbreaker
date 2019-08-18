@@ -121,8 +121,10 @@ mp3_read_sample(mpg123_handle *handle,
                 unsigned long start_pos)
 {
     unsigned long result = -1;
+    gboolean retried = FALSE;
 
     if (mpg123_offset != start_pos) {
+retry:
         mpg123_seek(handle, start_pos / sampleInfo.blockAlign, SEEK_SET);
         mpg123_offset = start_pos;
     }
@@ -131,6 +133,11 @@ mp3_read_sample(mpg123_handle *handle,
         mpg123_offset += result;
     } else {
         fprintf(stderr, "MP3 decoding failed: %s\n", mpg123_strerror(mpg123));
+        if (!retried) {
+            fprintf(stderr, "Retrying read...\n");
+            retried = TRUE;
+            goto retry;
+        }
     }
 
     return result;
