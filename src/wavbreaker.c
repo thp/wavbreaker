@@ -1743,7 +1743,7 @@ static void draw_sample_surface(GtkWidget *widget)
     int width, height;
     int y_min, y_max;
     int scale;
-    int i;
+    long i;
     cairo_t *cr;
 
     int shade;
