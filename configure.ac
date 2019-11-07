@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(wavbreaker, 0.11)
+AC_INIT(wavbreaker, 0.12-alpha)
 AC_CONFIG_SRCDIR(src/wavbreaker.h)
 AM_INIT_AUTOMAKE(1.9)
 AM_CONFIG_HEADER(config.h)
