@@ -384,7 +384,7 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
         moodbar_pid = fork();
 
         if( moodbar_pid == 0) {
-            if( execlp( "moodbar", "moodbar", filename, "-o", fn, (char*)NULL) == -1) {
+            if( execlp( "moodbar", "moodbar", "-o", fn, filename, (char*)NULL) == -1) {
                 fprintf( stderr, "Error running moodbar: %s (Have you installed the \"moodbar\" package?)\n", strerror( errno));
                 _exit( -1);
             }
