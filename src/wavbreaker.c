@@ -60,12 +60,14 @@ static cairo_surface_t *sample_surface;
 static cairo_surface_t *summary_surface;
 
 static GtkWidget *main_window;
+static GtkWidget *header_bar;
+static GtkWidget *header_bar_play_button;
+static GtkWidget *header_bar_save_button;
 static GtkWidget *vpane1, *vpane2;
 static GtkWidget *scrollbar;
 static GtkAdjustment *adj;
 static GtkWidget *draw;
 static GtkWidget *draw_summary;
-static GtkWidget *statusbar;
 
 /* Actions for wavbreaker */
 static GtkAction *action_open;
@@ -75,7 +77,6 @@ static GtkAction *action_preferences;
 static GtkAction *action_guimerge;
 static GtkAction *action_quit;
 
-static GtkToggleAction *action_view_toolbar;
 static GtkToggleAction *action_view_moodbar;
 
 static GtkAction *action_add_break;
@@ -107,12 +108,12 @@ static GtkWidget *button_add_break;
 static GtkWidget *button_remove_break;
 static GtkWidget *button_rename;
 
-static GtkWidget *toolbar;
-
 static GtkAdjustment *cursor_marker_spinner_adj;
 static GtkAdjustment *cursor_marker_min_spinner_adj;
 static GtkAdjustment *cursor_marker_sec_spinner_adj;
 static GtkAdjustment *cursor_marker_subsec_spinner_adj;
+
+static GtkMenu *menu_widget;
 
 static GraphData graphData;
 
@@ -262,9 +263,6 @@ menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
-
-static void
-menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
 menu_view_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
@@ -1533,6 +1531,8 @@ static void open_file() {
     gtk_action_set_sensitive( action_export, TRUE);
     gtk_action_set_sensitive( action_import, TRUE);
     gtk_action_set_sensitive( action_playback, TRUE);
+    gtk_widget_set_sensitive( header_bar_play_button, TRUE);
+    gtk_widget_set_sensitive( header_bar_save_button, TRUE);
     gtk_action_set_sensitive( action_next_silence, TRUE);
     gtk_action_set_sensitive( action_prev_silence, TRUE);
 
@@ -1590,11 +1590,13 @@ static void set_title( char* title)
 
   if( title == NULL) {
     gtk_window_set_title( (GtkWindow*)main_window, APPNAME);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), APPNAME);
     return;
   }
 
   sprintf( buf, "%s (%s)", APPNAME, title);
   gtk_window_set_title( (GtkWindow*)main_window, buf);
+  gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), buf);
 }
 
 static void open_select_file() {
@@ -2468,7 +2470,7 @@ static void update_status(gboolean update_time_offset) {
         strcat(str, strbuf);
     }
 
-    gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
+    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(header_bar), str);
 }
 
 static void menu_play(GtkWidget *widget, gpointer user_data)
@@ -2506,11 +2508,17 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
 static void set_stop_icon() {
     g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_STOP, NULL);
     g_object_set( action_playback, "label", _("Stop"), NULL);
+
+    gtk_button_set_image(GTK_BUTTON(header_bar_play_button),
+            gtk_image_new_from_icon_name("media-playback-stop-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
 }
 
 static void set_play_icon() {
     g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
     g_object_set( action_playback, "label", _("Play"), NULL);
+
+    gtk_button_set_image(GTK_BUTTON(header_bar_play_button),
+            gtk_image_new_from_icon_name("media-playback-start-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
 }
 
 static void menu_stop(GtkWidget *widget, gpointer user_data)
@@ -2757,22 +2765,6 @@ menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 }
 
 static void
-menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
-{
-    if( gtk_toggle_action_get_active( GTK_TOGGLE_ACTION(action_view_toolbar))) {
-        if( toolbar) {
-            gtk_widget_show_all( GTK_WIDGET(toolbar));
-        }
-        appconfig_set_show_toolbar( 1);
-    } else {
-        if( toolbar) {
-            gtk_widget_hide(GTK_WIDGET(toolbar));
-        }
-        appconfig_set_show_toolbar( 0);
-    }
-}
-
-static void
 menu_view_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
     if( !gtk_action_get_sensitive( GTK_ACTION(action_view_moodbar))) {
@@ -2899,12 +2891,6 @@ void init_actions()
     gtk_action_set_accel_group( action_quit, accel_group);
     gtk_action_group_add_action_with_accel( action_group, action_quit, "<control>Q");
 
-    action_view_toolbar = gtk_toggle_action_new( "view-toolbar", _("Display toolbar"), _("Show or hide the main window toolbar"), NULL);
-    g_signal_connect( action_view_toolbar, "activate", G_CALLBACK(menu_view_toolbar), NULL);
-    gtk_action_set_accel_group( GTK_ACTION(action_view_toolbar), accel_group);
-    gtk_action_group_add_action_with_accel( action_group, GTK_ACTION(action_view_toolbar), "<control>T");
-    gtk_toggle_action_set_active( action_view_toolbar, appconfig_get_show_toolbar()?TRUE:FALSE);
-
     action_view_moodbar = gtk_toggle_action_new( "view-moodbar", _("Display moodbar"), _("Draw moodbar over the waveform graph"), NULL);
     g_signal_connect( action_view_moodbar, "activate", G_CALLBACK(menu_view_moodbar), NULL);
     gtk_action_set_accel_group( GTK_ACTION(action_view_moodbar), accel_group);
@@ -3020,11 +3006,16 @@ destroy(GtkWidget *widget, gpointer data)
     gtk_main_quit();
 }
 
+static void
+on_menu_button_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_menu_popup_at_widget(menu_widget, button, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+}
+
 int main(int argc, char **argv)
 {
     GtkWidget *vbox;
     GtkWidget *tbl_widget;
-    GtkWidget *menu_widget;
     GtkWidget *submenu;
     GtkWidget *menu_item;
     GtkWidget *icon;
@@ -3055,6 +3046,33 @@ int main(int argc, char **argv)
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_icon_name( PACKAGE);
 
+    header_bar = gtk_header_bar_new();
+    gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), APPNAME);
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header_bar), TRUE);
+
+    GtkWidget *open_button = gtk_button_new_from_icon_name("document-open-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(open_button, _("Open file"));
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), open_button);
+    g_signal_connect(G_OBJECT(open_button), "clicked", G_CALLBACK(menu_open_file), NULL);
+
+    header_bar_play_button = gtk_button_new_from_icon_name("media-playback-start-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_sensitive(header_bar_play_button, FALSE);
+    gtk_widget_set_tooltip_text(header_bar_play_button, _("Toggle playback"));
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), header_bar_play_button);
+    g_signal_connect(G_OBJECT(header_bar_play_button), "clicked", G_CALLBACK(menu_play), NULL);
+
+    header_bar_save_button = gtk_button_new_from_icon_name("document-save-as-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_sensitive(header_bar_save_button, FALSE);
+    gtk_widget_set_tooltip_text(header_bar_save_button, _("Save as"));
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), header_bar_save_button);
+    g_signal_connect(G_OBJECT(header_bar_save_button), "clicked", G_CALLBACK(menu_save_as), NULL);
+
+    GtkWidget *menu_button = gtk_button_new_from_icon_name("open-menu-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    g_signal_connect(G_OBJECT(menu_button), "clicked", G_CALLBACK(on_menu_button_clicked), NULL);
+    gtk_header_bar_pack_end(GTK_HEADER_BAR(header_bar), menu_button);
+
+    gtk_window_set_titlebar(GTK_WINDOW(main_window), header_bar);
+
     set_title( NULL);
 
     g_signal_connect(G_OBJECT(main_window), "delete_event",
@@ -3073,7 +3091,7 @@ int main(int argc, char **argv)
     gtk_window_add_accel_group( GTK_WINDOW(main_window), accel_group);
     init_actions();
 
-    menu_widget = gtk_menu_bar_new();
+    menu_widget = gtk_menu_new();
 
     menu_item = gtk_menu_item_new_with_mnemonic( _("_File"));
     gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
@@ -3117,38 +3135,15 @@ int main(int argc, char **argv)
     gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
     submenu = gtk_menu_new();
     gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_toolbar)));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_moodbar)));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_moodbar));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_break));
     gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_cursor));
 
-    menu_item = gtk_menu_item_new_with_mnemonic( _("_Help"));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
-    submenu = gtk_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_about));
+    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), gtk_action_create_menu_item( action_about));
 
-    gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
-
-    /* Button Toolbar */
-    toolbar = gtk_toolbar_new();
-
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_open)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save_to)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_split)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_playback)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_quit)), -1);
-
-    gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
+    gtk_widget_show_all(menu_widget);
 
     /* Set default colors up */
     bg_color.red   =
@@ -3346,10 +3341,6 @@ int main(int argc, char **argv)
     tbl_widget = track_break_create_list_gui();
     gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
 
-/* Status Bar */
-    statusbar = gtk_statusbar_new();
-    gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, TRUE, 0);
-
 /* Finish up */
 
     write_info.cur_filename = NULL;
@@ -3371,12 +3362,6 @@ int main(int argc, char **argv)
     }
 
     gtk_widget_show_all( GTK_WIDGET(main_window));
-
-    if( appconfig_get_show_toolbar()) {
-        gtk_widget_show_all( GTK_WIDGET(toolbar));
-    } else {
-        gtk_widget_hide(GTK_WIDGET(toolbar));
-    }
 
     handle_arguments( argc, argv);
 

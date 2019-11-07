@@ -89,9 +89,6 @@ static GtkWidget *silence_spin_button = NULL;
 /* Ask user if the user really wants to quit wavbreaker. */
 static int ask_really_quit = 1;
 
-/* Show toolbar in main window */
-static int show_toolbar = 1;
-
 /* Draw moodbar in main window */
 static int show_moodbar = 1;
 
@@ -215,15 +212,6 @@ int appconfig_get_ask_really_quit()
 void appconfig_set_ask_really_quit(int x)
 {
     ask_really_quit = x;
-}
-
-int appconfig_get_show_toolbar() {
-    return show_toolbar;
-}
-
-void appconfig_set_show_toolbar(int x)
-{
-    show_toolbar = x;
 }
 
 int appconfig_get_show_moodbar() {
@@ -605,7 +593,6 @@ struct ConfigOption_ {
 
     OPTION(silence_percentage, INTEGER),
     OPTION(ask_really_quit, BOOLEAN),
-    OPTION(show_toolbar, BOOLEAN),
     OPTION(show_moodbar, BOOLEAN),
 #undef OPTION
     { NULL, INVALID, NULL, NULL },
