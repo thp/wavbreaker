@@ -401,15 +401,13 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
             gtk_progress_bar_set_text( GTK_PROGRESS_BAR(child), basename( fn));
             gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(moodbar_wait_dialog))), child, FALSE, TRUE, 0);
 
-            GtkBox *action_area = GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(moodbar_wait_dialog)));
-
-            cancel_button = gtk_button_new_with_label( _("Hide window"));
+            cancel_button = gtk_button_new_with_mnemonic(_("_Hide window"));
             g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(hide_moodbar_process), moodbar_wait_dialog);
-            gtk_box_pack_start(action_area, cancel_button, FALSE, TRUE, 0);
+            gtk_dialog_add_action_widget(GTK_DIALOG(moodbar_wait_dialog), cancel_button, -1);
 
-            cancel_button = gtk_button_new_from_stock( GTK_STOCK_CANCEL);
+            cancel_button = gtk_button_new_with_mnemonic(_("_Cancel"));
             g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), fn);
-            gtk_box_pack_start(action_area, cancel_button, FALSE, TRUE, 0);
+            gtk_dialog_add_action_widget(GTK_DIALOG(moodbar_wait_dialog), cancel_button, -1);
 
             gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(moodbar_wait_dialog), _("The moodbar tool analyzes your audio file and generates a colorful representation of the audio data."));
             gtk_window_set_title( GTK_WINDOW(moodbar_wait_dialog), _("Generating moodbar"));

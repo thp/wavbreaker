@@ -88,7 +88,7 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
             GTK_WIN_POS_CENTER_ON_PARENT);
     gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
 
-    vbox = gtk_vbox_new(FALSE, 0);
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
     gtk_widget_show(vbox);
@@ -105,21 +105,21 @@ void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
     gtk_box_pack_start(GTK_BOX(vbox), checkbox, FALSE, TRUE, 5);
     gtk_widget_show(checkbox);
 
-    hseparator = gtk_hseparator_new();
+    hseparator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
     gtk_widget_show(hseparator);
 
-    hbbox = gtk_hbutton_box_new();
+    hbbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_container_add(GTK_CONTAINER(vbox), hbbox);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
     gtk_widget_show(hbbox);
 
-    button = gtk_button_new_from_stock(GTK_STOCK_NO);
+    button = gtk_button_new_with_mnemonic(_("_No"));
     gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
     g_signal_connect(G_OBJECT(button), "clicked", (GCallback)overwritedialog_no, overwrite_data);
     gtk_widget_show(button);
 
-    button = gtk_button_new_from_stock(GTK_STOCK_YES);
+    button = gtk_button_new_with_mnemonic(_("_Yes"));
     gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
     g_signal_connect(G_OBJECT(button), "clicked", (GCallback)overwritedialog_yes, overwrite_data);
     gtk_widget_show(button);

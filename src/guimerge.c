@@ -114,8 +114,8 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     dialog = gtk_file_chooser_dialog_new( _("Select filename for merged wave file"),
                                           GTK_WINDOW(window),
                                           GTK_FILE_CHOOSER_ACTION_SAVE,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                          _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                          _("_Save"), GTK_RESPONSE_ACCEPT,
                                           NULL);
 
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
@@ -201,8 +201,10 @@ static void add_button_clicked( GtkWidget *widget, gpointer user_data)
     gtk_file_filter_add_pattern( filter_supported, "*.wav");
 
     dialog = gtk_file_chooser_dialog_new(_("Add wave file to merge"), GTK_WINDOW(window),
-        GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-        GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+        GTK_FILE_CHOOSER_ACTION_OPEN,
+        _("_Cancel"), GTK_RESPONSE_CANCEL,
+        _("_Open"), GTK_RESPONSE_ACCEPT,
+        NULL);
 
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
@@ -283,7 +285,7 @@ void guimerge_show( GtkWidget *main_window)
     gtk_window_set_position( GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
     gtk_window_set_title( GTK_WINDOW(window), _("Merge wave files"));
 
-    vbox = gtk_vbox_new(FALSE, 0);
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_box_set_spacing( GTK_BOX(vbox), 6);
@@ -299,7 +301,7 @@ void guimerge_show( GtkWidget *main_window)
     gtk_misc_set_alignment( GTK_MISC(message_label), 0, 0.5);
     gtk_box_pack_start( GTK_BOX(vbox), message_label, FALSE, TRUE, 0);
 
-    hbox = gtk_hbox_new(FALSE, 0);
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_set_spacing( GTK_BOX(hbox), 6);
     gtk_box_pack_start( GTK_BOX(vbox), hbox, TRUE, TRUE, 0);
 
@@ -338,39 +340,39 @@ void guimerge_show( GtkWidget *main_window)
 
     gtk_box_pack_start( GTK_BOX(hbox), sw, TRUE, TRUE, 0);
 
-    vbbox = gtk_vbox_new( FALSE, 0);
+    vbbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start( GTK_BOX(hbox), vbbox, FALSE, FALSE, 0);
     gtk_box_set_spacing(GTK_BOX(vbbox), 5);
 
-    button = gtk_button_new_from_stock( GTK_STOCK_ADD);
+    button = gtk_button_new_with_mnemonic(_("_Add"));
     gtk_box_pack_start( GTK_BOX(vbbox), button, FALSE, FALSE, 0);
     g_signal_connect( G_OBJECT(button), "clicked", (GCallback)add_button_clicked, window);
 
-    remove_button = gtk_button_new_from_stock( GTK_STOCK_REMOVE);
+    remove_button = gtk_button_new_with_mnemonic(_("_Remove"));
     gtk_box_pack_start( GTK_BOX(vbbox), remove_button, FALSE, FALSE, 0);
     g_signal_connect( G_OBJECT(remove_button), "clicked", (GCallback)remove_button_clicked, window);
     gtk_widget_set_sensitive( GTK_WIDGET(remove_button), FALSE);
 
-    gtk_box_pack_start( GTK_BOX(vbbox), gtk_hseparator_new(), FALSE, FALSE, 0);
+    gtk_box_pack_start( GTK_BOX(vbbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
     ok_button = gtk_button_new();
     g_signal_connect(G_OBJECT(ok_button), "clicked", (GCallback)ok_button_clicked, window);
     gtk_box_pack_start( GTK_BOX(vbbox), ok_button, FALSE, FALSE, 0);
     gtk_widget_set_sensitive( GTK_WIDGET(ok_button), FALSE);
 
-    button_hbox = gtk_hbox_new( FALSE, 0);
+    button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add( GTK_CONTAINER(ok_button), button_hbox);
     gtk_box_pack_start( GTK_BOX(button_hbox), gtk_image_new_from_stock( GTK_STOCK_SAVE, GTK_ICON_SIZE_BUTTON), TRUE, TRUE, 0);
     gtk_box_pack_start( GTK_BOX(button_hbox), gtk_label_new( _("Merge")), TRUE, TRUE, 0);
 
-    gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
-    hbbox = gtk_hbutton_box_new();
+    hbbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_box_pack_start( GTK_BOX(vbox), hbbox, FALSE, FALSE, 0);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing(GTK_BOX(hbbox), 10);
 
-    cancel_button = gtk_button_new_from_stock( GTK_STOCK_CLOSE);
+    cancel_button = gtk_button_new_with_mnemonic(_("_Close"));
     gtk_box_pack_end(GTK_BOX(hbbox), cancel_button, FALSE, FALSE, 5);
     g_signal_connect(G_OBJECT(cancel_button), "clicked", (GCallback)cancel_button_clicked, window);
 
@@ -391,7 +393,6 @@ gboolean file_merge_progress_idle_func(gpointer data) {
     static double fraction;
 
     if (window == NULL) {
-        gdk_threads_enter();
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_widget_realize(window);
         gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
@@ -404,7 +405,7 @@ gboolean file_merge_progress_idle_func(gpointer data) {
                 GTK_WIN_POS_CENTER_ON_PARENT);
         gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
 
-        vbox = gtk_vbox_new(FALSE, 0);
+        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
         gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
@@ -435,13 +436,9 @@ gboolean file_merge_progress_idle_func(gpointer data) {
 
         gtk_widget_show_all(GTK_WIDGET(window));
         cur_file_displayed = -1;
-
-        gdk_threads_leave();
     }
 
     if (write_info.sync) {
-        gdk_threads_enter();
-
         write_info.sync = 0;
         gtk_widget_destroy(window);
         window = NULL;
@@ -449,13 +446,10 @@ gboolean file_merge_progress_idle_func(gpointer data) {
         sprintf( tmp_str, _("The files have been merged as %s."), basename(write_info.merge_filename));
         popupmessage_show( NULL, _("Operation successful"), tmp_str);
 
-        gdk_threads_leave();
         return FALSE;
     }
 
     if (cur_file_displayed != write_info.cur_file) {
-        gdk_threads_enter();
-
         str_ptr = basename( write_info.cur_filename);
 
         if( str_ptr == NULL) {
@@ -467,11 +461,7 @@ gboolean file_merge_progress_idle_func(gpointer data) {
         gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
 
         cur_file_displayed = write_info.cur_file;
-
-        gdk_threads_leave();
     }
-
-    gdk_threads_enter();
 
     fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
@@ -482,8 +472,6 @@ gboolean file_merge_progress_idle_func(gpointer data) {
         sprintf( tmp_str, _("%d of 1 file merged"), write_info.cur_file-1);
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
-
-    gdk_threads_leave();
 
     usleep( 100000);
 

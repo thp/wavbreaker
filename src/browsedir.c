@@ -37,8 +37,8 @@ static void open_select_outputdir() {
     dialog = gtk_file_chooser_dialog_new( _("Select Output Directory"),
                                           GTK_WINDOW(parent_window),
                                           GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                          _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                          _("_Open"), GTK_RESPONSE_ACCEPT,
                                           NULL);
 
     gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), callback_get_func());

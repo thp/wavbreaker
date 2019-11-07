@@ -50,8 +50,8 @@ void saveas_show(GtkWidget *parent_window)
     dialog = gtk_file_chooser_dialog_new( _("Select folder to save wave files"),
                                           GTK_WINDOW(parent_window),
                                           GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, 
-                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                          _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                          _("_Save"), GTK_RESPONSE_ACCEPT,
                                           NULL);
 
     if( saveas_get_dirname() == NULL) {
