@@ -213,7 +213,6 @@ void track_break_write_cue( gpointer data, gpointer user_data);
 /* File Functions */
 void set_sample_filename(const char *f);
 static void open_file();
-static void handle_arguments( int argc, char** argv);
 static void set_title( char* title);
 
 /* Sample and Summary Display Functions */
@@ -1530,36 +1529,17 @@ static void open_file() {
     set_title( basename( sample_filename));
 }
 
-gboolean open_file_arg( gpointer data) {
-    if( data != NULL) {
-      set_sample_filename( (char *)data);
-      open_file();
+static gboolean
+open_file_arg(gpointer data)
+{
+    if (data) {
+        set_sample_filename((char *)data);
+        g_free(data);
+        open_file();
     }
 
     /* do not call this function again = return FALSE */
     return FALSE;
-}
-
-static void handle_arguments( int argc, char** argv) {
-  struct stat s;
-  char* filename = NULL;
-
-  if( argc < 2) {
-    return; /* no arguments */
-  }
-
-  filename = argv[1];
-
-  if( stat( filename, &s) != 0) {
-    fprintf( stderr, "Cannot stat file: %s\n", filename);
-    return;
-  }
-
-  if( S_ISREG( s.st_mode) || S_ISLNK( s.st_mode)) {
-    g_idle_add( open_file_arg, (gpointer)filename);
-  } else {
-    fprintf( stderr, "Not a file: %s\n", filename);
-  }
 }
 
 static void set_title( char* title)
@@ -2976,13 +2956,6 @@ delete_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
 }
 
 static void
-destroy(GtkWidget *widget, gpointer data)
-{
-    //g_print("destroy event occurred\n");
-    gtk_main_quit();
-}
-
-static void
 on_menu_button_clicked(GtkButton *button, gpointer user_data)
 {
     gtk_menu_popup_at_widget(menu_widget, GTK_WIDGET(button), GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
@@ -3025,7 +2998,18 @@ make_time_offset_widget()
     return hbox;
 }
 
-int main(int argc, char **argv)
+static void
+do_startup(GApplication *application, gpointer user_data)
+{
+    setlocale( LC_ALL, "");
+    textdomain( PACKAGE);
+    bindtextdomain( PACKAGE, LOCALEDIR);
+
+    appconfig_init();
+}
+
+static void
+do_activate(GApplication *app, gpointer user_data)
 {
     GtkWidget *vbox;
     GtkWidget *tbl_widget;
@@ -3041,15 +3025,7 @@ int main(int argc, char **argv)
     int x;
     unsigned int factor_color, factor_white;
 
-    setlocale( LC_ALL, "");
-    textdomain( PACKAGE);
-    bindtextdomain( PACKAGE, LOCALEDIR);
-
-    gtk_init(&argc, &argv);
-
-    appconfig_init();
-
-    main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    main_window = gtk_application_window_new(GTK_APPLICATION(app));
     gtk_window_set_default_icon_name( PACKAGE);
 
     header_bar = gtk_header_bar_new();
@@ -3079,9 +3055,6 @@ int main(int argc, char **argv)
 
     g_signal_connect(G_OBJECT(main_window), "delete_event",
              G_CALLBACK(delete_event), NULL);
-
-    g_signal_connect(G_OBJECT(main_window), "destroy",
-             G_CALLBACK(destroy), NULL);
 
     gtk_container_set_border_width(GTK_CONTAINER(main_window), 0);
 
@@ -3317,13 +3290,43 @@ int main(int argc, char **argv)
 
     gtk_widget_show_all( GTK_WIDGET(main_window));
 
-    handle_arguments( argc, argv);
+    if (user_data) {
+        g_idle_add(open_file_arg, user_data);
+    }
+}
 
-    gtk_main();
+static void
+do_open(GApplication *application, gpointer files, gint n_files, gchar *hint, gpointer user_data)
+{
+    GFile **gfiles = (GFile **)files;
+    for (int i=0; i<n_files; ++i) {
+        const char *path = g_file_get_path(gfiles[i]);
+        do_activate(application, strdup(path));
+    }
+}
 
+static void
+do_shutdown(GApplication *application, gpointer user_data)
+{
     appconfig_write_file();
+}
 
-    return 0;
+int
+main(int argc, char *argv[])
+{
+    GtkApplication *app;
+    int status;
+
+    app = gtk_application_new("net.sourceforge.wavbreaker", G_APPLICATION_HANDLES_OPEN);
+    g_signal_connect(app, "startup", G_CALLBACK (do_startup), NULL);
+    g_signal_connect(app, "activate", G_CALLBACK (do_activate), NULL);
+    g_signal_connect(app, "open", G_CALLBACK (do_open), NULL);
+    g_signal_connect(app, "shutdown", G_CALLBACK (do_shutdown), NULL);
+
+    status = g_application_run(G_APPLICATION (app), argc, argv);
+    g_object_unref(app);
+
+    return status;
 }
 
 struct WriteStatus {
