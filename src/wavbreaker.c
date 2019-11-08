@@ -1312,8 +1312,6 @@ file_write_progress_idle_func(gpointer data) {
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
 
-    usleep( 100000);
-
     return TRUE;
 }
 
@@ -1339,7 +1337,6 @@ file_play_progress_idle_func(gpointer data) {
 
     redraw();
     update_status(FALSE);
-    usleep( 50000);
 
     if (sample_is_playing()) {
         return TRUE;
@@ -1455,7 +1452,6 @@ file_open_progress_idle_func(gpointer data) {
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
         gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
 
-        usleep( 100000);
         return TRUE;
     }
 }

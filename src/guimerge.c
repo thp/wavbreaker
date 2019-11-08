@@ -443,8 +443,6 @@ gboolean file_merge_progress_idle_func(gpointer data) {
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
 
-    usleep( 100000);
-
     return TRUE;
 }
 
