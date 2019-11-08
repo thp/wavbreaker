@@ -369,8 +369,9 @@ static void open_select_outputdir() {
 
     dialog = gtk_file_chooser_dialog_new(_("Select Output Directory"),
         GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
-        GTK_RESPONSE_ACCEPT, NULL);
+        _("Cancel"), GTK_RESPONSE_CANCEL,
+        _("Open"), GTK_RESPONSE_ACCEPT,
+        NULL);
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog),
         gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
 
@@ -409,20 +410,18 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *notebook;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_widget_realize(window);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
 
-    GtkWidget *header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
+    GtkWidget *header_bar = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header_bar), TRUE);
     gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), _("Preferences"));
     gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
 
     /* create the vbox for the first tab */
-    vbox = gtk_vbox_new(FALSE, 10);
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_container_add( GTK_CONTAINER(window), vbox);
 
@@ -514,7 +513,7 @@ void appconfig_show(GtkWidget *main_window)
             2, 3, 5, 6, GTK_EXPAND | GTK_FILL, 0, 5, 2);
 
     /* OK and Cancel Buttons */
-    hbbox = gtk_hbutton_box_new();
+    hbbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_container_add(GTK_CONTAINER(vbox), hbbox);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing(GTK_BOX(hbbox), 10);
