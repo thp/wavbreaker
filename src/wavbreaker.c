@@ -2963,8 +2963,8 @@ do_activate(GApplication *app, gpointer user_data)
     gtk_actionable_set_action_name(GTK_ACTIONABLE(open_button), "win.open");
     gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), open_button);
 
-    header_bar_save_button = gtk_menu_tool_button_new(gtk_image_new_from_icon_name("document-save-symbolic",
-                GTK_ICON_SIZE_SMALL_TOOLBAR), _("Save"));
+    header_bar_save_button = GTK_WIDGET(gtk_menu_tool_button_new(gtk_image_new_from_icon_name("document-save-symbolic",
+                GTK_ICON_SIZE_SMALL_TOOLBAR), _("Save")));
     gtk_actionable_set_action_name(GTK_ACTIONABLE(header_bar_save_button), "win.save");
     gtk_menu_tool_button_set_arrow_tooltip_text(GTK_MENU_TOOL_BUTTON(header_bar_save_button), _("Save and export"));
     gtk_widget_set_sensitive(header_bar_save_button, FALSE);
