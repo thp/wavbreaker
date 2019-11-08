@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <math.h>
 #include <glib.h>
 
@@ -75,9 +74,9 @@ static char oneliner(int t) { return t*(((t>>12)|(t>>8))&(63&(t>>4))); }
 static void
 generate_oneliner(FILE *fp, SampleInfo *si, void *user_data)
 {
-    assert(si->channels == 1);
-    assert(si->bitsPerSample == 8);
-    assert(si->samplesPerSec = 8000);
+    g_assert_cmpint(si->channels, ==, 1);
+    g_assert_cmpint(si->bitsPerSample, ==, 8);
+    g_assert_cmpint(si->samplesPerSec, ==, 8000);
 
     oneliner_func_t f = (oneliner_func_t)user_data;
 
