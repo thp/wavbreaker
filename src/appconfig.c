@@ -458,7 +458,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_spin_button_set_value( GTK_SPIN_BUTTON(silence_spin_button), appconfig_get_silence_percentage());
     
     label = gtk_label_new( _("Maximum volume considered silence (in percent):"));
-    gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+    g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
 
     gtk_table_attach( GTK_TABLE(table), label,
         0, 1, 2, 3, GTK_FILL, 0, 5, 0);
@@ -477,7 +477,7 @@ void appconfig_show(GtkWidget *main_window)
         G_CALLBACK(radio_buttons_toggled), NULL);
 
     label = gtk_label_new("   ");
-    gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
+    g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
     gtk_table_attach(GTK_TABLE(table), label,
             0, 1, 2, 3, GTK_FILL, 0, 5, 2);
 
@@ -488,7 +488,7 @@ void appconfig_show(GtkWidget *main_window)
         G_CALLBACK(prepend_file_number_toggled), NULL);
 
     etree_filename_suffix_label = gtk_label_new(_("Separator:"));
-    gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
+    g_object_set(G_OBJECT(etree_filename_suffix_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
     gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
             1, 2, 1, 2, GTK_FILL, 0, 5, 2);
 
@@ -503,7 +503,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_table_attach(GTK_TABLE(table), radio2, 0, 3, 3, 4, GTK_FILL, 0, 5, 2);
 
     etree_cd_length_label = gtk_label_new(_("CD Length:"));
-    gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
+    g_object_set(G_OBJECT(etree_cd_length_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
     gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
             1, 2, 5, 6, GTK_FILL, 0, 5, 2);
 

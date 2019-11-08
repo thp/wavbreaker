@@ -258,9 +258,7 @@ void guimerge_show( GtkWidget *main_window)
     GtkWidget *vbox;
     GtkWidget *hbox;
     GtkWidget *vbbox;
-    GtkWidget *cancel_button;
     GtkWidget *button;
-    GtkWidget *button_hbox;
 
     GtkTreeSelection *selection;
     GtkTreeViewColumn *column;
@@ -390,19 +388,19 @@ gboolean file_merge_progress_idle_func(gpointer data) {
 
         label = gtk_label_new( NULL);
         gtk_label_set_markup( GTK_LABEL(label), tmp_str);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         label = gtk_label_new( _("The selected files are now being merged. This can take some time."));
         gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         pbar = gtk_progress_bar_new();
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
 
         status_label = gtk_label_new( NULL);
-        gtk_misc_set_alignment( GTK_MISC(status_label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_label_set_ellipsize( GTK_LABEL(status_label), PANGO_ELLIPSIZE_MIDDLE);
         gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
 
