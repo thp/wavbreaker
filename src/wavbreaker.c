@@ -1237,8 +1237,6 @@ file_write_progress_idle_func(gpointer data) {
     static double fraction;
 
     if (write_info.check_file_exists) {
-        gdk_threads_enter();
-
         if (window != NULL) {
             gtk_widget_destroy(window);
             window = NULL;
@@ -1246,8 +1244,6 @@ file_write_progress_idle_func(gpointer data) {
         write_info.sync_check_file_overwrite_to_write_progress = 1;
         write_info.check_file_exists = 0;
         overwritedialog_show( wavbreaker_get_main_window(), &write_info);
-
-        gdk_threads_leave();
 
         return TRUE;
     }
@@ -1257,7 +1253,6 @@ file_write_progress_idle_func(gpointer data) {
     }
 
     if (window == NULL) {
-        gdk_threads_enter();
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_widget_realize(window);
         gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
@@ -1301,13 +1296,9 @@ file_write_progress_idle_func(gpointer data) {
 
         gtk_widget_show_all(GTK_WIDGET(window));
         cur_file_displayed = -1;
-
-        gdk_threads_leave();
     }
 
     if (write_info.sync) {
-        gdk_threads_enter();
-
         write_info.sync = 0;
         gtk_widget_destroy(window);
         window = NULL;
@@ -1319,13 +1310,10 @@ file_write_progress_idle_func(gpointer data) {
         }
         popupmessage_show( NULL, _("Operation successful"), tmp_str);
 
-        gdk_threads_leave();
         return FALSE;
     }
 
     if (cur_file_displayed != write_info.cur_file) {
-        gdk_threads_enter();
-
         str_ptr = basename( write_info.cur_filename);
 
         if( str_ptr == NULL) {
@@ -1339,11 +1327,7 @@ file_write_progress_idle_func(gpointer data) {
         gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
 
         cur_file_displayed = write_info.cur_file;
-
-        gdk_threads_leave();
     }
-
-    gdk_threads_enter();
 
     fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
@@ -1354,8 +1338,6 @@ file_write_progress_idle_func(gpointer data) {
         sprintf( tmp_str, _("%d of 1 part written"), write_info.cur_file-1);
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
-
-    gdk_threads_leave();
 
     usleep( 100000);
 
@@ -1411,7 +1393,6 @@ file_open_progress_idle_func(gpointer data) {
     static int current, size;
 
     if (window == NULL) {
-        gdk_threads_enter();
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_widget_realize(window);
         gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
@@ -1460,13 +1441,11 @@ file_open_progress_idle_func(gpointer data) {
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         gtk_widget_show_all(GTK_WIDGET(window));
-        gdk_threads_leave();
     }
 
     if (progress_pct >= 1.0) {
         progress_pct = 0;
 
-        gdk_threads_enter();
         gtk_widget_destroy(window);
         window = NULL;
 
@@ -1494,18 +1473,14 @@ file_open_progress_idle_func(gpointer data) {
 
         /* --------------------------------------------------- */
 
-        gdk_threads_leave();
-
         return FALSE;
 
     } else {
-        gdk_threads_enter();
         size = sample_stat.st_size/(1024*1024);
         current = size*progress_pct;
         sprintf( tmp_str, _("%d of %d MB analyzed"), current, size);
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
         gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
-        gdk_threads_leave();
 
         usleep( 100000);
         return TRUE;
@@ -1558,9 +1533,7 @@ static void open_file() {
 gboolean open_file_arg( gpointer data) {
     if( data != NULL) {
       set_sample_filename( (char *)data);
-      gdk_threads_enter();
       open_file();
-      gdk_threads_leave();
     }
 
     /* do not call this function again = return FALSE */
@@ -3074,7 +3047,6 @@ int main(int argc, char **argv)
     textdomain( PACKAGE);
     bindtextdomain( PACKAGE, LOCALEDIR);
 
-    gdk_threads_init();
     gtk_init(&argc, &argv);
 
     appconfig_init();
@@ -3349,9 +3321,7 @@ int main(int argc, char **argv)
 
     handle_arguments( argc, argv);
 
-    gdk_threads_enter();
     gtk_main();
-    gdk_threads_leave();
 
     appconfig_write_file();
 
