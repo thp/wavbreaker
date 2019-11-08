@@ -27,9 +27,6 @@
 
 #include "gettext.h"
 
-static GtkWidget *
-autosplit_time_entry = NULL;
-
 static long
 parse_time_string(const char *autosplit_time)
 {
@@ -48,9 +45,12 @@ parse_time_string(const char *autosplit_time)
 static void
 on_split_button_clicked(GtkWidget *widget, gpointer user_data)
 {
-    gtk_popover_popdown(GTK_POPOVER(user_data));
+    GtkEntry *entry = GTK_ENTRY(user_data);
+    GtkPopover *popover = GTK_POPOVER(g_object_get_data(G_OBJECT(entry), "popover"));
 
-    long time = parse_time_string(gtk_entry_get_text(GTK_ENTRY(autosplit_time_entry)));
+    gtk_popover_popdown(popover);
+
+    long time = parse_time_string(gtk_entry_get_text(entry));
     if (time > 0) {
         wavbreaker_autosplit(time);
 
@@ -63,7 +63,7 @@ on_split_button_clicked(GtkWidget *widget, gpointer user_data)
         time /= 60;
 
         gchar *tmp = g_strdup_printf("%02ld:%02ld.%02ld", time, sec, subsec);
-        gtk_entry_set_text(GTK_ENTRY(autosplit_time_entry), tmp);
+        gtk_entry_set_text(entry, tmp);
         g_free(tmp);
     }
 }
@@ -76,14 +76,16 @@ autosplit_create(GtkPopover *popover)
     GtkWidget *message_label = gtk_label_new(_("Interval (MM:SS.FF, MM:SS, SS.FF or MM):"));
     gtk_box_pack_start(GTK_BOX(hbox), message_label, FALSE, FALSE, 0);
 
-    autosplit_time_entry = gtk_entry_new();
-    g_signal_connect(autosplit_time_entry, "activate", G_CALLBACK(on_split_button_clicked), popover);
+    GtkWidget *autosplit_time_entry = gtk_entry_new();
+    g_object_set_data(G_OBJECT(autosplit_time_entry), "popover", popover);
+
+    g_signal_connect(autosplit_time_entry, "activate", G_CALLBACK(on_split_button_clicked), autosplit_time_entry);
     gtk_entry_set_text(GTK_ENTRY(autosplit_time_entry), "5:00.00");
     gtk_entry_set_width_chars(GTK_ENTRY(autosplit_time_entry), 10);
     gtk_box_pack_start(GTK_BOX(hbox), autosplit_time_entry, FALSE, FALSE, 0);
 
     GtkWidget *ok_button = gtk_button_new_with_label(_("Split"));
-    g_signal_connect(G_OBJECT(ok_button), "clicked", G_CALLBACK(on_split_button_clicked), popover);
+    g_signal_connect(G_OBJECT(ok_button), "clicked", G_CALLBACK(on_split_button_clicked), autosplit_time_entry);
     gtk_box_pack_start(GTK_BOX(hbox), ok_button, FALSE, FALSE, 0);
 
     gtk_widget_show_all(hbox);
