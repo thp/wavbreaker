@@ -1,3 +1,5 @@
+#pragma once
+
 /* wavbreaker - A tool to split a wave file up into multiple waves.
  * Copyright (C) 2002-2003 Timothy Robinson
  *
@@ -16,10 +18,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AUTOSPLIT_H
-#define AUTOSPLIT_H
+#include <gtk/gtk.h>
 
-void autosplit_show(GtkWidget *);
-char *get_autosplit_time();
-
-#endif /* AUTOSPLIT_H */
+GtkWidget *autosplit_create(GtkPopover *popover);

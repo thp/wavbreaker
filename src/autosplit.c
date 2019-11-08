@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <gtk/gtk.h>
+#include "autosplit.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,153 +27,66 @@
 
 #include "gettext.h"
 
-static GtkWidget *window;
+static GtkWidget *
+autosplit_time_entry = NULL;
 
-static char *autosplit_time = NULL; 
-static GtkWidget *autosplit_time_entry = NULL;
-extern SampleInfo sampleInfo;
-
-char *get_autosplit_time()
+static long
+parse_time_string(const char *autosplit_time)
 {
-    return autosplit_time;
-}
-
-void set_autosplit_time(const char *val)
-{
-    if (autosplit_time != NULL) {
-        g_free(autosplit_time);
-    }
-    autosplit_time = g_strdup(val);
-}
-
-static void autosplit_hide(GtkWidget *main_window)
-{
-    gtk_widget_destroy(main_window);
-}
-
-static void cancel_button_clicked(GtkWidget *widget, gpointer user_data)
-{
-    autosplit_hide(user_data);
-}
-
-static long parse_time_string()
-{
-    char *tmp_str;
-    char *str_ptr;
-    char min[20];
-    char sec[20];
-    char subsec[20];
-    long time, len;
-
-    str_ptr = strchr(autosplit_time, ':');
-    if (str_ptr == NULL) {
-        time = atoi(autosplit_time) * 60 * CD_BLOCKS_PER_SEC;
-    } else {
-        len = str_ptr - autosplit_time;
-        strncpy(min, autosplit_time, len);
-        time = atoi(min) * 60 * CD_BLOCKS_PER_SEC;
-
-        tmp_str = str_ptr;
-        str_ptr = strchr(autosplit_time, '.');
-        if (str_ptr == NULL) {
-            strcpy(sec, tmp_str + 1);
-            time += atoi(sec) * CD_BLOCKS_PER_SEC;
-        } else {
-            len = str_ptr - tmp_str;
-            strncpy(sec, tmp_str + 1, len);
-            time += atoi(sec) * CD_BLOCKS_PER_SEC;
-
-            strcpy(subsec, str_ptr + 1);
-            time += atoi(subsec);
-        }
+    long min, sec, subsec;
+    if (sscanf(autosplit_time, "%ld:%ld.%ld", &min, &sec, &subsec) == 3) {
+        return (min * 60 + sec) * CD_BLOCKS_PER_SEC + subsec;
+    } else if (sscanf(autosplit_time, "%ld:%ld", &min, &sec) == 2) {
+        return (min * 60 + sec) * CD_BLOCKS_PER_SEC;
+    } else if (sscanf(autosplit_time, "%ld.%ld", &sec, &subsec) == 2) {
+        return sec * CD_BLOCKS_PER_SEC + subsec;
     }
 
-    return time;
+    return atoi(autosplit_time) * 60 * CD_BLOCKS_PER_SEC;
 }
 
-static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
+static void
+on_split_button_clicked(GtkWidget *widget, gpointer user_data)
 {
-    long time;
+    gtk_popover_popdown(GTK_POPOVER(user_data));
 
-    set_autosplit_time(gtk_entry_get_text(GTK_ENTRY(autosplit_time_entry)));
-    autosplit_hide(GTK_WIDGET(user_data));
-    time = parse_time_string();
+    long time = parse_time_string(gtk_entry_get_text(GTK_ENTRY(autosplit_time_entry)));
     if (time > 0) {
         wavbreaker_autosplit(time);
+
+        long subsec = time % CD_BLOCKS_PER_SEC;
+        time -= subsec;
+        time /= CD_BLOCKS_PER_SEC;
+
+        long sec = time % 60;
+        time -= sec;
+        time /= 60;
+
+        gchar *tmp = g_strdup_printf("%02ld:%02ld.%02ld", time, sec, subsec);
+        gtk_entry_set_text(GTK_ENTRY(autosplit_time_entry), tmp);
+        g_free(tmp);
     }
 }
 
-void autosplit_show(GtkWidget *main_window)
+GtkWidget *
+autosplit_create(GtkPopover *popover)
 {
-    GtkWidget *vbox;
-    GtkWidget *table;
-    GtkWidget *hbbox;
-    GtkWidget *message_label;
-    GtkWidget *hseparator;
-    GtkWidget *ok_button, *cancel_button;
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
-    if (autosplit_time == NULL) {
-        autosplit_time = g_strdup("5:00.00");
-    }
-
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_widget_realize(window);
-    gtk_window_set_modal(GTK_WINDOW(window), TRUE);
-    gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
-    gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
-    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
-
-    vbox = gtk_vbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(window), vbox);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-    gtk_widget_show(vbox);
-
-    table = gtk_table_new(3, 2, FALSE);
-    gtk_container_add(GTK_CONTAINER(vbox), table);
-    gtk_widget_show(table);
-
-    message_label = gtk_label_new(_("Enter the time for autosplit:"));
-    gtk_misc_set_alignment(GTK_MISC(message_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), message_label, 0, 1, 0, 1, GTK_FILL, 0, 5, 0);
-    gtk_widget_show(message_label);
-
-    message_label = gtk_label_new(_("Example (5min, 32sec, 12subsec):"));
-    gtk_misc_set_alignment(GTK_MISC(message_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), message_label, 0, 1, 1, 2, GTK_FILL, 0, 5, 0);
-    gtk_widget_show(message_label);
-
-    message_label = gtk_label_new(" 5:32.12");
-    gtk_misc_set_alignment(GTK_MISC(message_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), message_label, 1, 2, 1, 2, GTK_FILL, 0, 5, 0);
-    gtk_widget_show(message_label);
+    GtkWidget *message_label = gtk_label_new(_("Interval (MM:SS.FF, MM:SS, SS.FF or MM):"));
+    gtk_box_pack_start(GTK_BOX(hbox), message_label, FALSE, FALSE, 0);
 
     autosplit_time_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(autosplit_time_entry), autosplit_time);
+    g_signal_connect(autosplit_time_entry, "activate", G_CALLBACK(on_split_button_clicked), popover);
+    gtk_entry_set_text(GTK_ENTRY(autosplit_time_entry), "5:00.00");
     gtk_entry_set_width_chars(GTK_ENTRY(autosplit_time_entry), 10);
-    gtk_table_attach(GTK_TABLE(table), autosplit_time_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 5, 0);
-    gtk_widget_show(autosplit_time_entry);
+    gtk_box_pack_start(GTK_BOX(hbox), autosplit_time_entry, FALSE, FALSE, 0);
 
-    hseparator = gtk_hseparator_new();
-    gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
-    gtk_widget_show(hseparator);
+    GtkWidget *ok_button = gtk_button_new_with_label(_("Split"));
+    g_signal_connect(G_OBJECT(ok_button), "clicked", G_CALLBACK(on_split_button_clicked), popover);
+    gtk_box_pack_start(GTK_BOX(hbox), ok_button, FALSE, FALSE, 0);
 
-    hbbox = gtk_hbutton_box_new();
-    gtk_container_add(GTK_CONTAINER(vbox), hbbox);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
-    gtk_box_set_spacing(GTK_BOX(hbbox), 10);
-    gtk_widget_show(hbbox);
+    gtk_widget_show_all(hbox);
 
-    cancel_button = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-    gtk_box_pack_end(GTK_BOX(hbbox), cancel_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(cancel_button), "clicked", (GCallback)cancel_button_clicked, window);
-    gtk_widget_show(cancel_button);
-
-    ok_button = gtk_button_new_from_stock(GTK_STOCK_OK);
-    gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(ok_button), "clicked", (GCallback)ok_button_clicked, window);
-    gtk_widget_show(ok_button);
-
-    gtk_widget_show(window);
+    return hbox;
 }
-

@@ -86,9 +86,6 @@ static int vpane2_position = -1;
 static int silence_percentage = 2;
 static GtkWidget *silence_spin_button = NULL;
 
-/* Ask user if the user really wants to quit wavbreaker. */
-static int ask_really_quit = 1;
-
 /* Draw moodbar in main window */
 static int show_moodbar = 1;
 
@@ -202,16 +199,6 @@ int appconfig_get_silence_percentage()
 void appconfig_set_silence_percentage(int x)
 {
     silence_percentage = x;
-}
-
-int appconfig_get_ask_really_quit()
-{
-    return ask_really_quit;
-}
-
-void appconfig_set_ask_really_quit(int x)
-{
-    ask_really_quit = x;
 }
 
 int appconfig_get_show_moodbar() {
@@ -398,7 +385,8 @@ static void open_select_outputdir() {
     gtk_widget_destroy(dialog);
 }
 
-static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
+static void
+on_appconfig_close(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
     appconfig_set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
     appconfig_set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
@@ -416,7 +404,6 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *vbox;
     GtkWidget *table;
     GtkWidget *hbbox;
-    GtkWidget *ok_button;
     GtkWidget *label;
 
     GtkWidget *notebook;
@@ -428,7 +415,11 @@ void appconfig_show(GtkWidget *main_window)
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
     gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
-    gtk_window_set_title( GTK_WINDOW(window), _("wavbreaker Preferences"));
+
+    GtkWidget *header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header_bar), TRUE);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), _("Preferences"));
+    gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
 
     /* create the vbox for the first tab */
     vbox = gtk_vbox_new(FALSE, 10);
@@ -528,10 +519,8 @@ void appconfig_show(GtkWidget *main_window)
     gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing(GTK_BOX(hbbox), 10);
 
-    ok_button = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
-    gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(ok_button), "clicked",
-        (GCallback)ok_button_clicked, window);
+    g_signal_connect(G_OBJECT(window),
+        "delete-event", G_CALLBACK(on_appconfig_close), window);
 
     g_signal_connect(G_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
@@ -592,7 +581,6 @@ struct ConfigOption_ {
     OPTION(vpane2_position, INTEGER),
 
     OPTION(silence_percentage, INTEGER),
-    OPTION(ask_really_quit, BOOLEAN),
     OPTION(show_moodbar, BOOLEAN),
 #undef OPTION
     { NULL, INVALID, NULL, NULL },
