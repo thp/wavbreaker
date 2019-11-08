@@ -39,7 +39,7 @@ struct GraphData_{
 typedef struct MoodbarData_ MoodbarData;
 struct MoodbarData_ {
     unsigned long numFrames;
-    GdkColor *frames;
+    GdkRGBA *frames;
 };
 
 typedef struct TrackBreak_ TrackBreak;

@@ -100,9 +100,9 @@ extern SampleInfo sampleInfo;
 #define SAMPLE_COLORS 6
 #define SAMPLE_SHADES 3
 
-GdkColor sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
-GdkColor bg_color;
-GdkColor nowrite_color;
+GdkRGBA sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
+GdkRGBA bg_color;
+GdkRGBA nowrite_color;
 
 /**
  * The sample_colors_values array now uses colors from the
@@ -111,13 +111,13 @@ GdkColor nowrite_color;
  *
  * http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines
  **/
-const int sample_colors_values[SAMPLE_COLORS][3] = {
-    { 52, 101, 164 }, // Sky Blue
-    { 204, 0, 0 },    // Scarlet Red
-    { 115, 210, 22 }, // Chameleon
-    { 237, 212, 0 },  // Butter
-    { 245, 121, 0 },  // Orange
-    { 117, 80, 123 }, // Plum
+const double sample_colors_values[SAMPLE_COLORS][3] = {
+    { 52 / 255.f, 101 / 255.f, 164 / 255.f }, // Sky Blue
+    { 204 / 255.f, 0 / 255.f, 0 / 255.f },    // Scarlet Red
+    { 115 / 255.f, 210 / 255.f, 22 / 255.f }, // Chameleon
+    { 237 / 255.f, 212 / 255.f, 0 / 255.f },  // Butter
+    { 245 / 255.f, 121 / 255.f, 0 / 255.f },  // Orange
+    { 117 / 255.f, 80 / 255.f, 123 / 255.f }, // Plum
 };
 
 static gulong cursor_marker;
@@ -421,7 +421,7 @@ void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
 
     moodbarData.numFrames = s/3;
 
-    moodbarData.frames = (GdkColor*)calloc( moodbarData.numFrames, sizeof(GdkColor));
+    moodbarData.frames = (GdkRGBA*)calloc( moodbarData.numFrames, sizeof(GdkRGBA));
 
     pos = 0;
     while( fread( &tmp, 3, 1, fp) > 0) {
@@ -1621,12 +1621,12 @@ static inline void blit_cairo_surface(cairo_t *cr, cairo_surface_t *surface, int
     cairo_fill(cr);
 }
 
-static inline void set_cairo_source(cairo_t *cr, GdkColor *color)
+static inline void set_cairo_source(cairo_t *cr, GdkRGBA *color)
 {
-    cairo_set_source_rgb(cr, (float)color->red / 65535.f, (float)color->green / 65535.f, (float)color->blue / 65535.f);
+    cairo_set_source_rgb(cr, color->red, color->green, color->blue);
 }
 
-static inline void fill_cairo_rectangle(cairo_t *cr, GdkColor *color, int width, int height)
+static inline void fill_cairo_rectangle(cairo_t *cr, GdkRGBA *color, int width, int height)
 {
     set_cairo_source(cr, color);
     cairo_rectangle(cr, 0.f, 0.f, (float)width, (float)height);
@@ -1695,7 +1695,7 @@ static void draw_sample_surface(GtkWidget *widget)
     GList *tbl;
     TrackBreak *tb_cur;
     unsigned int moodbar_pos = 0;
-    GdkColor *new_color = NULL;
+    GdkRGBA new_color;
 
     static unsigned long pw, ph, ppos, mb;
 
@@ -1778,17 +1778,13 @@ static void draw_sample_surface(GtkWidget *widget)
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( new_color != NULL) {
-                gdk_color_free( new_color);
-                new_color = NULL;
-            }
             if( is_write) {
-                new_color = gdk_color_copy( &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+                new_color = sample_colors[(count-1) % SAMPLE_COLORS][shade];
             } else {
-                new_color = gdk_color_copy( &nowrite_color);
+                new_color = nowrite_color;
             }
 
-            set_cairo_source(cr, new_color);
+            set_cairo_source(cr, &new_color);
             draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
             cairo_stroke(cr);
@@ -1989,7 +1985,7 @@ static void draw_summary_surface(GtkWidget *widget)
     TrackBreak *tb_cur;
 
     unsigned int moodbar_pos = 0;
-    GdkColor *new_color = NULL;
+    GdkRGBA new_color;
 
     static unsigned long pw, ph, mb;
 
@@ -2090,23 +2086,19 @@ static void draw_summary_surface(GtkWidget *widget)
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( new_color != NULL) {
-                gdk_color_free( new_color);
-                new_color = NULL;
-            }
             if( is_write) {
-                new_color = gdk_color_copy( &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
+                new_color = sample_colors[(count-1) % SAMPLE_COLORS][shade];
             } else {
-                new_color = gdk_color_copy( &nowrite_color);
+                new_color = nowrite_color;
             }
 
             if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
-                new_color->red = MOODBAR_BLEND(new_color->red, moodbarData.frames[moodbar_pos].red);
-                new_color->green = MOODBAR_BLEND(new_color->green, moodbarData.frames[moodbar_pos].green);
-                new_color->blue = MOODBAR_BLEND(new_color->blue, moodbarData.frames[moodbar_pos].blue);
+                new_color.red = MOODBAR_BLEND(new_color.red, moodbarData.frames[moodbar_pos].red);
+                new_color.green = MOODBAR_BLEND(new_color.green, moodbarData.frames[moodbar_pos].green);
+                new_color.blue = MOODBAR_BLEND(new_color.blue, moodbarData.frames[moodbar_pos].blue);
             }
 
-            set_cairo_source(cr, new_color);
+            set_cairo_source(cr, &new_color);
             draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
             cairo_stroke(cr);
@@ -2910,7 +2902,7 @@ do_activate(GApplication *app, gpointer user_data)
 
     int i;
     int x;
-    unsigned int factor_color, factor_white;
+    float factor_color, factor_white;
 
     main_window = gtk_application_window_new(GTK_APPLICATION(app));
 
@@ -3000,19 +2992,19 @@ do_activate(GApplication *app, gpointer user_data)
     /* Set default colors up */
     bg_color.red   =
     bg_color.green =
-    bg_color.blue  = 255*(65535/255);
+    bg_color.blue  = 1.f;
 
     nowrite_color.red   =
     nowrite_color.green =
-    nowrite_color.blue  = 220*(65535/255);
+    nowrite_color.blue  = 0.86f;
 
     for( i=0; i<SAMPLE_COLORS; i++) {
         for( x=0; x<SAMPLE_SHADES; x++) {
-            factor_white = 0.5*(65535*x/(256*SAMPLE_SHADES));
-            factor_color = 65535/256-factor_white;
-            sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+255*factor_white;
-            sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+255*factor_white;
-            sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+255*factor_white;
+            factor_white = 0.5f*((float)x/(float)SAMPLE_SHADES);
+            factor_color = 1.f-factor_white;
+            sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+factor_white;
+            sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+factor_white;
+            sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+factor_white;
         }
     }
 
