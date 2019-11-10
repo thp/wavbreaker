@@ -17,6 +17,11 @@ AC_ARG_ENABLE(mpg123,
     [enable_mpg123=$enableval],
     [enable_mpg123=yes])
 
+AC_ARG_ENABLE(moodbar,
+    [  --disable-moodbar      Disable moodbar support],
+    [enable_moodbar=$enableval],
+    [enable_moodbar=yes])
+
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
@@ -54,6 +59,11 @@ then
 fi
 AC_SUBST(MPG123_LIBS)
 
+if test "x$enable_moodbar" = "xyes"
+then
+AC_DEFINE([WANT_MOODBAR], 1, [Define if you want to build moodbar features])
+fi
+
 PKG_CHECK_MODULES(AO, [ao])
 AC_SUBST(AO_CFLAGS)
 AC_SUBST(AO_LIBS)
@@ -77,6 +87,7 @@ AC_OUTPUT
 
 echo
 echo "MP3 access using libmpg123 .......   $enable_mpg123"
+echo "Moodbar support ..................   $enable_moodbar"
 echo
 echo "    Configure finished.  Do 'make && make install'"
 echo "    to compile and install wavbreaker."

@@ -24,6 +24,8 @@
 #include "moodbar.h"
 #include "popupmessage.h"
 
+#if defined(WANT_MOODBAR)
+
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -186,3 +188,22 @@ moodbar_free(MoodbarData *data)
 	free(data->frames);
 	free(data);
 }
+
+#else
+gboolean
+moodbar_generate(GtkWidget *window, const gchar *filename)
+{
+    return FALSE;
+}
+
+MoodbarData *
+moodbar_open(const gchar *filename)
+{
+    return NULL;
+}
+
+void
+moodbar_free(MoodbarData *data)
+{
+}
+#endif

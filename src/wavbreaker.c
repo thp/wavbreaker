@@ -206,8 +206,13 @@ menu_save(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void
 menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
+#if defined(WANT_MOODBAR)
 static void
 menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
+static void
+menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+#endif
 
 static void
 menu_about(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -223,9 +228,6 @@ menu_export(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
-
-static void
-menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
 menu_rename(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -1281,12 +1283,14 @@ file_open_progress_idle_func(gpointer data) {
         /* TODO: Remove FIX !!!!!!!!!!! */
         configure_event(draw, NULL, NULL);
 
+#if defined(WANT_MOODBAR)
         if (moodbarData) {
             moodbar_free(moodbarData);
         }
         moodbarData = moodbar_open(sample_filename);
         set_action_enabled("display_moodbar", moodbarData != NULL);
         set_action_enabled("generate_moodbar", moodbarData == NULL);
+#endif
 
         redraw();
 
@@ -1328,8 +1332,10 @@ static void open_file() {
     set_action_enabled("export", TRUE);
     set_action_enabled("import", TRUE);
 
+#if defined(WANT_MOODBAR)
     set_action_enabled("display_moodbar", moodbarData != NULL);
     set_action_enabled("generate_moodbar", moodbarData == NULL);
+#endif
     gtk_widget_set_sensitive( play_button, TRUE);
     gtk_widget_set_sensitive( header_bar_save_button, TRUE);
 
@@ -2280,6 +2286,7 @@ menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data)
     gtk_popover_popup(GTK_POPOVER(menu_popover));
 }
 
+#if defined(WANT_MOODBAR)
 static void
 menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
@@ -2301,6 +2308,22 @@ menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 static void
+menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    (void)moodbar_generate(main_window, sample_filename);
+
+    if (moodbarData) {
+        moodbar_free(moodbarData);
+    }
+    moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("display_moodbar", moodbarData != NULL);
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
+
+    redraw();
+}
+#endif
+
+static void
 menu_about(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     about_show(main_window);
@@ -2316,21 +2339,6 @@ static void
 menu_merge(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     guimerge_show(main_window);
-}
-
-static void
-menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-    (void)moodbar_generate(main_window, sample_filename);
-
-    if (moodbarData) {
-        moodbar_free(moodbarData);
-    }
-    moodbarData = moodbar_open(sample_filename);
-    set_action_enabled("display_moodbar", moodbarData != NULL);
-    set_action_enabled("generate_moodbar", moodbarData == NULL);
-
-    redraw();
 }
 
 static void
@@ -2495,8 +2503,10 @@ do_activate(GApplication *app, gpointer user_data)
         { "add_break", menu_add_track_break, NULL, NULL, NULL, },
         { "jump_cursor", jump_to_cursor_marker, NULL, NULL, NULL, },
 
+#if defined(WANT_MOODBAR)
         { "display_moodbar", menu_view_moodbar, NULL, appconfig_get_show_moodbar()?"true":"false", NULL, },
         { "generate_moodbar", menu_moodbar, NULL, NULL, NULL, },
+#endif
 
         { "check_all", menu_check_all, NULL, NULL, NULL, },
         { "check_none", menu_check_none, NULL, NULL, NULL, },
@@ -2525,8 +2535,10 @@ do_activate(GApplication *app, gpointer user_data)
     set_action_enabled("export", FALSE);
     set_action_enabled("import", FALSE);
 
+#if defined(WANT_MOODBAR)
     set_action_enabled("display_moodbar", FALSE);
     set_action_enabled("generate_moodbar", FALSE);
+#endif
 
     gtk_window_set_default_icon_name( PACKAGE);
 
@@ -2546,10 +2558,12 @@ do_activate(GApplication *app, gpointer user_data)
 
     GMenu *top_menu = g_menu_new();
 
+#if defined(WANT_MOODBAR)
     GMenu *display_menu = g_menu_new();
     g_menu_append(display_menu, _("Display moodbar"), "win.display_moodbar");
     g_menu_append(display_menu, _("Generate moodbar"), "win.generate_moodbar");
     g_menu_append_section(top_menu, NULL, G_MENU_MODEL(display_menu));
+#endif
 
     GMenu *toc_menu = g_menu_new();
     g_menu_append(toc_menu, _("Import track breaks"), "win.import");
