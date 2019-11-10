@@ -25,28 +25,29 @@
 static void draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawContext *ctx);
 static void draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawContext *ctx);
 
-#define SAMPLE_COLORS 6
-#define SAMPLE_SHADES 3
-
-GdkRGBA sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
-GdkRGBA bg_color;
-GdkRGBA nowrite_color;
-
 /**
- * The sample_colors_values array now uses colors from the
+ * The SAMPLE_COLORS_VALUES array now uses colors from the
  * Tango Icon Theme Guidelines (except "Chocolate", as it looks too much like
  * "Orange" in the waveform sample view), see this URL for more information:
  *
  * http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines
  **/
-const double sample_colors_values[SAMPLE_COLORS][3] = {
-    { 52 / 255.f, 101 / 255.f, 164 / 255.f }, // Sky Blue
-    { 204 / 255.f, 0 / 255.f, 0 / 255.f },    // Scarlet Red
-    { 115 / 255.f, 210 / 255.f, 22 / 255.f }, // Chameleon
-    { 237 / 255.f, 212 / 255.f, 0 / 255.f },  // Butter
-    { 245 / 255.f, 121 / 255.f, 0 / 255.f },  // Orange
-    { 117 / 255.f, 80 / 255.f, 123 / 255.f }, // Plum
+const unsigned char SAMPLE_COLORS_VALUES[][3] = {
+    {  52, 101, 164 }, // Sky Blue
+    { 204,   0,   0 }, // Scarlet Red
+    { 115, 210,  22 }, // Chameleon
+    { 237, 212,   0 }, // Butter
+    { 245, 121,   0 }, // Orange
+    { 117,  80, 123 }, // Plum
 };
+
+#define SAMPLE_COLORS G_N_ELEMENTS(SAMPLE_COLORS_VALUES)
+
+#define SAMPLE_SHADES 3
+
+GdkRGBA sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
+GdkRGBA bg_color;
+GdkRGBA nowrite_color;
 
 static inline void
 set_cairo_source(cairo_t *cr, GdkRGBA *color)
@@ -77,22 +78,16 @@ waveform_surface_static_init()
         return;
     }
 
-    /* Set default colors up */
-    bg_color.red   =
-    bg_color.green =
-    bg_color.blue  = 1.f;
-
-    nowrite_color.red   =
-    nowrite_color.green =
-    nowrite_color.blue  = 0.86f;
+    bg_color = (GdkRGBA){ .red = 1.f, .green = 1.f, .blue = 1.f };
+    nowrite_color = (GdkRGBA){ .red = 0.86f, .green = 0.86f, .blue = 0.86f };
 
     for (int i=0; i<SAMPLE_COLORS; i++) {
         for (int x=0; x<SAMPLE_SHADES; x++) {
             float factor_white = 0.5f*((float)x/(float)SAMPLE_SHADES);
             float factor_color = 1.f-factor_white;
-            sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+factor_white;
-            sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+factor_white;
-            sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+factor_white;
+            sample_colors[i][x].red = SAMPLE_COLORS_VALUES[i][0]/255.f*factor_color+factor_white;
+            sample_colors[i][x].green = SAMPLE_COLORS_VALUES[i][1]/255.f*factor_color+factor_white;
+            sample_colors[i][x].blue = SAMPLE_COLORS_VALUES[i][2]/255.f*factor_color+factor_white;
         }
     }
 
