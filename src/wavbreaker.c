@@ -338,11 +338,16 @@ void jump_to_track_break(GSimpleAction *action, GVariant *parameter, gpointer us
 void wavbreaker_autosplit(long x) {
     long n = x;
 
+    gulong orig_cursor_marker = cursor_marker;
+
     while (n <= graphData.numSamples) {
         cursor_marker = n;
         track_break_add_entry();
         n += x;
     }
+
+    cursor_marker = orig_cursor_marker;
+    force_redraw();
 }
 
 /*
