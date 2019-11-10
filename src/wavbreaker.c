@@ -2273,7 +2273,7 @@ menu_open_file(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 static void
 menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    gtk_popover_popup(menu_popover);
+    gtk_popover_popup(GTK_POPOVER(menu_popover));
 }
 
 static void
@@ -2555,7 +2555,7 @@ do_activate(GApplication *app, gpointer user_data)
     g_menu_append(about_menu, _("About"), "app.about");
     g_menu_append_section(top_menu, NULL, G_MENU_MODEL(about_menu));
 
-    menu_popover = gtk_popover_new_from_model(menu_button, top_menu);
+    menu_popover = gtk_popover_new_from_model(menu_button, G_MENU_MODEL(top_menu));
     gtk_popover_set_position(GTK_POPOVER(menu_popover), GTK_POS_BOTTOM);
 
     header_bar_save_button = GTK_WIDGET(gtk_button_new_from_icon_name("document-save-as-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
