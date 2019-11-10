@@ -171,11 +171,6 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
 
     int shade;
 
-    int count;
-    int is_write;
-    int index;
-    GList *tbl;
-    TrackBreak *tb_cur;
     GdkRGBA new_color;
 
     {
@@ -225,7 +220,8 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
     }
 
     /* draw sample graph */
-
+    int tb_index = 0;
+    GList *tbl = ctx->track_break_list;
     for (i = 0; i < width && i < ctx->graphData->numSamples; i++) {
         y_min = ctx->graphData->data[i + ctx->pixmap_offset].min;
         y_max = ctx->graphData->data[i + ctx->pixmap_offset].max;
@@ -234,21 +230,9 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
         y_max = xaxis - y_max / scale;
 
         /* find the track break we are drawing now */
-        count = 0;
-        is_write = 0;
-        tb_cur = NULL;
-        for (tbl = ctx->track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-            index = g_list_position(ctx->track_break_list, tbl);
-            tb_cur = g_list_nth_data(ctx->track_break_list, index);
-            if (tb_cur != NULL) {
-                if (i + ctx->pixmap_offset > tb_cur->offset) {
-                    is_write = tb_cur->write;
-                    count++;
-                } else {
-                    /* already found */
-                    break;
-                }
-            }
+        while (tbl->next && (i + ctx->pixmap_offset) > ((TrackBreak *)(tbl->next->data))->offset) {
+            tbl = tbl->next;
+            ++tb_index;
         }
 
         if (ctx->moodbarData && ctx->moodbarData->numFrames) {
@@ -258,8 +242,9 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( is_write) {
-                new_color = sample_colors[(count-1) % SAMPLE_COLORS][shade];
+            TrackBreak *tb = tbl->data;
+            if (tb->write) {
+                new_color = sample_colors[tb_index % SAMPLE_COLORS][shade];
             } else {
                 new_color = nowrite_color;
             }
@@ -292,12 +277,6 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
     int shade;
 
     float x_scale;
-
-    int count;
-    int is_write;
-    int index;
-    GList *tbl;
-    TrackBreak *tb_cur;
 
     GdkRGBA new_color;
 
@@ -353,6 +332,8 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
         x_scale = 1;
     }
 
+    int tb_index = 0;
+    GList *tbl = ctx->track_break_list;
     for (i = 0; i < width && i < ctx->graphData->numSamples; i++) {
         min = max = 0;
         array_offset = (int)(i * x_scale);
@@ -378,18 +359,10 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
         y_min = xaxis + fabs((double)y_min) / scale;
         y_max = xaxis - y_max / scale;
 
-        count = 0;
-        is_write = 0;
-        tb_cur = NULL;
-        for (tbl = ctx->track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-            index = g_list_position(ctx->track_break_list, tbl);
-            tb_cur = g_list_nth_data(ctx->track_break_list, index);
-            if (tb_cur != NULL) {
-                if (array_offset > tb_cur->offset) {
-                    is_write = tb_cur->write;
-                    count++;
-                }
-            }
+        /* find the track break we are drawing now */
+        while (tbl->next && array_offset > ((TrackBreak *)(tbl->next->data))->offset) {
+            tbl = tbl->next;
+            ++tb_index;
         }
 
         float alpha = 1.f;
@@ -401,8 +374,9 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( is_write) {
-                new_color = sample_colors[(count-1) % SAMPLE_COLORS][shade];
+            TrackBreak *tb = tbl->data;
+            if (tb->write) {
+                new_color = sample_colors[tb_index % SAMPLE_COLORS][shade];
             } else {
                 new_color = nowrite_color;
             }
