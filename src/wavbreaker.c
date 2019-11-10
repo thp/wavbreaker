@@ -1291,6 +1291,7 @@ file_open_progress_idle_func(gpointer data) {
             moodbar_free(moodbarData);
         }
         moodbarData = moodbar_open(sample_filename);
+        set_action_enabled("display_moodbar", moodbarData != NULL);
         set_action_enabled("generate_moodbar", moodbarData == NULL);
 
         redraw();
@@ -1330,6 +1331,10 @@ static void open_file() {
     set_action_enabled("remove_break", TRUE);
     set_action_enabled("jump_break", TRUE);
 
+    set_action_enabled("export", TRUE);
+    set_action_enabled("import", TRUE);
+
+    set_action_enabled("display_moodbar", moodbarData != NULL);
     set_action_enabled("generate_moodbar", moodbarData == NULL);
     gtk_widget_set_sensitive( play_button, TRUE);
     gtk_widget_set_sensitive( header_bar_save_button, TRUE);
@@ -2295,6 +2300,7 @@ menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data
         moodbar_free(moodbarData);
     }
     moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("display_moodbar", moodbarData != NULL);
     set_action_enabled("generate_moodbar", moodbarData == NULL);
 
     redraw();
@@ -2327,6 +2333,7 @@ menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
         moodbar_free(moodbarData);
     }
     moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("display_moodbar", moodbarData != NULL);
     set_action_enabled("generate_moodbar", moodbarData == NULL);
 
     redraw();
@@ -2519,6 +2526,12 @@ do_activate(GApplication *app, gpointer user_data)
     set_action_enabled("auto_rename", FALSE);
     set_action_enabled("remove_break", FALSE);
     set_action_enabled("jump_break", FALSE);
+
+    set_action_enabled("export", FALSE);
+    set_action_enabled("import", FALSE);
+
+    set_action_enabled("display_moodbar", FALSE);
+    set_action_enabled("generate_moodbar", FALSE);
 
     gtk_window_set_default_icon_name( PACKAGE);
 
