@@ -92,8 +92,6 @@ static GraphData graphData;
 
 static MoodbarData *moodbarData;
 
-extern SampleInfo sampleInfo;
-
 #define SAMPLE_COLORS 6
 #define SAMPLE_SHADES 3
 
@@ -133,7 +131,6 @@ typedef struct CursorData_ CursorData;
 struct CursorData_ {
     gulong marker;
     gboolean is_equal;
-    guint index;
 };
 
 enum {
@@ -610,16 +607,6 @@ void track_break_set_duration(gpointer data, gpointer user_data)
             track_break->duration);
     }
     //printf("\n");
-}
-
-void track_break_find(gpointer data, gpointer user_data)
-{
-    TrackBreak *tb = (TrackBreak *) data;
-    CursorData *cd = (CursorData *) user_data;
-
-    if (cd->marker < tb->offset) {
-        cd->index = g_list_index(track_break_list, data);
-    }
 }
 
 void track_break_clear_list()
