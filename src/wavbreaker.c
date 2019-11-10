@@ -69,9 +69,9 @@ static GtkAdjustment *adj;
 static GtkWidget *draw;
 static GtkWidget *draw_summary;
 static GtkWidget *play_button;
-static GtkMenu *file_menu;
 static GtkWidget *jump_to_popover;
 static GtkWidget *autosplit_popover;
+static GtkWidget *menu_popover;
 
 static GtkWidget *cursor_marker_spinner;
 static GtkWidget *cursor_marker_min_spinner;
@@ -190,6 +190,9 @@ draw_summary_button_release(GtkWidget *widget,
 /* Menu Functions */
 static void
 menu_open_file(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
+static void
+menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
 menu_delete_track_break(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -1184,6 +1187,15 @@ file_play_progress_idle_func(gpointer data) {
  *-------------------------------------------------------------------------
  */
 
+static void
+set_action_enabled(const char *action, gboolean enabled)
+{
+    g_object_set(G_OBJECT(g_action_map_lookup_action(G_ACTION_MAP(main_window), action)),
+            "enabled", enabled,
+            NULL);
+}
+
+
 gboolean
 file_open_progress_idle_func(gpointer data) {
     static GtkWidget *window;
@@ -1274,6 +1286,7 @@ file_open_progress_idle_func(gpointer data) {
             moodbar_free(moodbarData);
         }
         moodbarData = moodbar_open(sample_filename);
+        set_action_enabled("generate_moodbar", moodbarData == NULL);
 
         redraw();
 
@@ -1290,14 +1303,6 @@ file_open_progress_idle_func(gpointer data) {
 
         return TRUE;
     }
-}
-
-static void
-set_action_enabled(const char *action, gboolean enabled)
-{
-    g_object_set(G_OBJECT(g_action_map_lookup_action(G_ACTION_MAP(main_window), action)),
-            "enabled", enabled,
-            NULL);
 }
 
 static void open_file() {
@@ -1320,7 +1325,7 @@ static void open_file() {
     set_action_enabled("remove_break", TRUE);
     set_action_enabled("jump_break", TRUE);
 
-    // TODO: Maybe re-enable the "Generate moodbar" action
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
     gtk_widget_set_sensitive( play_button, TRUE);
     gtk_widget_set_sensitive( header_bar_save_button, TRUE);
 
@@ -1730,22 +1735,6 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
     }
 
     if (graphData.numSamples == 0) {
-        return TRUE;
-    }
-
-    if (event->button == 3) {
-        GMenu *menu_model = g_menu_new();
-
-        // TODO: Checkbox and sensitivity
-        g_menu_append(menu_model, _("Display moodbar"), "win.display_moodbar");
-        g_menu_append(menu_model, _("Generate moodbar"), "win.generate_moodbar");
-
-        GtkMenu *menu = GTK_MENU(gtk_menu_new_from_model(G_MENU_MODEL(menu_model)));
-        gtk_menu_attach_to_widget(menu, main_window, NULL);
-        gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
-
-        redraw();
-
         return TRUE;
     }
 
@@ -2282,14 +2271,26 @@ menu_open_file(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 }
 
 static void
+menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    gtk_popover_popup(menu_popover);
+}
+
+static void
 menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    appconfig_set_show_moodbar(!appconfig_get_show_moodbar());
+    GVariant *state = g_action_get_state(G_ACTION(action));
+    gboolean new_value = !g_variant_get_boolean(state);
+    g_variant_unref(state);
+
+    g_action_change_state(G_ACTION(action), g_variant_new("b", new_value));
+    appconfig_set_show_moodbar(new_value);
 
     if (moodbarData) {
         moodbar_free(moodbarData);
     }
     moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
 
     redraw();
 }
@@ -2321,6 +2322,7 @@ menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
         moodbar_free(moodbarData);
     }
     moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
 
     redraw();
 }
@@ -2434,12 +2436,6 @@ do_startup(GApplication *application, gpointer user_data)
     textdomain( PACKAGE);
     bindtextdomain( PACKAGE, LOCALEDIR);
 
-    GMenu *top_menu = g_menu_new();
-    g_menu_append(top_menu, _("Merge wave files"), "app.guimerge");
-    g_menu_append(top_menu, _("Preferences"), "app.preferences");
-    g_menu_append(top_menu, _("About"), "app.about");
-    gtk_application_set_app_menu(GTK_APPLICATION(application), G_MENU_MODEL(top_menu));
-
     appconfig_init();
 }
 
@@ -2479,9 +2475,11 @@ do_activate(GApplication *app, gpointer user_data)
 
     main_window = gtk_application_window_new(GTK_APPLICATION(app));
 
-    static const GActionEntry entries[] = {
+    GActionEntry entries[] = {
         { "open", menu_open_file, NULL, NULL, NULL, },
+        { "menu", menu_menu, NULL, NULL, NULL, },
 
+        // TODO: "save" is currently unused
         { "save", menu_save, NULL, NULL, NULL, },
         { "save_to_folder", menu_save_as, NULL, NULL, NULL, },
         { "export", menu_export, NULL, NULL, NULL, },
@@ -2490,7 +2488,7 @@ do_activate(GApplication *app, gpointer user_data)
         { "add_break", menu_add_track_break, NULL, NULL, NULL, },
         { "jump_cursor", jump_to_cursor_marker, NULL, NULL, NULL, },
 
-        { "display_moodbar", menu_view_moodbar, NULL, NULL, },
+        { "display_moodbar", menu_view_moodbar, NULL, appconfig_get_show_moodbar()?"true":"false", NULL, },
         { "generate_moodbar", menu_moodbar, NULL, NULL, NULL, },
 
         { "check_all", menu_check_all, NULL, NULL, NULL, },
@@ -2528,10 +2526,40 @@ do_activate(GApplication *app, gpointer user_data)
     gtk_actionable_set_action_name(GTK_ACTIONABLE(open_button), "win.open");
     gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), open_button);
 
-    header_bar_save_button = GTK_WIDGET(gtk_menu_tool_button_new(gtk_image_new_from_icon_name("document-save-symbolic",
-                GTK_ICON_SIZE_SMALL_TOOLBAR), _("Save")));
-    gtk_actionable_set_action_name(GTK_ACTIONABLE(header_bar_save_button), "win.save");
-    gtk_menu_tool_button_set_arrow_tooltip_text(GTK_MENU_TOOL_BUTTON(header_bar_save_button), _("Save and export"));
+    GtkWidget *menu_button = gtk_button_new_from_icon_name("open-menu-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(menu_button, _("Open menu"));
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(menu_button), "win.menu");
+    gtk_header_bar_pack_end(GTK_HEADER_BAR(header_bar), menu_button);
+
+    GMenu *top_menu = g_menu_new();
+
+    GMenu *display_menu = g_menu_new();
+    g_menu_append(display_menu, _("Display moodbar"), "win.display_moodbar");
+    g_menu_append(display_menu, _("Generate moodbar"), "win.generate_moodbar");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(display_menu));
+
+    GMenu *toc_menu = g_menu_new();
+    g_menu_append(toc_menu, _("Import track breaks"), "win.import");
+    g_menu_append(toc_menu, _("Export track breaks"), "win.export");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(toc_menu));
+
+    GMenu *tools_menu = g_menu_new();
+    g_menu_append(tools_menu, _("Merge wave files"), "app.guimerge");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(tools_menu));
+
+    GMenu *prefs_menu = g_menu_new();
+    g_menu_append(prefs_menu, _("Preferences"), "app.preferences");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(prefs_menu));
+
+    GMenu *about_menu = g_menu_new();
+    g_menu_append(about_menu, _("About"), "app.about");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(about_menu));
+
+    menu_popover = gtk_popover_new_from_model(menu_button, top_menu);
+    gtk_popover_set_position(GTK_POPOVER(menu_popover), GTK_POS_BOTTOM);
+
+    header_bar_save_button = GTK_WIDGET(gtk_button_new_from_icon_name("document-save-as-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(header_bar_save_button), "win.save_to_folder");
     gtk_widget_set_sensitive(header_bar_save_button, FALSE);
     gtk_widget_set_tooltip_text(header_bar_save_button, _("Save file parts"));
     gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), header_bar_save_button);
@@ -2547,20 +2575,6 @@ do_activate(GApplication *app, gpointer user_data)
 
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(main_window), vbox);
-
-    GMenu *file_menu_model = g_menu_new();
-
-    GMenu *save_menu = g_menu_new();
-    g_menu_append(save_menu, _("Save as..."), "win.save_to_folder");
-    g_menu_append_section(file_menu_model, NULL, G_MENU_MODEL(save_menu));
-
-    GMenu *toc_menu = g_menu_new();
-    g_menu_append(toc_menu, _("Import track breaks..."), "win.import");
-    g_menu_append(toc_menu, _("Export track breaks..."), "win.export");
-    g_menu_append_section(file_menu_model, NULL, G_MENU_MODEL(toc_menu));
-
-    file_menu = GTK_MENU(gtk_menu_new_from_model(G_MENU_MODEL(file_menu_model)));
-    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(header_bar_save_button), GTK_WIDGET(file_menu));
 
     /* paned view */
     vpane1 = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
