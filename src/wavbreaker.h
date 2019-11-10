@@ -36,12 +36,6 @@ struct GraphData_{
 	Points *data;
 };
 
-typedef struct MoodbarData_ MoodbarData;
-struct MoodbarData_ {
-    unsigned long numFrames;
-    GdkRGBA *frames;
-};
-
 typedef struct TrackBreak_ TrackBreak;
 struct TrackBreak_ {
 	gboolean  write;
@@ -86,10 +80,6 @@ enum {
     CHECK_NONE,
     CHECK_INVERT
 };
-
-#define MB_OVL_MOODBAR 2
-#define MB_OVL_WAVEFORM 7
-#define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
 
 /**
  * When the play marker reaches (x-1)/x (where x is the

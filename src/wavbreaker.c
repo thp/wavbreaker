@@ -32,7 +32,6 @@
 #include <string.h>
 #include <libgen.h>
 #include <errno.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <signal.h>
 
@@ -48,6 +47,7 @@
 #include "cue.h"
 #include "reallyquit.h"
 #include "guimerge.h"
+#include "moodbar.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -90,10 +90,7 @@ static GtkAdjustment *cursor_marker_subsec_spinner_adj;
 
 static GraphData graphData;
 
-static MoodbarData moodbarData;
-static pid_t moodbar_pid;
-static gboolean moodbar_cancelled;
-static GtkWidget* moodbar_wait_dialog;
+static MoodbarData *moodbarData;
 
 extern SampleInfo sampleInfo;
 
@@ -309,134 +306,6 @@ void set_status_message(const char *val)
     status_message = g_strdup(val);
 }
 */
-
-void cancel_moodbar_process(GtkWidget *widget, gpointer user_data)
-{
-    moodbar_cancelled = TRUE;
-    kill( moodbar_pid, SIGKILL);
-    /* remove (partial) .mood file */
-    unlink( (char*)user_data);
-}
-
-void hide_moodbar_process(GtkWidget *widget, gpointer user_data)
-{
-    gtk_widget_hide(GTK_WIDGET(user_data));
-}
-
-void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
-    gchar *fn;
-    FILE* fp;
-    unsigned long s;
-    struct stat st;
-    int pos;
-    int child_status;
-    gchar tmp[3];
-    GtkWidget *child, *cancel_button;
-    time_t t;
-
-    if( moodbarData.frames != NULL) {
-        free( moodbarData.frames);
-        moodbarData.frames = NULL;
-        moodbarData.numFrames = 0;
-    }
-
-    /* replace ".xxx" with ".mood" */
-    fn = (gchar*)malloc( strlen(filename)+2);
-    strcpy( fn, filename);
-    strcpy( (gchar*)(fn+strlen(fn)-4), ".mood");
-
-    if( stat( fn, &st) != 0 && run_moodbar) {
-        if( moodbar_wait_dialog != NULL) {
-            return;
-        }
-
-        moodbar_cancelled = FALSE;
-        moodbar_pid = fork();
-
-        if( moodbar_pid == 0) {
-            if( execlp( "moodbar", "moodbar", "-o", fn, filename, (char*)NULL) == -1) {
-                fprintf( stderr, "Error running moodbar: %s (Have you installed the \"moodbar\" package?)\n", strerror( errno));
-                _exit( -1);
-            }
-        } else if( moodbar_pid > 0) {
-            moodbar_wait_dialog = gtk_message_dialog_new( GTK_WINDOW(main_window),
-                                  GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
-                                  GTK_MESSAGE_INFO,
-                                  GTK_BUTTONS_NONE,
-                                  _("Generating moodbar"));
-            gtk_widget_realize( GTK_WIDGET(moodbar_wait_dialog));
-            gdk_window_set_functions(gtk_widget_get_window(GTK_WIDGET(moodbar_wait_dialog)), GDK_FUNC_MOVE);
-
-            child = gtk_progress_bar_new();
-            gtk_progress_bar_set_text( GTK_PROGRESS_BAR(child), basename( fn));
-            gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(moodbar_wait_dialog))), child, FALSE, TRUE, 0);
-
-            cancel_button = gtk_button_new_with_mnemonic(_("_Hide window"));
-            g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(hide_moodbar_process), moodbar_wait_dialog);
-            gtk_dialog_add_action_widget(GTK_DIALOG(moodbar_wait_dialog), cancel_button, -1);
-
-            cancel_button = gtk_button_new_with_mnemonic(_("_Cancel"));
-            g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), fn);
-            gtk_dialog_add_action_widget(GTK_DIALOG(moodbar_wait_dialog), cancel_button, -1);
-
-            gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(moodbar_wait_dialog), _("The moodbar tool analyzes your audio file and generates a colorful representation of the audio data."));
-            gtk_window_set_title( GTK_WINDOW(moodbar_wait_dialog), _("Generating moodbar"));
-            gtk_widget_show_all( moodbar_wait_dialog);
-
-            t = time( NULL);
-            while( waitpid( moodbar_pid, &child_status, WNOHANG) == 0) {
-                while( gtk_events_pending()) {
-                    gtk_main_iteration();
-                }
-
-                if( time( NULL) > t) {
-                    gtk_progress_bar_pulse( GTK_PROGRESS_BAR(child));
-                    t = time( NULL);
-                }
-            }
-
-            gtk_widget_destroy( moodbar_wait_dialog);
-            moodbar_wait_dialog = NULL;
-
-            if( child_status != 0 && !moodbar_cancelled) {
-                popupmessage_show( NULL, _("Cannot launch \"moodbar\""), _("wavbreaker could not launch the moodbar application, which is needed to generate the moodbar. You can download the moodbar package from:\n\n      http://amarok.kde.org/wiki/Moodbar"));
-            }
-        } else {
-            fprintf( stderr, "fork() failed for moodbar process: %s\n", strerror( errno));
-        }
-    }
-
-    moodbarData.numFrames = 0;
-
-    fp = fopen( fn, "rb");
-    if( !fp) {
-        // FIXME: Maybe disable the display moodbar actions
-        appconfig_set_show_moodbar(0);
-        return;
-    }
-
-    fseek( fp, 0, SEEK_END);
-    s = ftell( fp);
-    fseek( fp, 0, SEEK_SET);
-
-    moodbarData.numFrames = s/3;
-
-    moodbarData.frames = (GdkRGBA*)calloc( moodbarData.numFrames, sizeof(GdkRGBA));
-
-    pos = 0;
-    while( fread( &tmp, 3, 1, fp) > 0) {
-        moodbarData.frames[pos].red = tmp[0]*(65535/255);
-        moodbarData.frames[pos].green = tmp[1]*(65535/255);
-        moodbarData.frames[pos].blue = tmp[2]*(65535/255);
-        pos++;
-    }
-
-    fclose( fp);
-    free( fn);
-
-    // TODO: Maybe toggle "Display moodbar" menu input on
-    // TODO: Maybe disable the "Generate moodbar" menu action
-}
 
 void parts_check_cb(GtkWidget *widget, gpointer data) {
 
@@ -1438,7 +1307,11 @@ file_open_progress_idle_func(gpointer data) {
         /* TODO: Remove FIX !!!!!!!!!!! */
         configure_event(draw, NULL, NULL);
 
-        moodbar_open_file( sample_filename, FALSE);
+        if (moodbarData) {
+            moodbar_free(moodbarData);
+        }
+        moodbarData = moodbar_open(sample_filename);
+
         redraw();
 
         /* --------------------------------------------------- */
@@ -1702,7 +1575,7 @@ static void draw_sample_surface(GtkWidget *widget)
     height = allocation.height;
 
     if( sample_surface != NULL && pw == width && ph == height && ppos == pixmap_offset &&
-        (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
+        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == mb) {
         return;
     }
 
@@ -1766,9 +1639,9 @@ static void draw_sample_surface(GtkWidget *widget)
             }
         }
 
-        if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
-            moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
-            set_cairo_source(cr, &(moodbarData.frames[moodbar_pos]));
+        if (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) {
+            moodbar_pos = (unsigned int)(moodbarData->numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
+            set_cairo_source(cr, &(moodbarData->frames[moodbar_pos]));
             draw_cairo_line(cr, i, 0.f, height);
             cairo_stroke(cr);
         }
@@ -1792,7 +1665,7 @@ static void draw_sample_surface(GtkWidget *widget)
     pw = width;
     ph = height;
     ppos = pixmap_offset;
-    mb = moodbarData.numFrames && appconfig_get_show_moodbar();
+    mb = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean configure_event(GtkWidget *widget,
@@ -1991,7 +1864,7 @@ static void draw_summary_surface(GtkWidget *widget)
     height = allocation.height;
 
     if( summary_surface != NULL && pw == width && ph == height &&
-        (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
+        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == mb) {
         return;
     }
 
@@ -2074,9 +1947,9 @@ static void draw_summary_surface(GtkWidget *widget)
             }
         }
 
-        if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
-            moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
-            set_cairo_source(cr, &(moodbarData.frames[moodbar_pos]));
+        if (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) {
+            moodbar_pos = (unsigned int)(moodbarData->numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
+            set_cairo_source(cr, &(moodbarData->frames[moodbar_pos]));
             draw_cairo_line(cr, i, 0.f, height);
             cairo_stroke(cr);
         }
@@ -2088,10 +1961,16 @@ static void draw_summary_surface(GtkWidget *widget)
                 new_color = nowrite_color;
             }
 
-            if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
-                new_color.red = MOODBAR_BLEND(new_color.red, moodbarData.frames[moodbar_pos].red);
-                new_color.green = MOODBAR_BLEND(new_color.green, moodbarData.frames[moodbar_pos].green);
-                new_color.blue = MOODBAR_BLEND(new_color.blue, moodbarData.frames[moodbar_pos].blue);
+            if (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) {
+#define MB_OVL_MOODBAR 2
+#define MB_OVL_WAVEFORM 7
+#define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
+                new_color.red = MOODBAR_BLEND(new_color.red, moodbarData->frames[moodbar_pos].red);
+                new_color.green = MOODBAR_BLEND(new_color.green, moodbarData->frames[moodbar_pos].green);
+                new_color.blue = MOODBAR_BLEND(new_color.blue, moodbarData->frames[moodbar_pos].blue);
+#undef MB_OVL_MOODBAR
+#undef MB_OVL_WAVEFORM
+#undef MOODBAR_BLEND
             }
 
             set_cairo_source(cr, &new_color);
@@ -2105,7 +1984,7 @@ static void draw_summary_surface(GtkWidget *widget)
 
     pw = width;
     ph = height;
-    mb = moodbarData.numFrames && appconfig_get_show_moodbar();
+    mb = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean
@@ -2720,6 +2599,12 @@ static void
 menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     appconfig_set_show_moodbar(!appconfig_get_show_moodbar());
+
+    if (moodbarData) {
+        moodbar_free(moodbarData);
+    }
+    moodbarData = moodbar_open(sample_filename);
+
     redraw();
 }
 
@@ -2744,7 +2629,14 @@ menu_merge(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 static void
 menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    moodbar_open_file( sample_filename, TRUE);
+    (void)moodbar_generate(main_window, sample_filename);
+
+    if (moodbarData) {
+        moodbar_free(moodbarData);
+    }
+    moodbarData = moodbar_open(sample_filename);
+
+    redraw();
 }
 
 static void
@@ -3391,7 +3283,7 @@ int track_breaks_load_from_file( gchar const *filename) {
 guint
 msf_time_to_offset( gchar *str )
 {
-    uint   offset;
+    guint   offset;
     int    mm = 0, ss = 0, ff = 0;
     int    consumed;
 
