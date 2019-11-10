@@ -404,7 +404,6 @@ void appconfig_show(GtkWidget *main_window)
 {
     GtkWidget *vbox;
     GtkWidget *grid;
-    GtkWidget *hbbox;
     GtkWidget *label;
 
     GtkWidget *notebook;
@@ -516,12 +515,6 @@ void appconfig_show(GtkWidget *main_window)
     gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
     gtk_grid_attach(GTK_GRID(grid), etree_cd_length_entry,
             2, 4, 1, 1);
-
-    /* OK and Cancel Buttons */
-    hbbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_container_add(GTK_CONTAINER(vbox), hbbox);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
-    gtk_box_set_spacing(GTK_BOX(hbbox), 10);
 
     g_signal_connect(G_OBJECT(window),
         "delete-event", G_CALLBACK(on_appconfig_close), window);
