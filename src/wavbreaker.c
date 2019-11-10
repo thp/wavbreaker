@@ -48,6 +48,7 @@
 #include "reallyquit.h"
 #include "guimerge.h"
 #include "moodbar.h"
+#include "draw.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -56,21 +57,8 @@
 
 #define SILENCE_MIN_LENGTH 4
 
-struct WaveformSurface {
-    cairo_surface_t *surface;
-    unsigned long width;
-    unsigned long height;
-    unsigned long offset;
-    gboolean moodbar;
-
-    void (*draw)(struct WaveformSurface *, GtkWidget *);
-};
-
-static void draw_sample_surface(struct WaveformSurface *self, GtkWidget *widget);
-static void draw_summary_surface(struct WaveformSurface *self, GtkWidget *widget);
-
-static struct WaveformSurface sample_surface = { .draw = draw_sample_surface };
-static struct WaveformSurface summary_surface = { .draw = draw_summary_surface };
+static struct WaveformSurface *sample_surface;
+static struct WaveformSurface *summary_surface;
 
 static GtkWidget *main_window;
 static GtkWidget *header_bar;
@@ -104,29 +92,6 @@ static GtkAdjustment *cursor_marker_subsec_spinner_adj;
 static GraphData graphData;
 
 static MoodbarData *moodbarData;
-
-#define SAMPLE_COLORS 6
-#define SAMPLE_SHADES 3
-
-GdkRGBA sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
-GdkRGBA bg_color;
-GdkRGBA nowrite_color;
-
-/**
- * The sample_colors_values array now uses colors from the
- * Tango Icon Theme Guidelines (except "Chocolate", as it looks too much like
- * "Orange" in the waveform sample view), see this URL for more information:
- *
- * http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines
- **/
-const double sample_colors_values[SAMPLE_COLORS][3] = {
-    { 52 / 255.f, 101 / 255.f, 164 / 255.f }, // Sky Blue
-    { 204 / 255.f, 0 / 255.f, 0 / 255.f },    // Scarlet Red
-    { 115 / 255.f, 210 / 255.f, 22 / 255.f }, // Chameleon
-    { 237 / 255.f, 212 / 255.f, 0 / 255.f },  // Butter
-    { 245 / 255.f, 121 / 255.f, 0 / 255.f },  // Orange
-    { 117 / 255.f, 80 / 255.f, 123 / 255.f }, // Plum
-};
 
 static gulong cursor_marker;
 static gulong play_marker;
@@ -1488,38 +1453,10 @@ static inline void blit_cairo_surface(cairo_t *cr, cairo_surface_t *surface, int
     cairo_fill(cr);
 }
 
-static inline void set_cairo_source(cairo_t *cr, GdkRGBA *color)
-{
-    cairo_set_source_rgb(cr, color->red, color->green, color->blue);
-}
-
-static inline void fill_cairo_rectangle(cairo_t *cr, GdkRGBA *color, int width, int height)
-{
-    set_cairo_source(cr, color);
-    cairo_rectangle(cr, 0.f, 0.f, (float)width, (float)height);
-    cairo_fill(cr);
-}
-
-static inline void draw_cairo_line(cairo_t *cr, float x, float y0, float y1)
-{
-    cairo_move_to(cr, x-0.5f, y0);
-    cairo_line_to(cr, x-0.5f, y1);
-}
-
 static void force_redraw()
 {
-    struct WaveformSurface *surfaces[] = {
-        &sample_surface,
-        &summary_surface,
-        NULL,
-    };
-
-    for (struct WaveformSurface **cur=surfaces; *cur; ++cur) {
-        if ((*cur)->surface) {
-            cairo_surface_destroy((*cur)->surface);
-            (*cur)->surface = NULL;
-        }
-    }
+    waveform_surface_invalidate(sample_surface);
+    waveform_surface_invalidate(summary_surface);
 
     redraw();
 }
@@ -1539,133 +1476,22 @@ static gboolean redraw_later( gpointer data)
 {
     int *redraw_done = (int*)data;
 
-    sample_surface.draw(&sample_surface, draw);
+    struct WaveformSurfaceDrawContext ctx = {
+        .widget = draw,
+        .pixmap_offset = pixmap_offset,
+        .track_break_list = track_break_list,
+        .graphData = &graphData,
+        .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
+    };
+    waveform_surface_draw(sample_surface, &ctx);
     gtk_widget_queue_draw(draw);
-    summary_surface.draw(&summary_surface, draw);
+
+    ctx.widget = draw_summary;
+    waveform_surface_draw(summary_surface, &ctx);
     gtk_widget_queue_draw(draw_summary);
 
     *redraw_done = 1;
     return FALSE;
-}
-
-static void draw_sample_surface(struct WaveformSurface *self, GtkWidget *widget)
-{
-    int xaxis;
-    int width, height;
-    int y_min, y_max;
-    int scale;
-    long i;
-
-    int shade;
-
-    int count;
-    int is_write;
-    int index;
-    GList *tbl;
-    TrackBreak *tb_cur;
-    unsigned int moodbar_pos = 0;
-    GdkRGBA new_color;
-
-    {
-        GtkAllocation allocation;
-        gtk_widget_get_allocation(widget, &allocation);
-
-        width = allocation.width;
-        height = allocation.height;
-    }
-
-    if (self->surface != NULL && self->width == width && self->height == height && self->offset == pixmap_offset &&
-        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == self->moodbar) {
-        return;
-    }
-
-    if (self->surface) {
-        cairo_surface_destroy(self->surface);
-    }
-
-    self->surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
-            CAIRO_CONTENT_COLOR, width, height);
-
-    if (!self->surface) {
-        printf("surface is NULL\n");
-        return;
-    }
-
-    cairo_t *cr = cairo_create(self->surface);
-    cairo_set_line_width(cr, 1.f);
-
-    /* clear sample_surface before drawing */
-    fill_cairo_rectangle(cr, &bg_color, width, height);
-
-    if (graphData.data == NULL) {
-        cairo_destroy(cr);
-        return;
-    }
-
-    xaxis = height / 2;
-    if (xaxis != 0) {
-        scale = graphData.maxSampleValue / xaxis;
-        if (scale == 0) {
-            scale = 1;
-        }
-    } else {
-        scale = 1;
-    }
-
-    /* draw sample graph */
-
-    for (i = 0; i < width && i < graphData.numSamples; i++) {
-        y_min = graphData.data[i + pixmap_offset].min;
-        y_max = graphData.data[i + pixmap_offset].max;
-
-        y_min = xaxis + fabs((double)y_min) / scale;
-        y_max = xaxis - y_max / scale;
-
-        /* find the track break we are drawing now */
-        count = 0;
-        is_write = 0;
-        tb_cur = NULL;
-        for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-            index = g_list_position(track_break_list, tbl);
-            tb_cur = g_list_nth_data(track_break_list, index);
-            if (tb_cur != NULL) {
-                if (i + pixmap_offset > tb_cur->offset) {
-                    is_write = tb_cur->write;
-                    count++;
-                } else {
-                    /* already found */
-                    break;
-                }
-            }
-        }
-
-        if (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) {
-            moodbar_pos = (unsigned int)(moodbarData->numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
-            set_cairo_source(cr, &(moodbarData->frames[moodbar_pos]));
-            draw_cairo_line(cr, i, 0.f, height);
-            cairo_stroke(cr);
-        }
-
-        for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( is_write) {
-                new_color = sample_colors[(count-1) % SAMPLE_COLORS][shade];
-            } else {
-                new_color = nowrite_color;
-            }
-
-            set_cairo_source(cr, &new_color);
-            draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
-            draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
-            cairo_stroke(cr);
-        }
-    }
-
-    cairo_destroy(cr);
-
-    self->width = width;
-    self->height = height;
-    self->offset = pixmap_offset;
-    self->moodbar = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean configure_event(GtkWidget *widget,
@@ -1698,7 +1524,14 @@ static gboolean configure_event(GtkWidget *widget,
     gtk_adjustment_set_value(adj, pixmap_offset);
     gtk_adjustment_set_upper(cursor_marker_spinner_adj, graphData.numSamples - 1);
 
-    sample_surface.draw(&sample_surface, widget);
+    struct WaveformSurfaceDrawContext ctx = {
+        .widget = widget,
+        .pixmap_offset = pixmap_offset,
+        .track_break_list = track_break_list,
+        .graphData = &graphData,
+        .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
+    };
+    waveform_surface_draw(sample_surface, &ctx);
 
     return TRUE;
 }
@@ -1721,7 +1554,7 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     guint width = allocation.width,
           height = allocation.height;
 
-    blit_cairo_surface(cr, sample_surface.surface, width, height);
+    blit_cairo_surface(cr, sample_surface->surface, width, height);
 
     cairo_set_line_width( cr, 1);
     if( cursor_marker >= pixmap_offset && cursor_marker <= pixmap_offset + width) {
@@ -1833,168 +1666,19 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     return FALSE;
 }
 
-static void
-draw_summary_surface(struct WaveformSurface *self, GtkWidget *widget)
-{
-    int xaxis;
-    int width, height;
-    int y_min, y_max;
-    int min, max;
-    int scale;
-    int i, k;
-    int loop_end, array_offset;
-    int shade;
-
-    float x_scale;
-
-    int count;
-    int is_write;
-    int index;
-    GList *tbl;
-    TrackBreak *tb_cur;
-
-    unsigned int moodbar_pos = 0;
-    GdkRGBA new_color;
-
-    static unsigned long pw, ph, mb;
-
-    {
-        GtkAllocation allocation;
-        gtk_widget_get_allocation(widget, &allocation);
-        width = allocation.width;
-        height = allocation.height;
-    }
-
-    if (self->surface != NULL && self->width == width && self->height == height &&
-        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == self->moodbar) {
-        return;
-    }
-
-    if (self->surface) {
-        cairo_surface_destroy(self->surface);
-    }
-
-    self->surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
-            CAIRO_CONTENT_COLOR, width, height);
-
-    if (!self->surface) {
-        printf("summary_surface is NULL\n");
-        return;
-    }
-
-    cairo_t *cr = cairo_create(self->surface);
-    cairo_set_line_width(cr, 1.f);
-
-    /* clear sample_surface before drawing */
-    fill_cairo_rectangle(cr, &bg_color, width, height);
-
-    if (graphData.data == NULL) {
-        cairo_destroy(cr);
-        return;
-    }
-
-    xaxis = height / 2;
-    if (xaxis != 0) {
-        scale = graphData.maxSampleValue / xaxis;
-        if (scale == 0) {
-            scale = 1;
-        }
-    } else {
-        scale = 1;
-    }
-
-    /* draw sample graph */
-
-    x_scale = (float)(graphData.numSamples) / (float)(width);
-    if (x_scale == 0) {
-        x_scale = 1;
-    }
-
-    for (i = 0; i < width && i < graphData.numSamples; i++) {
-        min = max = 0;
-        array_offset = (int)(i * x_scale);
-
-        if (x_scale != 1) {
-            loop_end = (int)x_scale;
-
-            for (k = 0; k < loop_end; k++) {
-                if (graphData.data[array_offset + k].max > max) {
-                    max = graphData.data[array_offset + k].max;
-                } else if (graphData.data[array_offset + k].min < min) {
-                    min = graphData.data[array_offset + k].min;
-                }
-            }
-        } else {
-            min = graphData.data[i].min;
-            max = graphData.data[i].max;
-        }
-
-        y_min = min;
-        y_max = max;
-
-        y_min = xaxis + fabs((double)y_min) / scale;
-        y_max = xaxis - y_max / scale;
-
-        count = 0;
-        is_write = 0;
-        tb_cur = NULL;
-        for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-            index = g_list_position(track_break_list, tbl);
-            tb_cur = g_list_nth_data(track_break_list, index);
-            if (tb_cur != NULL) {
-                if (array_offset > tb_cur->offset) {
-                    is_write = tb_cur->write;
-                    count++;
-                }
-            }
-        }
-
-        if (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) {
-            moodbar_pos = (unsigned int)(moodbarData->numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
-            set_cairo_source(cr, &(moodbarData->frames[moodbar_pos]));
-            draw_cairo_line(cr, i, 0.f, height);
-            cairo_stroke(cr);
-        }
-
-        for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( is_write) {
-                new_color = sample_colors[(count-1) % SAMPLE_COLORS][shade];
-            } else {
-                new_color = nowrite_color;
-            }
-
-            if (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) {
-#define MB_OVL_MOODBAR 2
-#define MB_OVL_WAVEFORM 7
-#define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
-                new_color.red = MOODBAR_BLEND(new_color.red, moodbarData->frames[moodbar_pos].red);
-                new_color.green = MOODBAR_BLEND(new_color.green, moodbarData->frames[moodbar_pos].green);
-                new_color.blue = MOODBAR_BLEND(new_color.blue, moodbarData->frames[moodbar_pos].blue);
-#undef MB_OVL_MOODBAR
-#undef MB_OVL_WAVEFORM
-#undef MOODBAR_BLEND
-            }
-
-            set_cairo_source(cr, &new_color);
-            draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
-            draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
-            cairo_stroke(cr);
-        }
-    }
-
-    cairo_destroy(cr);
-
-    self->width = width;
-    self->height = height;
-    self->moodbar = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
-}
-
 static gboolean
 draw_summary_configure_event(GtkWidget *widget,
                              GdkEventConfigure *event,
                              gpointer user_data)
 {
-    summary_surface.draw(&summary_surface, widget);
+    struct WaveformSurfaceDrawContext ctx = {
+        .widget = widget,
+        .pixmap_offset = pixmap_offset,
+        .track_break_list = track_break_list,
+        .graphData = &graphData,
+        .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
+    };
+    waveform_surface_draw(summary_surface, &ctx);
 
     return TRUE;
 }
@@ -2015,7 +1699,7 @@ draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
      * Draw shadow in summary pixmap to show current view
      **/
 
-    blit_cairo_surface(cr, summary_surface.surface, width, height);
+    blit_cairo_surface(cr, summary_surface->surface, width, height);
 
     cairo_set_source_rgba( cr, 0, 0, 0, 0.3);
     cairo_rectangle( cr, 0, 0, pixmap_offset / summary_scale, height);
@@ -2790,9 +2474,8 @@ do_activate(GApplication *app, gpointer user_data)
     GtkWidget *hbox;
     GtkWidget *button;
 
-    int i;
-    int x;
-    float factor_color, factor_white;
+    sample_surface = waveform_surface_create_sample();
+    summary_surface = waveform_surface_create_summary();
 
     main_window = gtk_application_window_new(GTK_APPLICATION(app));
 
@@ -2878,25 +2561,6 @@ do_activate(GApplication *app, gpointer user_data)
 
     file_menu = GTK_MENU(gtk_menu_new_from_model(G_MENU_MODEL(file_menu_model)));
     gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(header_bar_save_button), GTK_WIDGET(file_menu));
-
-    /* Set default colors up */
-    bg_color.red   =
-    bg_color.green =
-    bg_color.blue  = 1.f;
-
-    nowrite_color.red   =
-    nowrite_color.green =
-    nowrite_color.blue  = 0.86f;
-
-    for( i=0; i<SAMPLE_COLORS; i++) {
-        for( x=0; x<SAMPLE_SHADES; x++) {
-            factor_white = 0.5f*((float)x/(float)SAMPLE_SHADES);
-            factor_color = 1.f-factor_white;
-            sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+factor_white;
-            sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+factor_white;
-            sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+factor_white;
-        }
-    }
 
     /* paned view */
     vpane1 = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
@@ -3104,6 +2768,9 @@ do_open(GApplication *application, gpointer files, gint n_files, gchar *hint, gp
 static void
 do_shutdown(GApplication *application, gpointer user_data)
 {
+    waveform_surface_free(sample_surface);
+    waveform_surface_free(summary_surface);
+
     appconfig_write_file();
 }
 
