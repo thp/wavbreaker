@@ -406,7 +406,7 @@ void appconfig_show(GtkWidget *main_window)
     GtkWidget *grid;
     GtkWidget *label;
 
-    GtkWidget *notebook;
+    GtkWidget *stack;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
@@ -424,15 +424,19 @@ void appconfig_show(GtkWidget *main_window)
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_container_add( GTK_CONTAINER(window), vbox);
 
-    notebook = gtk_notebook_new();
-    gtk_container_add( GTK_CONTAINER(vbox), notebook);
+    stack = gtk_stack_new();
+    gtk_container_add(GTK_CONTAINER(vbox), stack);
+
+    GtkWidget *stack_switcher = gtk_stack_switcher_new();
+    gtk_stack_switcher_set_stack(GTK_STACK_SWITCHER(stack_switcher), GTK_STACK(stack));
+    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), stack_switcher);
 
     /* Selectable Output Directory */
     grid = gtk_grid_new();
     gtk_container_set_border_width(GTK_CONTAINER(grid), 10);
     gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
     gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
-    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), grid, gtk_label_new( _("General")));
+    gtk_stack_add_titled(GTK_STACK(stack), grid, "general", _("General"));
 
     use_outputdir_toggle = gtk_check_button_new_with_label(_("Save output files in folder:"));
     gtk_grid_attach(GTK_GRID(grid), use_outputdir_toggle,
@@ -471,7 +475,7 @@ void appconfig_show(GtkWidget *main_window)
     gtk_container_set_border_width(GTK_CONTAINER(grid), 10);
     gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
     gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
-    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), grid, gtk_label_new( _("File Naming")));
+    gtk_stack_add_titled(GTK_STACK(stack), grid, "naming", _("File Naming"));
 
     radio1 = gtk_radio_button_new_with_label(NULL, _("Standard (##)"));
     gtk_grid_attach(GTK_GRID(grid), radio1, 0, 0, 3, 1);
