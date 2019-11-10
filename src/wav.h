@@ -50,7 +50,7 @@ typedef struct {
 //	unsigned short  extraNonPcm;
 } FormatChunk;
 
-char *wav_get_error_message();
+const char *wav_get_error_message();
 
 int wav_read_header(char *, SampleInfo *, int);
 int wav_read_sample(FILE *, unsigned char *, int, unsigned long);

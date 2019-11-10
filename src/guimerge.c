@@ -356,9 +356,6 @@ gboolean file_merge_progress_idle_func(gpointer data) {
     static GtkWidget *vbox;
     static GtkWidget *label;
     static GtkWidget *status_label;
-    static char tmp_str[6144];
-    static char str[6144];
-    char *str_ptr;
     static int cur_file_displayed = 0;
     static double fraction;
 
@@ -381,13 +378,11 @@ gboolean file_merge_progress_idle_func(gpointer data) {
 
         gtk_window_set_title( GTK_WINDOW(window), _("Merging wave files"));
 
-        tmp_str[0] = '\0';
-        strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
-        strcat( tmp_str, gtk_window_get_title( GTK_WINDOW(window)));
-        strcat( tmp_str, "</span>");
-
-        label = gtk_label_new( NULL);
-        gtk_label_set_markup( GTK_LABEL(label), tmp_str);
+        gchar *markup = g_markup_printf_escaped("<span size=\"larger\" weight=\"bold\">%s</span>",
+                gtk_window_get_title(GTK_WINDOW(window)));
+        label = gtk_label_new(NULL);
+        gtk_label_set_markup(GTK_LABEL(label), markup);
+        g_free(markup);
         g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
@@ -413,22 +408,19 @@ gboolean file_merge_progress_idle_func(gpointer data) {
         gtk_widget_destroy(window);
         window = NULL;
 
-        sprintf( tmp_str, _("The files have been merged as %s."), basename(write_info.merge_filename));
-        popupmessage_show( NULL, _("Operation successful"), tmp_str);
+        popupmessage_show(NULL, _("Operation successful"), _("The files have been merged."));
 
         return FALSE;
     }
 
     if (cur_file_displayed != write_info.cur_file) {
-        str_ptr = basename( write_info.cur_filename);
-
-        if( str_ptr == NULL) {
-            str_ptr = write_info.cur_filename;
-        }
-
-        sprintf( str, _("Adding %s"), str_ptr);
-        sprintf( tmp_str, "<i>%s</i>", str);
-        gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
+        gchar *bn = g_path_get_basename(write_info.cur_filename);
+        gchar *tmp = g_strdup_printf(_("Adding %s"), bn);
+        g_free(bn);
+        gchar *msg = g_markup_printf_escaped("<i>%s</i>", tmp);
+        g_free(tmp);
+        gtk_label_set_markup(GTK_LABEL(status_label), msg);
+        g_free(msg);
 
         cur_file_displayed = write_info.cur_file;
     }
@@ -436,12 +428,15 @@ gboolean file_merge_progress_idle_func(gpointer data) {
     fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
 
-    if( write_info.num_files > 1) {
-        sprintf( tmp_str, _("%d of %d files merged"), write_info.cur_file-1, write_info.num_files);
+    gchar *msg;
+    if (write_info.num_files > 1) {
+        // TODO: i18n plural forms
+        msg = g_strdup_printf(_("%d of %d files merged"), write_info.cur_file-1, write_info.num_files);
     } else {
-        sprintf( tmp_str, _("%d of 1 file merged"), write_info.cur_file-1);
+        msg = g_strdup_printf(_("%d of 1 file merged"), write_info.cur_file-1);
     }
-    gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
+    gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), msg);
+    g_free(msg);
 
     return TRUE;
 }

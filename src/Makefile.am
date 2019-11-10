@@ -24,3 +24,4 @@ noinst_HEADERS = cdda.h sample.h wav.h wavbreaker.h about.h \
 wavbreaker_LDADD = $(GTK3_LIBS) $(AO_LIBS) $(MPG123_LIBS)
 wavmerge_LDADD = $(GLIB_LIBS)
 wavgen_LDADD = $(GLIB_LIBS)
+wavinfo_LDADD = $(GLIB_LIBS)

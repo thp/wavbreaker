@@ -675,33 +675,25 @@ track_break_setup_filename(gpointer data, gpointer user_data)
         // try and determine if the user has modified the filename
 
         if (track_break->filename != NULL) {
-            char cmp_str[1024];
-            cmp_str[0] = '\0';
-
+            size_t cut = 0;
+            gboolean remove_from_start = FALSE;
             if (appconfig_get_use_etree_filename_suffix()) {
                 // remove the dXtXX from the end
-                int length = strlen(track_break->filename);
-                if (length > 5) {
-                    strncpy(cmp_str, track_break->filename, length - 5);
-                    cmp_str[length - 4] = '\0';
-                }
-            } else if (appconfig_get_prepend_file_number()) {
-                // remove the XX- from the beginning
-                int length = strlen(track_break->filename);
-                if (length > 3) {
-                    strncpy(cmp_str, track_break->filename + 3, length);
-                    cmp_str[length - 2] = '\0';
-                }
+                cut = 5;
             } else {
-                // remove the -XX from the end
-                int length = strlen(track_break->filename);
-                if (length > 3) {
-                    strncpy(cmp_str, track_break->filename, length - 3);
-                    cmp_str[length - 2] = '\0';
-                }
+                // remove the XX- from the beginning or -XX from the end
+                cut = 3;
+                remove_from_start = appconfig_get_prepend_file_number();
             }
 
-            if (strcmp(orig_filename, cmp_str)) {
+            int length = strlen(track_break->filename);
+            int orig_length = strlen(orig_filename);
+
+            if (length != orig_length + cut) {
+                return;
+            }
+
+            if (memcmp(orig_filename, track_break->filename + (remove_from_start ? cut : 0), orig_length) != 0) {
                 return;
             }
         }
@@ -912,9 +904,6 @@ void track_break_set_durations() {
 }
 
 void track_break_rename( gboolean overwrite) {
-    gchar str_tmp[1024];
-    gchar *str_ptr;
-
     if (sample_filename == NULL) {
         return;
     }
@@ -923,16 +912,16 @@ void track_break_rename( gboolean overwrite) {
     overwrite_track_names = overwrite;
 
     /* setup the filename */
-    strncpy(str_tmp, sample_filename, 1024);
-    str_ptr = basename(str_tmp);
-    strncpy(str_tmp, str_ptr, 1024);
-    str_ptr = strrchr(str_tmp, '.');
-    if (str_ptr != NULL) {
-        *str_ptr = '\0';
+    gchar *str_ptr = g_path_get_basename(sample_filename);
+    gchar *end = strrchr(str_ptr, '.');
+    if (end) {
+        *end = '\0';
     }
-    g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
+
+    g_list_foreach(track_break_list, track_break_setup_filename, str_ptr);
     gtk_list_store_clear(store);
     g_list_foreach(track_break_list, track_break_add_to_model, NULL);
+    g_free(str_ptr);
 
     redraw();
 
@@ -1043,8 +1032,6 @@ file_write_progress_idle_func(gpointer data) {
     static GtkWidget *vbox;
     static GtkWidget *label;
     static GtkWidget *status_label;
-    static char tmp_str[6144];
-    static char str[6144];
     char *str_ptr;
     static int cur_file_displayed = 0;
     static double fraction;
@@ -1084,13 +1071,12 @@ file_write_progress_idle_func(gpointer data) {
 
         gtk_window_set_title( GTK_WINDOW(window), _("Splitting wave file"));
 
-        tmp_str[0] = '\0';
-        strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
-        strcat( tmp_str, gtk_window_get_title( GTK_WINDOW(window)));
-        strcat( tmp_str, "</span>");
+        gchar *tmp_str = g_markup_printf_escaped("<span size=\"larger\" weight=\"bold\">%s</span>",
+                gtk_window_get_title(GTK_WINDOW(window)));
 
         label = gtk_label_new( NULL);
         gtk_label_set_markup( GTK_LABEL(label), tmp_str);
+        g_free(tmp_str);
         g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
@@ -1116,12 +1102,14 @@ file_write_progress_idle_func(gpointer data) {
         gtk_widget_destroy(window);
         window = NULL;
 
+        gchar *tmp_str;
         if( write_info.num_files > 1) {
-            sprintf( tmp_str, _("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
+            tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
         } else {
-            sprintf( tmp_str, _("The file %s has been split into one part."), basename( sample_filename));
+            tmp_str = g_strdup_printf(_("The file %s has been split into one part."), basename( sample_filename));
         }
         popupmessage_show( NULL, _("Operation successful"), tmp_str);
+        g_free(tmp_str);
 
         return FALSE;
     }
@@ -1133,11 +1121,14 @@ file_write_progress_idle_func(gpointer data) {
             str_ptr = write_info.cur_filename;
         }
 
-        sprintf( str, _("Writing %s"), str_ptr);
-        gchar *tmp = g_markup_escape_text(str, -1);
-        sprintf(tmp_str, "<i>%s</i>", str);
+        gchar *fn = g_markup_escape_text(str_ptr, -1);
+        gchar *tmp = g_strdup_printf(_("Writing %s"), fn);
+        g_free(fn);
+        gchar *msg = g_markup_printf_escaped("<i>%s</i>", tmp);
         g_free(tmp);
-        gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
+
+        gtk_label_set_markup(GTK_LABEL(status_label), msg);
+        g_free(msg);
 
         cur_file_displayed = write_info.cur_file;
     }
@@ -1145,12 +1136,15 @@ file_write_progress_idle_func(gpointer data) {
     fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
 
+    gchar *tmp_str;
+    // FIXME: i18n plural forms
     if( write_info.num_files > 1) {
-        sprintf( tmp_str, _("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
+        tmp_str = g_strdup_printf(_("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
     } else {
-        sprintf( tmp_str, _("%d of 1 part written"), write_info.cur_file-1);
+        tmp_str = g_strdup_printf(_("%d of 1 part written"), write_info.cur_file-1);
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
+    g_free(tmp_str);
 
     return TRUE;
 }
@@ -2444,9 +2438,10 @@ make_time_offset_widget()
 static void
 do_startup(GApplication *application, gpointer user_data)
 {
-    setlocale( LC_ALL, "");
-    textdomain( PACKAGE);
-    bindtextdomain( PACKAGE, LOCALEDIR);
+    setlocale(LC_ALL, "");
+
+    (void)textdomain(PACKAGE);
+    (void)bindtextdomain(PACKAGE, LOCALEDIR);
 
     appconfig_init();
 }
