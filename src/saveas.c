@@ -23,7 +23,6 @@
 
 #include "sample.h"
 #include "wavbreaker.h"
-#include "browsedir.h"
 
 #include "gettext.h"
 
