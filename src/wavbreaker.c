@@ -56,8 +56,21 @@
 
 #define SILENCE_MIN_LENGTH 4
 
-static cairo_surface_t *sample_surface;
-static cairo_surface_t *summary_surface;
+struct WaveformSurface {
+    cairo_surface_t *surface;
+    unsigned long width;
+    unsigned long height;
+    unsigned long offset;
+    gboolean moodbar;
+
+    void (*draw)(struct WaveformSurface *, GtkWidget *);
+};
+
+static void draw_sample_surface(struct WaveformSurface *self, GtkWidget *widget);
+static void draw_summary_surface(struct WaveformSurface *self, GtkWidget *widget);
+
+static struct WaveformSurface sample_surface = { .draw = draw_sample_surface };
+static struct WaveformSurface summary_surface = { .draw = draw_summary_surface };
 
 static GtkWidget *main_window;
 static GtkWidget *header_bar;
@@ -186,8 +199,6 @@ static void force_redraw();
 static void redraw();
 static gboolean redraw_later( gpointer data);
 
-static void draw_sample_surface(GtkWidget *widget);
-static void draw_summary_surface(GtkWidget *widget);
 static void reset_sample_display(guint);
 
 static gboolean
@@ -1497,14 +1508,17 @@ static inline void draw_cairo_line(cairo_t *cr, float x, float y0, float y1)
 
 static void force_redraw()
 {
-    if (sample_surface) {
-        cairo_surface_destroy(sample_surface);
-        sample_surface = NULL;
-    }
+    struct WaveformSurface *surfaces[] = {
+        &sample_surface,
+        &summary_surface,
+        NULL,
+    };
 
-    if (summary_surface) {
-        cairo_surface_destroy(summary_surface);
-        summary_surface = NULL;
+    for (struct WaveformSurface **cur=surfaces; *cur; ++cur) {
+        if ((*cur)->surface) {
+            cairo_surface_destroy((*cur)->surface);
+            (*cur)->surface = NULL;
+        }
     }
 
     redraw();
@@ -1525,23 +1539,22 @@ static gboolean redraw_later( gpointer data)
 {
     int *redraw_done = (int*)data;
 
-    draw_sample_surface(draw);
+    sample_surface.draw(&sample_surface, draw);
     gtk_widget_queue_draw(draw);
-    draw_summary_surface(draw_summary);
+    summary_surface.draw(&summary_surface, draw);
     gtk_widget_queue_draw(draw_summary);
 
     *redraw_done = 1;
     return FALSE;
 }
 
-static void draw_sample_surface(GtkWidget *widget)
+static void draw_sample_surface(struct WaveformSurface *self, GtkWidget *widget)
 {
     int xaxis;
     int width, height;
     int y_min, y_max;
     int scale;
     long i;
-    cairo_t *cr;
 
     int shade;
 
@@ -1553,32 +1566,32 @@ static void draw_sample_surface(GtkWidget *widget)
     unsigned int moodbar_pos = 0;
     GdkRGBA new_color;
 
-    static unsigned long pw, ph, ppos, mb;
+    {
+        GtkAllocation allocation;
+        gtk_widget_get_allocation(widget, &allocation);
 
-    GtkAllocation allocation;
-    gtk_widget_get_allocation(widget, &allocation);
+        width = allocation.width;
+        height = allocation.height;
+    }
 
-    width = allocation.width;
-    height = allocation.height;
-
-    if( sample_surface != NULL && pw == width && ph == height && ppos == pixmap_offset &&
-        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == mb) {
+    if (self->surface != NULL && self->width == width && self->height == height && self->offset == pixmap_offset &&
+        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == self->moodbar) {
         return;
     }
 
-    if (sample_surface) {
-        cairo_surface_destroy(sample_surface);
+    if (self->surface) {
+        cairo_surface_destroy(self->surface);
     }
 
-    sample_surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
+    self->surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
             CAIRO_CONTENT_COLOR, width, height);
 
-    if (!sample_surface) {
-        printf("sample_surface is NULL\n");
+    if (!self->surface) {
+        printf("surface is NULL\n");
         return;
     }
 
-    cr = cairo_create(sample_surface);
+    cairo_t *cr = cairo_create(self->surface);
     cairo_set_line_width(cr, 1.f);
 
     /* clear sample_surface before drawing */
@@ -1649,10 +1662,10 @@ static void draw_sample_surface(GtkWidget *widget)
 
     cairo_destroy(cr);
 
-    pw = width;
-    ph = height;
-    ppos = pixmap_offset;
-    mb = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
+    self->width = width;
+    self->height = height;
+    self->offset = pixmap_offset;
+    self->moodbar = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean configure_event(GtkWidget *widget,
@@ -1685,7 +1698,7 @@ static gboolean configure_event(GtkWidget *widget,
     gtk_adjustment_set_value(adj, pixmap_offset);
     gtk_adjustment_set_upper(cursor_marker_spinner_adj, graphData.numSamples - 1);
 
-    draw_sample_surface(widget);
+    sample_surface.draw(&sample_surface, widget);
 
     return TRUE;
 }
@@ -1708,7 +1721,7 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     guint width = allocation.width,
           height = allocation.height;
 
-    blit_cairo_surface(cr, sample_surface, width, height);
+    blit_cairo_surface(cr, sample_surface.surface, width, height);
 
     cairo_set_line_width( cr, 1);
     if( cursor_marker >= pixmap_offset && cursor_marker <= pixmap_offset + width) {
@@ -1820,7 +1833,8 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     return FALSE;
 }
 
-static void draw_summary_surface(GtkWidget *widget)
+static void
+draw_summary_surface(struct WaveformSurface *self, GtkWidget *widget)
 {
     int xaxis;
     int width, height;
@@ -1833,7 +1847,6 @@ static void draw_summary_surface(GtkWidget *widget)
 
     float x_scale;
 
-    cairo_t *cr;
     int count;
     int is_write;
     int index;
@@ -1845,29 +1858,31 @@ static void draw_summary_surface(GtkWidget *widget)
 
     static unsigned long pw, ph, mb;
 
-    GtkAllocation allocation;
-    gtk_widget_get_allocation(widget, &allocation);
-    width = allocation.width;
-    height = allocation.height;
+    {
+        GtkAllocation allocation;
+        gtk_widget_get_allocation(widget, &allocation);
+        width = allocation.width;
+        height = allocation.height;
+    }
 
-    if( summary_surface != NULL && pw == width && ph == height &&
-        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == mb) {
+    if (self->surface != NULL && self->width == width && self->height == height &&
+        (moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar()) == self->moodbar) {
         return;
     }
 
-    if (summary_surface) {
-        cairo_surface_destroy(summary_surface);
+    if (self->surface) {
+        cairo_surface_destroy(self->surface);
     }
 
-    summary_surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
+    self->surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
             CAIRO_CONTENT_COLOR, width, height);
 
-    if (!summary_surface) {
+    if (!self->surface) {
         printf("summary_surface is NULL\n");
         return;
     }
 
-    cr = cairo_create(summary_surface);
+    cairo_t *cr = cairo_create(self->surface);
     cairo_set_line_width(cr, 1.f);
 
     /* clear sample_surface before drawing */
@@ -1969,9 +1984,9 @@ static void draw_summary_surface(GtkWidget *widget)
 
     cairo_destroy(cr);
 
-    pw = width;
-    ph = height;
-    mb = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
+    self->width = width;
+    self->height = height;
+    self->moodbar = moodbarData && moodbarData->numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean
@@ -1979,7 +1994,7 @@ draw_summary_configure_event(GtkWidget *widget,
                              GdkEventConfigure *event,
                              gpointer user_data)
 {
-    draw_summary_surface(widget);
+    summary_surface.draw(&summary_surface, widget);
 
     return TRUE;
 }
@@ -2000,7 +2015,7 @@ draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
      * Draw shadow in summary pixmap to show current view
      **/
 
-    blit_cairo_surface(cr, summary_surface, width, height);
+    blit_cairo_surface(cr, summary_surface.surface, width, height);
 
     cairo_set_source_rgba( cr, 0, 0, 0, 0.3);
     cairo_rectangle( cr, 0, 0, pixmap_offset / summary_scale, height);
