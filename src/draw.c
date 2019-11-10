@@ -50,15 +50,15 @@ GdkRGBA bg_color;
 GdkRGBA nowrite_color;
 
 static inline void
-set_cairo_source(cairo_t *cr, GdkRGBA *color)
+set_cairo_source(cairo_t *cr, GdkRGBA color)
 {
-    cairo_set_source_rgb(cr, color->red, color->green, color->blue);
+    cairo_set_source_rgb(cr, color.red, color.green, color.blue);
 }
 
 static inline void
 fill_cairo_rectangle(cairo_t *cr, GdkRGBA *color, int width, int height)
 {
-    set_cairo_source(cr, color);
+    set_cairo_source(cr, *color);
     cairo_rectangle(cr, 0.f, 0.f, (float)width, (float)height);
     cairo_fill(cr);
 }
@@ -141,6 +141,25 @@ void waveform_surface_free(struct WaveformSurface *surface)
     free(surface);
 }
 
+static GdkRGBA moodbar_sample_color(MoodbarData *moodbar, float position)
+{
+    float index = position * moodbar->numFrames;
+    unsigned long iindex = index;
+    float fractional = index - iindex;
+    if (fractional == 0.f || iindex >= moodbar->numFrames - 1) {
+        return moodbar->frames[iindex];
+    } else {
+        GdkRGBA a = moodbar->frames[iindex];
+        GdkRGBA b = moodbar->frames[iindex+1];
+        return (GdkRGBA){
+            .red =   (1.f - fractional) * a.red   + fractional * b.red,
+            .green = (1.f - fractional) * a.green + fractional * b.green,
+            .blue =  (1.f - fractional) * a.blue  + fractional * b.blue,
+            .alpha = (1.f - fractional) * a.alpha + fractional * b.alpha,
+        };
+    }
+}
+
 static void
 draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawContext *ctx)
 {
@@ -157,7 +176,6 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
     int index;
     GList *tbl;
     TrackBreak *tb_cur;
-    unsigned int moodbar_pos = 0;
     GdkRGBA new_color;
 
     {
@@ -234,8 +252,7 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
         }
 
         if (ctx->moodbarData && ctx->moodbarData->numFrames) {
-            moodbar_pos = (unsigned int)(ctx->moodbarData->numFrames*((float)(i+ctx->pixmap_offset)/(float)(ctx->graphData->numSamples)));
-            set_cairo_source(cr, &(ctx->moodbarData->frames[moodbar_pos]));
+            set_cairo_source(cr, moodbar_sample_color(ctx->moodbarData, (float)(i+ctx->pixmap_offset) / (float)ctx->graphData->numSamples));
             draw_cairo_line(cr, i, 0.f, height);
             cairo_stroke(cr);
         }
@@ -247,7 +264,7 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
                 new_color = nowrite_color;
             }
 
-            set_cairo_source(cr, &new_color);
+            set_cairo_source(cr, new_color);
             draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
             cairo_stroke(cr);
@@ -282,7 +299,6 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
     GList *tbl;
     TrackBreak *tb_cur;
 
-    unsigned int moodbar_pos = 0;
     GdkRGBA new_color;
 
     {
@@ -376,11 +392,12 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
             }
         }
 
+        float alpha = 1.f;
         if (ctx->moodbarData && ctx->moodbarData->numFrames) {
-            moodbar_pos = (unsigned int)(ctx->moodbarData->numFrames*((float)(array_offset)/(float)(ctx->graphData->numSamples)));
-            set_cairo_source(cr, &(ctx->moodbarData->frames[moodbar_pos]));
+            set_cairo_source(cr, moodbar_sample_color(ctx->moodbarData, (float)(array_offset) / (float)(ctx->graphData->numSamples)));
             draw_cairo_line(cr, i, 0.f, height);
             cairo_stroke(cr);
+            alpha = 0.77f;
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
@@ -390,19 +407,7 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
                 new_color = nowrite_color;
             }
 
-            if (ctx->moodbarData && ctx->moodbarData->numFrames) {
-#define MB_OVL_MOODBAR 2
-#define MB_OVL_WAVEFORM 7
-#define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
-                new_color.red = MOODBAR_BLEND(new_color.red, ctx->moodbarData->frames[moodbar_pos].red);
-                new_color.green = MOODBAR_BLEND(new_color.green, ctx->moodbarData->frames[moodbar_pos].green);
-                new_color.blue = MOODBAR_BLEND(new_color.blue, ctx->moodbarData->frames[moodbar_pos].blue);
-#undef MB_OVL_MOODBAR
-#undef MB_OVL_WAVEFORM
-#undef MOODBAR_BLEND
-            }
-
-            set_cairo_source(cr, &new_color);
+            cairo_set_source_rgba(cr, new_color.red, new_color.green, new_color.blue, alpha);
             draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
             cairo_stroke(cr);
