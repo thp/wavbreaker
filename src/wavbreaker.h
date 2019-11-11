@@ -36,12 +36,6 @@ struct GraphData_{
 	Points *data;
 };
 
-typedef struct MoodbarData_ MoodbarData;
-struct MoodbarData_ {
-    unsigned long numFrames;
-    GdkColor *frames;
-};
-
 typedef struct TrackBreak_ TrackBreak;
 struct TrackBreak_ {
 	gboolean  write;
@@ -73,7 +67,6 @@ void wavbreaker_autosplit(long x);
 void track_break_rename();
 void wavbreaker_write_files(char *dirname);
 GtkWidget *wavbreaker_get_main_window();
-gboolean open_file_arg( gpointer data);
 void track_break_add_offset(char *filename, gulong offset);
 void track_break_clear_list();
 void wavbreaker_quit();
@@ -87,10 +80,6 @@ enum {
     CHECK_NONE,
     CHECK_INVERT
 };
-
-#define MB_OVL_MOODBAR 2
-#define MB_OVL_WAVEFORM 7
-#define MOODBAR_BLEND(waveform,moodbar) (((MB_OVL_WAVEFORM*waveform+MB_OVL_MOODBAR*moodbar))/(MB_OVL_MOODBAR+MB_OVL_WAVEFORM))
 
 /**
  * When the play marker reaches (x-1)/x (where x is the

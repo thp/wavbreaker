@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(wavbreaker, 0.11)
+AC_INIT(wavbreaker, 0.12-alpha)
 AC_CONFIG_SRCDIR(src/wavbreaker.h)
 AM_INIT_AUTOMAKE(1.9)
 AM_CONFIG_HEADER(config.h)
@@ -16,6 +16,11 @@ AC_ARG_ENABLE(mpg123,
     [  --disable-mpg123      Disable detection of libmpg123],
     [enable_mpg123=$enableval],
     [enable_mpg123=yes])
+
+AC_ARG_ENABLE(moodbar,
+    [  --disable-moodbar      Disable moodbar support],
+    [enable_moodbar=$enableval],
+    [enable_moodbar=yes])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -54,11 +59,16 @@ then
 fi
 AC_SUBST(MPG123_LIBS)
 
+if test "x$enable_moodbar" = "xyes"
+then
+AC_DEFINE([WANT_MOODBAR], 1, [Define if you want to build moodbar features])
+fi
+
 PKG_CHECK_MODULES(AO, [ao])
 AC_SUBST(AO_CFLAGS)
 AC_SUBST(AO_LIBS)
 
-PKG_CHECK_MODULES(GTK3, gtk+-3.0)
+PKG_CHECK_MODULES(GTK3, [gtk+-3.0 >= 3.22])
 AC_SUBST(GTK3_CFLAGS)
 AC_SUBST(GTK3_LIBS)
 
@@ -77,6 +87,7 @@ AC_OUTPUT
 
 echo
 echo "MP3 access using libmpg123 .......   $enable_mpg123"
+echo "Moodbar support ..................   $enable_moodbar"
 echo
 echo "    Configure finished.  Do 'make && make install'"
 echo "    to compile and install wavbreaker."

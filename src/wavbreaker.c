@@ -32,7 +32,6 @@
 #include <string.h>
 #include <libgen.h>
 #include <errno.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <signal.h>
 
@@ -48,6 +47,8 @@
 #include "cue.h"
 #include "reallyquit.h"
 #include "guimerge.h"
+#include "moodbar.h"
+#include "draw.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -56,58 +57,32 @@
 
 #define SILENCE_MIN_LENGTH 4
 
-static cairo_surface_t *sample_surface;
-static cairo_surface_t *summary_surface;
+static struct WaveformSurface *sample_surface;
+static struct WaveformSurface *summary_surface;
 
 static GtkWidget *main_window;
+static GtkWidget *header_bar;
+static GtkWidget *header_bar_save_button;
 static GtkWidget *vpane1, *vpane2;
 static GtkWidget *scrollbar;
 static GtkAdjustment *adj;
 static GtkWidget *draw;
 static GtkWidget *draw_summary;
-static GtkWidget *statusbar;
-
-/* Actions for wavbreaker */
-static GtkAction *action_open;
-static GtkAction *action_save;
-static GtkAction *action_save_to;
-static GtkAction *action_preferences;
-static GtkAction *action_guimerge;
-static GtkAction *action_quit;
-
-static GtkToggleAction *action_view_toolbar;
-static GtkToggleAction *action_view_moodbar;
-
-static GtkAction *action_add_break;
-static GtkAction *action_remove_break;
-static GtkAction *action_jump_break;
-static GtkAction *action_rename;
-static GtkAction *action_moodbar;
-static GtkAction *action_split;
-static GtkAction *action_export;
-static GtkAction *action_check_all;
-static GtkAction *action_check_none;
-static GtkAction *action_check_invert;
-static GtkAction *action_jump_cursor;
-static GtkAction *action_import;
-static GtkAction *action_playback;
-static GtkAction *action_next_silence;
-static GtkAction *action_prev_silence;
-
-static GtkAction *action_about;
-
-static GtkActionGroup *action_group;
-static GtkAccelGroup *accel_group;
+static GtkWidget *play_button;
+static GtkWidget *jump_to_popover;
+static GtkWidget *autosplit_popover;
+static GtkWidget *menu_popover;
 
 static GtkWidget *cursor_marker_spinner;
 static GtkWidget *cursor_marker_min_spinner;
 static GtkWidget *cursor_marker_sec_spinner;
 static GtkWidget *cursor_marker_subsec_spinner;
+static GtkWidget *button_seek_backward;
+static GtkWidget *button_jump_to_time;
+static GtkWidget *button_seek_forward;
+static GtkWidget *button_auto_split;
 static GtkWidget *button_add_break;
 static GtkWidget *button_remove_break;
-static GtkWidget *button_rename;
-
-static GtkWidget *toolbar;
 
 static GtkAdjustment *cursor_marker_spinner_adj;
 static GtkAdjustment *cursor_marker_min_spinner_adj;
@@ -116,35 +91,7 @@ static GtkAdjustment *cursor_marker_subsec_spinner_adj;
 
 static GraphData graphData;
 
-static MoodbarData moodbarData;
-static pid_t moodbar_pid;
-static gboolean moodbar_cancelled;
-static GtkWidget* moodbar_wait_dialog;
-
-extern SampleInfo sampleInfo;
-
-#define SAMPLE_COLORS 6
-#define SAMPLE_SHADES 3
-
-GdkColor sample_colors[SAMPLE_COLORS][SAMPLE_SHADES];
-GdkColor bg_color;
-GdkColor nowrite_color;
-
-/**
- * The sample_colors_values array now uses colors from the
- * Tango Icon Theme Guidelines (except "Chocolate", as it looks too much like
- * "Orange" in the waveform sample view), see this URL for more information:
- *
- * http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines
- **/
-const int sample_colors_values[SAMPLE_COLORS][3] = {
-    { 52, 101, 164 }, // Sky Blue
-    { 204, 0, 0 },    // Scarlet Red
-    { 115, 210, 22 }, // Chameleon
-    { 237, 212, 0 },  // Butter
-    { 245, 121, 0 },  // Orange
-    { 117, 80, 123 }, // Plum
-};
+static MoodbarData *moodbarData;
 
 static gulong cursor_marker;
 static gulong play_marker;
@@ -162,7 +109,6 @@ typedef struct CursorData_ CursorData;
 struct CursorData_ {
     gulong marker;
     gboolean is_equal;
-    guint index;
 };
 
 enum {
@@ -211,7 +157,6 @@ void track_break_write_cue( gpointer data, gpointer user_data);
 /* File Functions */
 void set_sample_filename(const char *f);
 static void open_file();
-static void handle_arguments( int argc, char** argv);
 static void set_title( char* title);
 
 /* Sample and Summary Display Functions */
@@ -219,8 +164,6 @@ static void force_redraw();
 static void redraw();
 static gboolean redraw_later( gpointer data);
 
-static void draw_sample_surface(GtkWidget *widget);
-static void draw_summary_surface(GtkWidget *widget);
 static void reset_sample_display(guint);
 
 static gboolean
@@ -246,49 +189,48 @@ draw_summary_button_release(GtkWidget *widget,
 
 /* Menu Functions */
 static void
-menu_open_file(gpointer callback_data, guint callback_action,
-               GtkWidget *widget);
-static void
-menu_delete_track_break(GtkWidget *widget, gpointer user_data);
+menu_open_file(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_import(GtkWidget *widget, gpointer user_data);
+menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_delete_track_break(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_save(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
+#if defined(WANT_MOODBAR)
+static void
+menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_view_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+#endif
 
 static void
-menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_about(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_config(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_merge(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
-menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_export(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget);
 
 static void
-menu_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget);
-
-static void
-menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget);
+menu_rename(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
 menu_play(GtkWidget *widget, gpointer user_data);
@@ -300,10 +242,13 @@ static void
 menu_next_silence( GtkWidget* widget, gpointer user_data);
 
 static void
+menu_jump_to(GtkWidget *widget, gpointer user_data);
+
+static void
 menu_prev_silence( GtkWidget* widget, gpointer user_data);
 
 void
-menu_add_track_break(GtkWidget *widget, gpointer user_data);
+menu_add_track_break(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void set_stop_icon();
 static void set_play_icon();
@@ -339,136 +284,6 @@ void set_status_message(const char *val)
     status_message = g_strdup(val);
 }
 */
-
-void cancel_moodbar_process(GtkWidget *widget, gpointer user_data)
-{
-    moodbar_cancelled = TRUE;
-    kill( moodbar_pid, SIGKILL);
-    /* remove (partial) .mood file */
-    unlink( (char*)user_data);
-}
-
-void hide_moodbar_process(GtkWidget *widget, gpointer user_data)
-{
-    gtk_widget_hide(GTK_WIDGET(user_data));
-}
-
-void moodbar_open_file( gchar* filename, unsigned char run_moodbar) {
-    gchar *fn;
-    FILE* fp;
-    unsigned long s;
-    struct stat st;
-    int pos;
-    int child_status;
-    gchar tmp[3];
-    GtkWidget *child, *cancel_button;
-    time_t t;
-
-    if( moodbarData.frames != NULL) {
-        free( moodbarData.frames);
-        moodbarData.frames = NULL;
-        moodbarData.numFrames = 0;
-    }
-
-    /* replace ".xxx" with ".mood" */
-    fn = (gchar*)malloc( strlen(filename)+2);
-    strcpy( fn, filename);
-    strcpy( (gchar*)(fn+strlen(fn)-4), ".mood");
-
-    if( stat( fn, &st) != 0 && run_moodbar) {
-        if( moodbar_wait_dialog != NULL) {
-            return;
-        }
-
-        moodbar_cancelled = FALSE;
-        moodbar_pid = fork();
-
-        if( moodbar_pid == 0) {
-            if( execlp( "moodbar", "moodbar", "-o", fn, filename, (char*)NULL) == -1) {
-                fprintf( stderr, "Error running moodbar: %s (Have you installed the \"moodbar\" package?)\n", strerror( errno));
-                _exit( -1);
-            }
-        } else if( moodbar_pid > 0) {
-            moodbar_wait_dialog = gtk_message_dialog_new( GTK_WINDOW(main_window),
-                                  GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
-                                  GTK_MESSAGE_INFO,
-                                  GTK_BUTTONS_NONE,
-                                  _("Generating moodbar"));
-            gtk_widget_realize( GTK_WIDGET(moodbar_wait_dialog));
-            gdk_window_set_functions(gtk_widget_get_window(GTK_WIDGET(moodbar_wait_dialog)), GDK_FUNC_MOVE);
-
-            child = gtk_progress_bar_new();
-            gtk_progress_bar_set_text( GTK_PROGRESS_BAR(child), basename( fn));
-            gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(moodbar_wait_dialog))), child, FALSE, TRUE, 0);
-
-            GtkBox *action_area = GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(moodbar_wait_dialog)));
-
-            cancel_button = gtk_button_new_with_label( _("Hide window"));
-            g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(hide_moodbar_process), moodbar_wait_dialog);
-            gtk_box_pack_start(action_area, cancel_button, FALSE, TRUE, 0);
-
-            cancel_button = gtk_button_new_from_stock( GTK_STOCK_CANCEL);
-            g_signal_connect( G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), fn);
-            gtk_box_pack_start(action_area, cancel_button, FALSE, TRUE, 0);
-
-            gtk_message_dialog_format_secondary_text( GTK_MESSAGE_DIALOG(moodbar_wait_dialog), _("The moodbar tool analyzes your audio file and generates a colorful representation of the audio data."));
-            gtk_window_set_title( GTK_WINDOW(moodbar_wait_dialog), _("Generating moodbar"));
-            gtk_widget_show_all( moodbar_wait_dialog);
-
-            t = time( NULL);
-            while( waitpid( moodbar_pid, &child_status, WNOHANG) == 0) {
-                while( gtk_events_pending()) {
-                    gtk_main_iteration();
-                }
-
-                if( time( NULL) > t) {
-                    gtk_progress_bar_pulse( GTK_PROGRESS_BAR(child));
-                    t = time( NULL);
-                }
-            }
-
-            gtk_widget_destroy( moodbar_wait_dialog);
-            moodbar_wait_dialog = NULL;
-
-            if( child_status != 0 && !moodbar_cancelled) {
-                popupmessage_show( NULL, _("Cannot launch \"moodbar\""), _("wavbreaker could not launch the moodbar application, which is needed to generate the moodbar. You can download the moodbar package from:\n\n      http://amarok.kde.org/wiki/Moodbar"));
-            }
-        } else {
-            fprintf( stderr, "fork() failed for moodbar process: %s\n", strerror( errno));
-        }
-    }
-
-    moodbarData.numFrames = 0;
-
-    fp = fopen( fn, "rb");
-    if( !fp) {
-        gtk_action_set_sensitive( GTK_ACTION(action_view_moodbar), FALSE);
-        gtk_toggle_action_set_active( GTK_TOGGLE_ACTION(action_view_moodbar), FALSE);
-        return;
-    }
-
-    fseek( fp, 0, SEEK_END);
-    s = ftell( fp);
-    fseek( fp, 0, SEEK_SET);
-
-    moodbarData.numFrames = s/3;
-
-    moodbarData.frames = (GdkColor*)calloc( moodbarData.numFrames, sizeof(GdkColor));
-
-    pos = 0;
-    while( fread( &tmp, 3, 1, fp) > 0) {
-        moodbarData.frames[pos].red = tmp[0]*(65535/255);
-        moodbarData.frames[pos].green = tmp[1]*(65535/255);
-        moodbarData.frames[pos].blue = tmp[2]*(65535/255);
-        pos++;
-    }
-
-    fclose( fp);
-    free( fn);
-    gtk_action_set_sensitive( GTK_ACTION(action_view_moodbar), TRUE);
-    gtk_toggle_action_set_active( GTK_TOGGLE_ACTION(action_view_moodbar), (appconfig_get_show_moodbar())?(TRUE):(FALSE));
-    gtk_action_set_sensitive( action_moodbar, FALSE);
-}
 
 void parts_check_cb(GtkWidget *widget, gpointer data) {
 
@@ -506,12 +321,12 @@ void parts_check_cb(GtkWidget *widget, gpointer data) {
     force_redraw();
 }
 
-void jump_to_cursor_marker(GtkWidget *widget, gpointer data) {
+void jump_to_cursor_marker(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
     reset_sample_display(cursor_marker);
     redraw();
 }
 
-void jump_to_track_break(GtkWidget *widget, gpointer data) {
+void jump_to_track_break(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
     guint n = 0;
 
     n = track_break_find_offset();
@@ -525,11 +340,16 @@ void jump_to_track_break(GtkWidget *widget, gpointer data) {
 void wavbreaker_autosplit(long x) {
     long n = x;
 
+    gulong orig_cursor_marker = cursor_marker;
+
     while (n <= graphData.numSamples) {
         cursor_marker = n;
         track_break_add_entry();
         n += x;
     }
+
+    cursor_marker = orig_cursor_marker;
+    force_redraw();
 }
 
 /*
@@ -617,6 +437,7 @@ track_break_create_list_gui()
     gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     //gtk_tree_view_column_set_fixed_width(column, 200);
+    gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
@@ -676,32 +497,37 @@ track_break_sort(gconstpointer a, gconstpointer b)
 static gboolean
 track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-    GtkWidget *menu, *separator;
-
     if ((event->type == GDK_2BUTTON_PRESS) && (event->button == 1)) {
 
         cursor_marker = track_break_find_offset();
         gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_spinner), cursor_marker);
-        jump_to_cursor_marker (NULL, NULL);
+        jump_to_cursor_marker(NULL, NULL, NULL);
         return FALSE;
 
     } else if (event->button != 3) {
         return FALSE;
     }
 
-    menu = gtk_menu_new();
+    GMenu *menu_model = g_menu_new();
 
-    separator = gtk_separator_menu_item_new();
-    gtk_widget_show (separator);
+    GMenu *check_model = g_menu_new();
+    g_menu_append(check_model, _("Check all"), "win.check_all");
+    g_menu_append(check_model, _("Check none"), "win.check_none");
+    g_menu_append(check_model, _("Invert check"), "win.check_invert");
+    g_menu_append_section(menu_model, NULL, G_MENU_MODEL(check_model));
 
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_check_all));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_check_none));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_check_invert));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu), separator);
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_remove_break));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_jump_break));
+    GMenu *all_model = g_menu_new();
+    g_menu_append(all_model, _("Auto-rename track breaks"), "win.auto_rename");
+    g_menu_append_section(menu_model, NULL, G_MENU_MODEL(all_model));
 
-    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event->button, event->time);
+    GMenu *break_model = g_menu_new();
+    g_menu_append(break_model, _("Remove track break"), "win.remove_break");
+    g_menu_append(break_model, _("Jump to track break"), "win.jump_break");
+    g_menu_append_section(menu_model, NULL, G_MENU_MODEL(break_model));
+
+    GtkMenu *menu = GTK_MENU(gtk_menu_new_from_model(G_MENU_MODEL(menu_model)));
+    gtk_menu_attach_to_widget(menu, main_window, NULL);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
 
     return FALSE;
 }
@@ -767,16 +593,6 @@ void track_break_set_duration(gpointer data, gpointer user_data)
             track_break->duration);
     }
     //printf("\n");
-}
-
-void track_break_find(gpointer data, gpointer user_data)
-{
-    TrackBreak *tb = (TrackBreak *) data;
-    CursorData *cd = (CursorData *) user_data;
-
-    if (cd->marker < tb->offset) {
-        cd->index = g_list_index(track_break_list, data);
-    }
 }
 
 void track_break_clear_list()
@@ -861,33 +677,25 @@ track_break_setup_filename(gpointer data, gpointer user_data)
         // try and determine if the user has modified the filename
 
         if (track_break->filename != NULL) {
-            char cmp_str[1024];
-            cmp_str[0] = '\0';
-
+            size_t cut = 0;
+            gboolean remove_from_start = FALSE;
             if (appconfig_get_use_etree_filename_suffix()) {
                 // remove the dXtXX from the end
-                int length = strlen(track_break->filename);
-                if (length > 5) {
-                    strncpy(cmp_str, track_break->filename, length - 5);
-                    cmp_str[length - 4] = '\0';
-                }
-            } else if (appconfig_get_prepend_file_number()) {
-                // remove the XX- from the beginning
-                int length = strlen(track_break->filename);
-                if (length > 3) {
-                    strncpy(cmp_str, track_break->filename + 3, length);
-                    cmp_str[length - 2] = '\0';
-                }
+                cut = 5;
             } else {
-                // remove the -XX from the end
-                int length = strlen(track_break->filename);
-                if (length > 3) {
-                    strncpy(cmp_str, track_break->filename, length - 3);
-                    cmp_str[length - 2] = '\0';
-                }
+                // remove the XX- from the beginning or -XX from the end
+                cut = 3;
+                remove_from_start = appconfig_get_prepend_file_number();
             }
 
-            if (strcmp(orig_filename, cmp_str)) {
+            int length = strlen(track_break->filename);
+            int orig_length = strlen(orig_filename);
+
+            if (length != orig_length + cut) {
+                return;
+            }
+
+            if (memcmp(orig_filename, track_break->filename + (remove_from_start ? cut : 0), orig_length) != 0) {
                 return;
             }
         }
@@ -1098,9 +906,6 @@ void track_break_set_durations() {
 }
 
 void track_break_rename( gboolean overwrite) {
-    gchar str_tmp[1024];
-    gchar *str_ptr;
-
     if (sample_filename == NULL) {
         return;
     }
@@ -1109,16 +914,16 @@ void track_break_rename( gboolean overwrite) {
     overwrite_track_names = overwrite;
 
     /* setup the filename */
-    strncpy(str_tmp, sample_filename, 1024);
-    str_ptr = basename(str_tmp);
-    strncpy(str_tmp, str_ptr, 1024);
-    str_ptr = strrchr(str_tmp, '.');
-    if (str_ptr != NULL) {
-        *str_ptr = '\0';
+    gchar *str_ptr = g_path_get_basename(sample_filename);
+    gchar *end = strrchr(str_ptr, '.');
+    if (end) {
+        *end = '\0';
     }
-    g_list_foreach(track_break_list, track_break_setup_filename, str_tmp);
+
+    g_list_foreach(track_break_list, track_break_setup_filename, str_ptr);
     gtk_list_store_clear(store);
     g_list_foreach(track_break_list, track_break_add_to_model, NULL);
+    g_free(str_ptr);
 
     redraw();
 
@@ -1229,15 +1034,11 @@ file_write_progress_idle_func(gpointer data) {
     static GtkWidget *vbox;
     static GtkWidget *label;
     static GtkWidget *status_label;
-    static char tmp_str[6144];
-    static char str[6144];
     char *str_ptr;
     static int cur_file_displayed = 0;
     static double fraction;
 
     if (write_info.check_file_exists) {
-        gdk_threads_enter();
-
         if (window != NULL) {
             gtk_widget_destroy(window);
             window = NULL;
@@ -1245,8 +1046,6 @@ file_write_progress_idle_func(gpointer data) {
         write_info.sync_check_file_overwrite_to_write_progress = 1;
         write_info.check_file_exists = 0;
         overwritedialog_show( wavbreaker_get_main_window(), &write_info);
-
-        gdk_threads_leave();
 
         return TRUE;
     }
@@ -1256,7 +1055,6 @@ file_write_progress_idle_func(gpointer data) {
     }
 
     if (window == NULL) {
-        gdk_threads_enter();
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_widget_realize(window);
         gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
@@ -1269,94 +1067,86 @@ file_write_progress_idle_func(gpointer data) {
                 GTK_WIN_POS_CENTER_ON_PARENT);
         gdk_window_set_functions(GDK_WINDOW(gtk_widget_get_window(window)), GDK_FUNC_MOVE);
 
-        vbox = gtk_vbox_new(FALSE, 0);
+        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
         gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
         gtk_window_set_title( GTK_WINDOW(window), _("Splitting wave file"));
 
-        tmp_str[0] = '\0';
-        strcat( tmp_str, "<span size=\"larger\" weight=\"bold\">");
-        strcat( tmp_str, gtk_window_get_title( GTK_WINDOW(window)));
-        strcat( tmp_str, "</span>");
+        gchar *tmp_str = g_markup_printf_escaped("<span size=\"larger\" weight=\"bold\">%s</span>",
+                gtk_window_get_title(GTK_WINDOW(window)));
 
         label = gtk_label_new( NULL);
         gtk_label_set_markup( GTK_LABEL(label), tmp_str);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_free(tmp_str);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         label = gtk_label_new( _("The selected track breaks are now written to disk. This can take some time."));
         gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         pbar = gtk_progress_bar_new();
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
 
         status_label = gtk_label_new( NULL);
-        gtk_misc_set_alignment( GTK_MISC(status_label), 0.0, 0.5);
+        g_object_set(G_OBJECT(status_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_label_set_ellipsize( GTK_LABEL(status_label), PANGO_ELLIPSIZE_MIDDLE);
         gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
 
         gtk_widget_show_all(GTK_WIDGET(window));
         cur_file_displayed = -1;
-
-        gdk_threads_leave();
     }
 
     if (write_info.sync) {
-        gdk_threads_enter();
-
         write_info.sync = 0;
         gtk_widget_destroy(window);
         window = NULL;
 
+        gchar *tmp_str;
         if( write_info.num_files > 1) {
-            sprintf( tmp_str, _("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
+            tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
         } else {
-            sprintf( tmp_str, _("The file %s has been split into one part."), basename( sample_filename));
+            tmp_str = g_strdup_printf(_("The file %s has been split into one part."), basename( sample_filename));
         }
         popupmessage_show( NULL, _("Operation successful"), tmp_str);
+        g_free(tmp_str);
 
-        gdk_threads_leave();
         return FALSE;
     }
 
     if (cur_file_displayed != write_info.cur_file) {
-        gdk_threads_enter();
-
         str_ptr = basename( write_info.cur_filename);
 
         if( str_ptr == NULL) {
             str_ptr = write_info.cur_filename;
         }
 
-        sprintf( str, _("Writing %s"), str_ptr);
-        gchar *tmp = g_markup_escape_text(str, -1);
-        sprintf(tmp_str, "<i>%s</i>", str);
+        gchar *fn = g_markup_escape_text(str_ptr, -1);
+        gchar *tmp = g_strdup_printf(_("Writing %s"), fn);
+        g_free(fn);
+        gchar *msg = g_markup_printf_escaped("<i>%s</i>", tmp);
         g_free(tmp);
-        gtk_label_set_markup(GTK_LABEL(status_label), tmp_str);
+
+        gtk_label_set_markup(GTK_LABEL(status_label), msg);
+        g_free(msg);
 
         cur_file_displayed = write_info.cur_file;
-
-        gdk_threads_leave();
     }
-
-    gdk_threads_enter();
 
     fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
 
+    gchar *tmp_str;
+    // FIXME: i18n plural forms
     if( write_info.num_files > 1) {
-        sprintf( tmp_str, _("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
+        tmp_str = g_strdup_printf(_("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
     } else {
-        sprintf( tmp_str, _("%d of 1 part written"), write_info.cur_file-1);
+        tmp_str = g_strdup_printf(_("%d of 1 part written"), write_info.cur_file-1);
     }
     gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
-
-    gdk_threads_leave();
-
-    usleep( 100000);
+    g_free(tmp_str);
 
     return TRUE;
 }
@@ -1383,7 +1173,6 @@ file_play_progress_idle_func(gpointer data) {
 
     redraw();
     update_status(FALSE);
-    usleep( 50000);
 
     if (sample_is_playing()) {
         return TRUE;
@@ -1399,6 +1188,15 @@ file_play_progress_idle_func(gpointer data) {
  *-------------------------------------------------------------------------
  */
 
+static void
+set_action_enabled(const char *action, gboolean enabled)
+{
+    g_object_set(G_OBJECT(g_action_map_lookup_action(G_ACTION_MAP(main_window), action)),
+            "enabled", enabled,
+            NULL);
+}
+
+
 gboolean
 file_open_progress_idle_func(gpointer data) {
     static GtkWidget *window;
@@ -1410,7 +1208,6 @@ file_open_progress_idle_func(gpointer data) {
     static int current, size;
 
     if (window == NULL) {
-        gdk_threads_enter();
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_widget_realize(window);
         gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
@@ -1423,7 +1220,7 @@ file_open_progress_idle_func(gpointer data) {
                 GTK_WIN_POS_CENTER_ON_PARENT);
         gdk_window_set_functions(GDK_WINDOW(gtk_widget_get_window(window)), GDK_FUNC_MOVE);
 
-        vbox = gtk_vbox_new(FALSE, 0);
+        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_container_add(GTK_CONTAINER(window), vbox);
         gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
@@ -1436,12 +1233,12 @@ file_open_progress_idle_func(gpointer data) {
 
         label = gtk_label_new( NULL);
         gtk_label_set_markup( GTK_LABEL(label), tmp_str);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         label = gtk_label_new( _("The waveform data of the selected file is being analyzed and processed. This can take some time."));
         gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         pbar = gtk_progress_bar_new();
@@ -1454,18 +1251,16 @@ file_open_progress_idle_func(gpointer data) {
 
         label = gtk_label_new( NULL);
         gtk_label_set_markup( GTK_LABEL(label), tmp_str2);
-        gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+        g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_label_set_ellipsize( GTK_LABEL(label), PANGO_ELLIPSIZE_END);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
         gtk_widget_show_all(GTK_WIDGET(window));
-        gdk_threads_leave();
     }
 
     if (progress_pct >= 1.0) {
         progress_pct = 0;
 
-        gdk_threads_enter();
         gtk_widget_destroy(window);
         window = NULL;
 
@@ -1488,25 +1283,28 @@ file_open_progress_idle_func(gpointer data) {
         /* TODO: Remove FIX !!!!!!!!!!! */
         configure_event(draw, NULL, NULL);
 
-        moodbar_open_file( sample_filename, FALSE);
+#if defined(WANT_MOODBAR)
+        if (moodbarData) {
+            moodbar_free(moodbarData);
+        }
+        moodbarData = moodbar_open(sample_filename);
+        set_action_enabled("display_moodbar", moodbarData != NULL);
+        set_action_enabled("generate_moodbar", moodbarData == NULL);
+#endif
+
         redraw();
 
         /* --------------------------------------------------- */
 
-        gdk_threads_leave();
-
         return FALSE;
 
     } else {
-        gdk_threads_enter();
         size = sample_stat.st_size/(1024*1024);
         current = size*progress_pct;
         sprintf( tmp_str, _("%d of %d MB analyzed"), current, size);
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
         gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
-        gdk_threads_leave();
 
-        usleep( 100000);
         return TRUE;
     }
 }
@@ -1520,31 +1318,38 @@ static void open_file() {
         return;
     }
 
-    gtk_action_set_sensitive( action_save, TRUE);
-    gtk_action_set_sensitive( action_save_to, TRUE);
-    gtk_action_set_sensitive( action_add_break, TRUE);
-    gtk_action_set_sensitive( action_remove_break, TRUE);
-    gtk_action_set_sensitive( action_jump_break, TRUE);
-    gtk_action_set_sensitive( action_jump_cursor, TRUE);
-    gtk_action_set_sensitive( action_check_all, TRUE);
-    gtk_action_set_sensitive( action_check_none, TRUE);
-    gtk_action_set_sensitive( action_check_invert, TRUE);
-    gtk_action_set_sensitive( action_rename, TRUE);
-    gtk_action_set_sensitive( action_split, TRUE);
-    gtk_action_set_sensitive( action_moodbar, TRUE);
-    gtk_action_set_sensitive( action_export, TRUE);
-    gtk_action_set_sensitive( action_import, TRUE);
-    gtk_action_set_sensitive( action_playback, TRUE);
-    gtk_action_set_sensitive( action_next_silence, TRUE);
-    gtk_action_set_sensitive( action_prev_silence, TRUE);
+    set_action_enabled("add_break", TRUE);
+    set_action_enabled("jump_cursor", TRUE);
+
+    set_action_enabled("check_all", TRUE);
+    set_action_enabled("check_none", TRUE);
+    set_action_enabled("check_invert", TRUE);
+
+    set_action_enabled("auto_rename", TRUE);
+    set_action_enabled("remove_break", TRUE);
+    set_action_enabled("jump_break", TRUE);
+
+    set_action_enabled("export", TRUE);
+    set_action_enabled("import", TRUE);
+
+#if defined(WANT_MOODBAR)
+    set_action_enabled("display_moodbar", moodbarData != NULL);
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
+#endif
+    gtk_widget_set_sensitive( play_button, TRUE);
+    gtk_widget_set_sensitive( header_bar_save_button, TRUE);
 
     gtk_widget_set_sensitive( cursor_marker_spinner, TRUE);
     gtk_widget_set_sensitive( cursor_marker_min_spinner, TRUE);
     gtk_widget_set_sensitive( cursor_marker_sec_spinner, TRUE);
     gtk_widget_set_sensitive( cursor_marker_subsec_spinner, TRUE);
-    gtk_widget_set_sensitive( button_add_break, TRUE);
-    gtk_widget_set_sensitive( button_remove_break, TRUE);
-    gtk_widget_set_sensitive( button_rename, TRUE);
+
+    gtk_widget_set_sensitive(button_seek_backward, TRUE);
+    gtk_widget_set_sensitive(button_jump_to_time, TRUE);
+    gtk_widget_set_sensitive(button_seek_forward, TRUE);
+    gtk_widget_set_sensitive(button_auto_split, TRUE);
+    gtk_widget_set_sensitive(button_add_break, TRUE);
+    gtk_widget_set_sensitive(button_remove_break, TRUE);
 
     menu_stop(NULL, NULL);
 
@@ -1552,38 +1357,17 @@ static void open_file() {
     set_title( basename( sample_filename));
 }
 
-gboolean open_file_arg( gpointer data) {
-    if( data != NULL) {
-      set_sample_filename( (char *)data);
-      gdk_threads_enter();
-      open_file();
-      gdk_threads_leave();
+static gboolean
+open_file_arg(gpointer data)
+{
+    if (data) {
+        set_sample_filename((char *)data);
+        g_free(data);
+        open_file();
     }
 
     /* do not call this function again = return FALSE */
     return FALSE;
-}
-
-static void handle_arguments( int argc, char** argv) {
-  struct stat s;
-  char* filename = NULL;
-
-  if( argc < 2) {
-    return; /* no arguments */
-  }
-
-  filename = argv[1];
-
-  if( stat( filename, &s) != 0) {
-    fprintf( stderr, "Cannot stat file: %s\n", filename);
-    return;
-  }
-
-  if( S_ISREG( s.st_mode) || S_ISLNK( s.st_mode)) {
-    g_idle_add( open_file_arg, (gpointer)filename);
-  } else {
-    fprintf( stderr, "Not a file: %s\n", filename);
-  }
 }
 
 static void set_title( char* title)
@@ -1592,11 +1376,13 @@ static void set_title( char* title)
 
   if( title == NULL) {
     gtk_window_set_title( (GtkWindow*)main_window, APPNAME);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), APPNAME);
     return;
   }
 
   sprintf( buf, "%s (%s)", APPNAME, title);
   gtk_window_set_title( (GtkWindow*)main_window, buf);
+  gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), buf);
 }
 
 static void open_select_file() {
@@ -1619,8 +1405,10 @@ static void open_select_file() {
     gtk_file_filter_add_pattern( filter_supported, "*.raw");
 
     dialog = gtk_file_chooser_dialog_new(_("Open File"), GTK_WINDOW(main_window),
-        GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-        GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+        GTK_FILE_CHOOSER_ACTION_OPEN,
+        _("_Cancel"), GTK_RESPONSE_CANCEL,
+        _("_Open"), GTK_RESPONSE_ACCEPT,
+        NULL);
 
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
@@ -1680,35 +1468,10 @@ static inline void blit_cairo_surface(cairo_t *cr, cairo_surface_t *surface, int
     cairo_fill(cr);
 }
 
-static inline void set_cairo_source(cairo_t *cr, GdkColor *color)
-{
-    cairo_set_source_rgb(cr, (float)color->red / 65535.f, (float)color->green / 65535.f, (float)color->blue / 65535.f);
-}
-
-static inline void fill_cairo_rectangle(cairo_t *cr, GdkColor *color, int width, int height)
-{
-    set_cairo_source(cr, color);
-    cairo_rectangle(cr, 0.f, 0.f, (float)width, (float)height);
-    cairo_fill(cr);
-}
-
-static inline void draw_cairo_line(cairo_t *cr, float x, float y0, float y1)
-{
-    cairo_move_to(cr, x-0.5f, y0);
-    cairo_line_to(cr, x-0.5f, y1);
-}
-
 static void force_redraw()
 {
-    if (sample_surface) {
-        cairo_surface_destroy(sample_surface);
-        sample_surface = NULL;
-    }
-
-    if (summary_surface) {
-        cairo_surface_destroy(summary_surface);
-        summary_surface = NULL;
-    }
+    waveform_surface_invalidate(sample_surface);
+    waveform_surface_invalidate(summary_surface);
 
     redraw();
 }
@@ -1728,138 +1491,22 @@ static gboolean redraw_later( gpointer data)
 {
     int *redraw_done = (int*)data;
 
-    draw_sample_surface(draw);
+    struct WaveformSurfaceDrawContext ctx = {
+        .widget = draw,
+        .pixmap_offset = pixmap_offset,
+        .track_break_list = track_break_list,
+        .graphData = &graphData,
+        .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
+    };
+    waveform_surface_draw(sample_surface, &ctx);
     gtk_widget_queue_draw(draw);
-    draw_summary_surface(draw_summary);
+
+    ctx.widget = draw_summary;
+    waveform_surface_draw(summary_surface, &ctx);
     gtk_widget_queue_draw(draw_summary);
 
     *redraw_done = 1;
     return FALSE;
-}
-
-static void draw_sample_surface(GtkWidget *widget)
-{
-    int xaxis;
-    int width, height;
-    int y_min, y_max;
-    int scale;
-    long i;
-    cairo_t *cr;
-
-    int shade;
-
-    int count;
-    int is_write;
-    int index;
-    GList *tbl;
-    TrackBreak *tb_cur;
-    unsigned int moodbar_pos = 0;
-    GdkColor *new_color = NULL;
-
-    static unsigned long pw, ph, ppos, mb;
-
-    GtkAllocation allocation;
-    gtk_widget_get_allocation(widget, &allocation);
-
-    width = allocation.width;
-    height = allocation.height;
-
-    if( sample_surface != NULL && pw == width && ph == height && ppos == pixmap_offset &&
-        (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
-        return;
-    }
-
-    if (sample_surface) {
-        cairo_surface_destroy(sample_surface);
-    }
-
-    sample_surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
-            CAIRO_CONTENT_COLOR, width, height);
-
-    if (!sample_surface) {
-        printf("sample_surface is NULL\n");
-        return;
-    }
-
-    cr = cairo_create(sample_surface);
-    cairo_set_line_width(cr, 1.f);
-
-    /* clear sample_surface before drawing */
-    fill_cairo_rectangle(cr, &bg_color, width, height);
-
-    if (graphData.data == NULL) {
-        cairo_destroy(cr);
-        return;
-    }
-
-    xaxis = height / 2;
-    if (xaxis != 0) {
-        scale = graphData.maxSampleValue / xaxis;
-        if (scale == 0) {
-            scale = 1;
-        }
-    } else {
-        scale = 1;
-    }
-
-    /* draw sample graph */
-
-    for (i = 0; i < width && i < graphData.numSamples; i++) {
-        y_min = graphData.data[i + pixmap_offset].min;
-        y_max = graphData.data[i + pixmap_offset].max;
-
-        y_min = xaxis + fabs((double)y_min) / scale;
-        y_max = xaxis - y_max / scale;
-
-        /* find the track break we are drawing now */
-        count = 0;
-        is_write = 0;
-        tb_cur = NULL;
-        for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-            index = g_list_position(track_break_list, tbl);
-            tb_cur = g_list_nth_data(track_break_list, index);
-            if (tb_cur != NULL) {
-                if (i + pixmap_offset > tb_cur->offset) {
-                    is_write = tb_cur->write;
-                    count++;
-                } else {
-                    /* already found */
-                    break;
-                }
-            }
-        }
-
-        if( moodbarData.numFrames && appconfig_get_show_moodbar()) {
-            moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(i+pixmap_offset)/(float)(graphData.numSamples)));
-            set_cairo_source(cr, &(moodbarData.frames[moodbar_pos]));
-            draw_cairo_line(cr, i, 0.f, height);
-            cairo_stroke(cr);
-        }
-
-        for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( new_color != NULL) {
-                gdk_color_free( new_color);
-                new_color = NULL;
-            }
-            if( is_write) {
-                new_color = gdk_color_copy( &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
-            } else {
-                new_color = gdk_color_copy( &nowrite_color);
-            }
-
-            set_cairo_source(cr, new_color);
-            draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
-            draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
-            cairo_stroke(cr);
-        }
-    }
-
-    cairo_destroy(cr);
-
-    pw = width;
-    ph = height;
-    ppos = pixmap_offset;
-    mb = moodbarData.numFrames && appconfig_get_show_moodbar();
 }
 
 static gboolean configure_event(GtkWidget *widget,
@@ -1892,7 +1539,14 @@ static gboolean configure_event(GtkWidget *widget,
     gtk_adjustment_set_value(adj, pixmap_offset);
     gtk_adjustment_set_upper(cursor_marker_spinner_adj, graphData.numSamples - 1);
 
-    draw_sample_surface(widget);
+    struct WaveformSurfaceDrawContext ctx = {
+        .widget = widget,
+        .pixmap_offset = pixmap_offset,
+        .track_break_list = track_break_list,
+        .graphData = &graphData,
+        .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
+    };
+    waveform_surface_draw(sample_surface, &ctx);
 
     return TRUE;
 }
@@ -1915,7 +1569,7 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     guint width = allocation.width,
           height = allocation.height;
 
-    blit_cairo_surface(cr, sample_surface, width, height);
+    blit_cairo_surface(cr, sample_surface->surface, width, height);
 
     cairo_set_line_width( cr, 1);
     if( cursor_marker >= pixmap_offset && cursor_marker <= pixmap_offset + width) {
@@ -2027,164 +1681,19 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     return FALSE;
 }
 
-static void draw_summary_surface(GtkWidget *widget)
-{
-    int xaxis;
-    int width, height;
-    int y_min, y_max;
-    int min, max;
-    int scale;
-    int i, k;
-    int loop_end, array_offset;
-    int shade;
-
-    float x_scale;
-
-    cairo_t *cr;
-    int count;
-    int is_write;
-    int index;
-    GList *tbl;
-    TrackBreak *tb_cur;
-
-    unsigned int moodbar_pos = 0;
-    GdkColor *new_color = NULL;
-
-    static unsigned long pw, ph, mb;
-
-    GtkAllocation allocation;
-    gtk_widget_get_allocation(widget, &allocation);
-    width = allocation.width;
-    height = allocation.height;
-
-    if( summary_surface != NULL && pw == width && ph == height &&
-        (moodbarData.numFrames && appconfig_get_show_moodbar()) == mb) {
-        return;
-    }
-
-    if (summary_surface) {
-        cairo_surface_destroy(summary_surface);
-    }
-
-    summary_surface = gdk_window_create_similar_surface(gtk_widget_get_window(widget),
-            CAIRO_CONTENT_COLOR, width, height);
-
-    if (!summary_surface) {
-        printf("summary_surface is NULL\n");
-        return;
-    }
-
-    cr = cairo_create(summary_surface);
-    cairo_set_line_width(cr, 1.f);
-
-    /* clear sample_surface before drawing */
-    fill_cairo_rectangle(cr, &bg_color, width, height);
-
-    if (graphData.data == NULL) {
-        cairo_destroy(cr);
-        return;
-    }
-
-    xaxis = height / 2;
-    if (xaxis != 0) {
-        scale = graphData.maxSampleValue / xaxis;
-        if (scale == 0) {
-            scale = 1;
-        }
-    } else {
-        scale = 1;
-    }
-
-    /* draw sample graph */
-
-    x_scale = (float)(graphData.numSamples) / (float)(width);
-    if (x_scale == 0) {
-        x_scale = 1;
-    }
-
-    for (i = 0; i < width && i < graphData.numSamples; i++) {
-        min = max = 0;
-        array_offset = (int)(i * x_scale);
-
-        if (x_scale != 1) {
-            loop_end = (int)x_scale;
-
-            for (k = 0; k < loop_end; k++) {
-                if (graphData.data[array_offset + k].max > max) {
-                    max = graphData.data[array_offset + k].max;
-                } else if (graphData.data[array_offset + k].min < min) {
-                    min = graphData.data[array_offset + k].min;
-                }
-            }
-        } else {
-            min = graphData.data[i].min;
-            max = graphData.data[i].max;
-        }
-
-        y_min = min;
-        y_max = max;
-
-        y_min = xaxis + fabs((double)y_min) / scale;
-        y_max = xaxis - y_max / scale;
-
-        count = 0;
-        is_write = 0;
-        tb_cur = NULL;
-        for (tbl = track_break_list; tbl != NULL; tbl = g_list_next(tbl)) {
-            index = g_list_position(track_break_list, tbl);
-            tb_cur = g_list_nth_data(track_break_list, index);
-            if (tb_cur != NULL) {
-                if (array_offset > tb_cur->offset) {
-                    is_write = tb_cur->write;
-                    count++;
-                }
-            }
-        }
-
-        if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
-            moodbar_pos = (unsigned int)(moodbarData.numFrames*((float)(array_offset)/(float)(graphData.numSamples)));
-            set_cairo_source(cr, &(moodbarData.frames[moodbar_pos]));
-            draw_cairo_line(cr, i, 0.f, height);
-            cairo_stroke(cr);
-        }
-
-        for( shade=0; shade<SAMPLE_SHADES; shade++) {
-            if( new_color != NULL) {
-                gdk_color_free( new_color);
-                new_color = NULL;
-            }
-            if( is_write) {
-                new_color = gdk_color_copy( &sample_colors[(count-1) % SAMPLE_COLORS][shade]);
-            } else {
-                new_color = gdk_color_copy( &nowrite_color);
-            }
-
-            if (moodbarData.numFrames && appconfig_get_show_moodbar()) {
-                new_color->red = MOODBAR_BLEND(new_color->red, moodbarData.frames[moodbar_pos].red);
-                new_color->green = MOODBAR_BLEND(new_color->green, moodbarData.frames[moodbar_pos].green);
-                new_color->blue = MOODBAR_BLEND(new_color->blue, moodbarData.frames[moodbar_pos].blue);
-            }
-
-            set_cairo_source(cr, new_color);
-            draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
-            draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
-            cairo_stroke(cr);
-        }
-    }
-
-    cairo_destroy(cr);
-
-    pw = width;
-    ph = height;
-    mb = moodbarData.numFrames && appconfig_get_show_moodbar();
-}
-
 static gboolean
 draw_summary_configure_event(GtkWidget *widget,
                              GdkEventConfigure *event,
                              gpointer user_data)
 {
-    draw_summary_surface(widget);
+    struct WaveformSurfaceDrawContext ctx = {
+        .widget = widget,
+        .pixmap_offset = pixmap_offset,
+        .track_break_list = track_break_list,
+        .graphData = &graphData,
+        .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
+    };
+    waveform_surface_draw(summary_surface, &ctx);
 
     return TRUE;
 }
@@ -2205,7 +1714,7 @@ draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
      * Draw shadow in summary pixmap to show current view
      **/
 
-    blit_cairo_surface(cr, summary_surface, width, height);
+    blit_cairo_surface(cr, summary_surface->surface, width, height);
 
     cairo_set_source_rgba( cr, 0, 0, 0, 0.3);
     cairo_rectangle( cr, 0, 0, pixmap_offset / summary_scale, height);
@@ -2232,6 +1741,10 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
     int leftover_count;
 
     if (sample_is_playing()) {
+        return TRUE;
+    }
+
+    if (graphData.numSamples == 0) {
         return TRUE;
     }
 
@@ -2318,6 +1831,10 @@ static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer dat
     cursor_marker = time_to_offset (min, sec, subsec);
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (cursor_marker_spinner), cursor_marker);
 
+    if (gtk_widget_get_visible(jump_to_popover)) {
+        reset_sample_display(cursor_marker);
+    }
+
     redraw();
     update_status(FALSE);
 }
@@ -2378,22 +1895,25 @@ static gboolean scroll_event( GtkWidget *widget, GdkEventScroll *event, gpointer
 static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
-    GtkWidget *menu;
+    gtk_widget_grab_focus(play_button);
 
     if (event->x + pixmap_offset > graphData.numSamples) {
         return TRUE;
     }
+
     if (sample_is_playing()) {
         return TRUE;
     }
 
     if (event->button == 3) {
-        menu = gtk_menu_new();
+        GMenu *menu_model = g_menu_new();
 
-        gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_add_break));
-        gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_action_create_menu_item( action_jump_cursor));
+        g_menu_append(menu_model, _("Add track break"), "win.add_break");
+        g_menu_append(menu_model, _("Jump to cursor marker"), "win.jump_cursor");
 
-        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, event->button, event->time);
+        GtkMenu *menu = GTK_MENU(gtk_menu_new_from_model(G_MENU_MODEL(menu_model)));
+        gtk_menu_attach_to_widget(menu, main_window, NULL);
+        gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
 
         redraw();
         return TRUE;
@@ -2470,7 +1990,7 @@ static void update_status(gboolean update_time_offset) {
         strcat(str, strbuf);
     }
 
-    gtk_statusbar_push(GTK_STATUSBAR(statusbar), 0, str);
+    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(header_bar), str);
 }
 
 static void menu_play(GtkWidget *widget, gpointer user_data)
@@ -2506,18 +2026,24 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
 }
 
 static void set_stop_icon() {
-    g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_STOP, NULL);
-    g_object_set( action_playback, "label", _("Stop"), NULL);
+    gtk_button_set_image(GTK_BUTTON(play_button),
+            gtk_image_new_from_icon_name("media-playback-stop-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
 }
 
 static void set_play_icon() {
-    g_object_set( action_playback, "stock-id", GTK_STOCK_MEDIA_PLAY, NULL);
-    g_object_set( action_playback, "label", _("Play"), NULL);
+    gtk_button_set_image(GTK_BUTTON(play_button),
+            gtk_image_new_from_icon_name("media-playback-start-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
 }
 
 static void menu_stop(GtkWidget *widget, gpointer user_data)
 {
     stop_sample();
+}
+
+static void
+menu_jump_to(GtkWidget *widget, gpointer user_data)
+{
+    gtk_popover_popup(GTK_POPOVER(jump_to_popover));
 }
 
 static void menu_next_silence( GtkWidget* widget, gpointer user_data)
@@ -2535,7 +2061,7 @@ static void menu_next_silence( GtkWidget* widget, gpointer user_data)
 
         if( c==SILENCE_MIN_LENGTH) {
             cursor_marker = i;
-            jump_to_cursor_marker( widget, NULL);
+            jump_to_cursor_marker(NULL, NULL, NULL);
             update_status(FALSE);
             return;
         }
@@ -2557,14 +2083,14 @@ static void menu_prev_silence( GtkWidget* widget, gpointer user_data)
 
         if( c==SILENCE_MIN_LENGTH) {
             cursor_marker = i;
-            jump_to_cursor_marker( widget, NULL);
+            jump_to_cursor_marker(NULL, NULL, NULL);
             update_status(FALSE);
             return;
         }
     }
 }
 
-static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *widget)
+static void menu_save(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     if( sample_filename == NULL) {
         return;
@@ -2577,7 +2103,7 @@ static void menu_save(gpointer callback_data, guint callback_action, GtkWidget *
     }
 }
 
-static void menu_save_as(gpointer callback_data, guint callback_action, GtkWidget *widget)
+static void menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     if( sample_filename == NULL) {
         return;
@@ -2633,7 +2159,7 @@ static void filter_changed (GtkFileChooser* chooser, gpointer user_data)
     free( new_filename);
 }
 
-static void menu_export(gpointer callback_data, guint callback_action, GtkWidget *widget)
+static void menu_export(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter_text;
@@ -2657,8 +2183,10 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     gtk_file_filter_add_pattern( filter_cue, "*.cue");
 
     dialog = gtk_file_chooser_dialog_new(_("Export track breaks to file"), GTK_WINDOW(main_window),
-        GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-        GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+        GTK_FILE_CHOOSER_ACTION_SAVE,
+        _("_Cancel"), GTK_RESPONSE_CANCEL,
+        _("_Save"), GTK_RESPONSE_ACCEPT,
+        NULL);
 
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_text);
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_toc);
@@ -2679,12 +2207,12 @@ static void menu_export(gpointer callback_data, guint callback_action, GtkWidget
     gtk_widget_destroy(dialog);
 }
 
-void menu_delete_track_break(GtkWidget *widget, gpointer user_data)
+void menu_delete_track_break(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     track_break_delete_entry();
 }
 
-void menu_import(GtkWidget *widget, gpointer user_data)
+void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
@@ -2706,8 +2234,10 @@ void menu_import(GtkWidget *widget, gpointer user_data)
     gtk_file_filter_add_pattern( filter_supported, "*.cue");
 
     dialog = gtk_file_chooser_dialog_new(_("Import track breaks from file"), GTK_WINDOW(main_window),
-        GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-        GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+        GTK_FILE_CHOOSER_ACTION_OPEN,
+        _("_Cancel"), GTK_RESPONSE_CANCEL,
+        _("_Open"), GTK_RESPONSE_ACCEPT,
+        NULL);
 
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_all);
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
@@ -2739,90 +2269,86 @@ void menu_import(GtkWidget *widget, gpointer user_data)
     force_redraw();
 }
 
-void menu_add_track_break(GtkWidget *widget, gpointer user_data)
+void menu_add_track_break(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     track_break_add_entry();
 }
 
 static void
-menu_open_file(gpointer callback_data, guint callback_action,
-               GtkWidget *widget)
+menu_open_file(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     open_select_file();
 }
 
 static void
-menu_quit(gpointer callback_data, guint callback_action, GtkWidget *widget)
+menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    //g_print("menu_quit called\n");
-    check_really_quit();
+    gtk_popover_popup(GTK_POPOVER(menu_popover));
+}
+
+#if defined(WANT_MOODBAR)
+static void
+menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    GVariant *state = g_action_get_state(G_ACTION(action));
+    gboolean new_value = !g_variant_get_boolean(state);
+    g_variant_unref(state);
+
+    g_action_change_state(G_ACTION(action), g_variant_new("b", new_value));
+    appconfig_set_show_moodbar(new_value);
+
+    if (moodbarData) {
+        moodbar_free(moodbarData);
+    }
+    moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("display_moodbar", moodbarData != NULL);
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
+
+    redraw();
 }
 
 static void
-menu_view_toolbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
+menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    if( gtk_toggle_action_get_active( GTK_TOGGLE_ACTION(action_view_toolbar))) {
-        if( toolbar) {
-            gtk_widget_show_all( GTK_WIDGET(toolbar));
-        }
-        appconfig_set_show_toolbar( 1);
-    } else {
-        if( toolbar) {
-            gtk_widget_hide(GTK_WIDGET(toolbar));
-        }
-        appconfig_set_show_toolbar( 0);
+    (void)moodbar_generate(main_window, sample_filename);
+
+    if (moodbarData) {
+        moodbar_free(moodbarData);
     }
+    moodbarData = moodbar_open(sample_filename);
+    set_action_enabled("display_moodbar", moodbarData != NULL);
+    set_action_enabled("generate_moodbar", moodbarData == NULL);
+
+    redraw();
 }
+#endif
 
 static void
-menu_view_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
-{
-    if( !gtk_action_get_sensitive( GTK_ACTION(action_view_moodbar))) {
-        return;
-    }
-    if( gtk_toggle_action_get_active( GTK_TOGGLE_ACTION(action_view_moodbar))) {
-        appconfig_set_show_moodbar( 1);
-        redraw();
-    } else {
-        appconfig_set_show_moodbar( 0);
-        redraw();
-    }
-}
-
-static void
-menu_about(gpointer callback_data, guint callback_action, GtkWidget *widget)
+menu_about(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     about_show(main_window);
 }
 
 static void
-menu_config(gpointer callback_data, guint callback_action, GtkWidget *widget)
+menu_config(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     appconfig_show(main_window);
 }
 
 static void
-menu_merge(gpointer callback_data, guint callback_action, GtkWidget *widget)
+menu_merge(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     guimerge_show(main_window);
 }
 
 static void
-menu_moodbar(gpointer callback_data, guint callback_action, GtkWidget *widget)
-{
-    moodbar_open_file( sample_filename, TRUE);
-}
-
-static void
 menu_autosplit(gpointer callback_data, guint callback_action, GtkWidget *widget)
 {
-    if( sample_filename != NULL) {
-        autosplit_show(main_window);
-    }
+    gtk_popover_popup(GTK_POPOVER(autosplit_popover));
 }
 
 static void
-menu_rename(gpointer callback_data, guint callback_action, GtkWidget *widget)
+menu_rename(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     /* rename (AND overwrite) track breaks */
     track_break_rename( TRUE);
@@ -2853,7 +2379,7 @@ void wavbreaker_quit() {
 
 static void check_really_quit()
 {
-    if( sample_filename != NULL && appconfig_get_ask_really_quit()) {
+    if( sample_filename != NULL && g_list_length(track_break_list) != 1) {
         reallyquit_show(main_window);
     } else {
         wavbreaker_quit();
@@ -2865,141 +2391,6 @@ GtkWidget *wavbreaker_get_main_window()
     return main_window;
 }
 
-
-void init_actions()
-{
-    action_group = gtk_action_group_new( APPNAME);
-
-    action_open = gtk_action_new( "open", _("_Open"), _("Open a wave file"), GTK_STOCK_OPEN);
-    g_signal_connect( action_open, "activate", G_CALLBACK(menu_open_file), NULL);
-    gtk_action_set_accel_group( action_open, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_open, "<control>O");
-
-    action_save = gtk_action_new( "save", _("_Save"), _("Save track breaks"), GTK_STOCK_SAVE);
-    g_signal_connect( action_save, "activate", G_CALLBACK(menu_save), NULL);
-    gtk_action_set_accel_group( action_save, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_save, "<control>S");
-    gtk_action_set_sensitive( action_save, FALSE);
-
-    action_save_to = gtk_action_new( "save-to", _("Save to..."), _("Save track breaks to folder"), GTK_STOCK_SAVE_AS);
-    g_signal_connect( action_save_to, "activate", G_CALLBACK(menu_save_as), NULL);
-    gtk_action_set_accel_group( action_save_to, accel_group);
-    gtk_action_set_sensitive( action_save_to, FALSE);
-
-    action_preferences = gtk_action_new( "preferences", _("Preferences"), _("Configure wavbreaker"), GTK_STOCK_PREFERENCES);
-    g_signal_connect( action_preferences, "activate", G_CALLBACK(menu_config), NULL);
-    gtk_action_set_accel_group( action_preferences, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_preferences, "<control>P");
-
-    action_guimerge = gtk_action_new( "guimerge", _("Merge wave files"), _("Merge wave files together"), GTK_STOCK_DND_MULTIPLE);
-    g_signal_connect( action_guimerge, "activate", G_CALLBACK(menu_merge), NULL);
-    gtk_action_set_accel_group( action_guimerge, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_guimerge, "<control>M");
-
-    action_quit = gtk_action_new( "quit", _("Quit"), _("Close wavbreaker"), GTK_STOCK_QUIT);
-    g_signal_connect( action_quit, "activate", G_CALLBACK(menu_quit), NULL);
-    gtk_action_set_accel_group( action_quit, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_quit, "<control>Q");
-
-    action_view_toolbar = gtk_toggle_action_new( "view-toolbar", _("Display toolbar"), _("Show or hide the main window toolbar"), NULL);
-    g_signal_connect( action_view_toolbar, "activate", G_CALLBACK(menu_view_toolbar), NULL);
-    gtk_action_set_accel_group( GTK_ACTION(action_view_toolbar), accel_group);
-    gtk_action_group_add_action_with_accel( action_group, GTK_ACTION(action_view_toolbar), "<control>T");
-    gtk_toggle_action_set_active( action_view_toolbar, appconfig_get_show_toolbar()?TRUE:FALSE);
-
-    action_view_moodbar = gtk_toggle_action_new( "view-moodbar", _("Display moodbar"), _("Draw moodbar over the waveform graph"), NULL);
-    g_signal_connect( action_view_moodbar, "activate", G_CALLBACK(menu_view_moodbar), NULL);
-    gtk_action_set_accel_group( GTK_ACTION(action_view_moodbar), accel_group);
-    gtk_action_group_add_action_with_accel( action_group, GTK_ACTION(action_view_moodbar), "<control>B");
-    gtk_toggle_action_set_active( action_view_moodbar, appconfig_get_show_moodbar()?TRUE:FALSE);
-    gtk_action_set_sensitive( GTK_ACTION(action_view_moodbar), FALSE);
-
-    action_add_break = gtk_action_new( "add-break", _("Add track break"), _("Add track break at cursor position"), GTK_STOCK_ADD);
-    g_signal_connect( action_add_break, "activate", G_CALLBACK(menu_add_track_break), NULL);
-    gtk_action_set_accel_group( action_add_break, accel_group);
-    gtk_action_set_sensitive( action_add_break, FALSE);
-
-    action_remove_break = gtk_action_new( "remove-break", _("Remove track break"), _("Remove selected track break"), GTK_STOCK_REMOVE);
-    g_signal_connect( action_remove_break, "activate", G_CALLBACK(menu_delete_track_break), NULL);
-    gtk_action_set_accel_group( action_remove_break, accel_group);
-    gtk_action_set_sensitive( action_remove_break, FALSE);
-
-    action_jump_break = gtk_action_new( "jump-break", _("Jump to track break"), _("Set cursor position to track break"), GTK_STOCK_JUMP_TO);
-    g_signal_connect( action_jump_break, "activate", G_CALLBACK(jump_to_track_break), NULL);
-    gtk_action_set_accel_group( action_jump_break, accel_group);
-    gtk_action_set_sensitive( action_jump_break, FALSE);
-
-    action_jump_cursor = gtk_action_new( "jump-cursor", _("Jump to cursor marker"), _("Set view to cursor marker"), GTK_STOCK_JUMP_TO);
-    g_signal_connect( action_jump_cursor, "activate", G_CALLBACK(jump_to_cursor_marker), NULL);
-    gtk_action_set_accel_group( action_jump_cursor, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_jump_cursor, "<control>space");
-    gtk_action_set_sensitive( action_jump_cursor, FALSE);
-
-    action_check_all = gtk_action_new( "check-all", _("Check all"), _("Check all"), NULL);
-    g_signal_connect( action_check_all, "activate", G_CALLBACK(parts_check_cb), GINT_TO_POINTER(CHECK_ALL));
-    gtk_action_set_accel_group( action_check_all, accel_group);
-    gtk_action_set_sensitive( action_check_all, FALSE);
-
-    action_check_none = gtk_action_new( "check-none", _("Check none"), _("Check none"), NULL);
-    g_signal_connect( action_check_none, "activate", G_CALLBACK(parts_check_cb), GINT_TO_POINTER(CHECK_NONE));
-    gtk_action_set_accel_group( action_check_none, accel_group);
-    gtk_action_set_sensitive( action_check_none, FALSE);
-
-    action_check_invert = gtk_action_new( "check-invert", _("Invert check"), _("Invert check"), NULL);
-    g_signal_connect( action_check_invert, "activate", G_CALLBACK(parts_check_cb), GINT_TO_POINTER(CHECK_INVERT));
-    gtk_action_set_accel_group( action_check_invert, accel_group);
-    gtk_action_set_sensitive( action_check_invert, FALSE);
-
-    action_rename = gtk_action_new( "rename", _("Rename track breaks"), _("Automatically rename all track breaks"), GTK_STOCK_EDIT);
-    g_signal_connect( action_rename, "activate", G_CALLBACK(menu_rename), NULL);
-    gtk_action_set_accel_group( action_rename, accel_group);
-    gtk_action_set_sensitive( action_rename, FALSE);
-
-    action_moodbar = gtk_action_new( "moodbar", _("Generate moodbar"), _("Generate moodbar data"), GTK_STOCK_EXECUTE);
-    g_signal_connect( action_moodbar, "activate", G_CALLBACK(menu_moodbar), NULL);
-    gtk_action_set_accel_group( action_moodbar, accel_group);
-    gtk_action_set_sensitive( action_moodbar, FALSE);
-
-    action_split = gtk_action_new( "split", _("Auto-Split"), _("Split into chunks with specified size"), GTK_STOCK_CUT);
-    g_signal_connect( action_split, "activate", G_CALLBACK(menu_autosplit), NULL);
-    gtk_action_set_accel_group( action_split, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_split, "<control>A");
-    gtk_action_set_sensitive( action_split, FALSE);
-
-    action_export = gtk_action_new( "export", _("Export track breaks..."), _("Export track breaks to text or TOC"), GTK_STOCK_CDROM);
-    g_signal_connect( action_export, "activate", G_CALLBACK(menu_export), NULL);
-    gtk_action_set_accel_group( action_export, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_export, "<control>E");
-    gtk_action_set_sensitive( action_export, FALSE);
-
-    action_import = gtk_action_new( "import", _("_Import track breaks..."), _("Import track breaks from text or TOC file"), GTK_STOCK_CDROM);
-    g_signal_connect( action_import, "activate", G_CALLBACK(menu_import), NULL);
-    gtk_action_set_accel_group( action_import, accel_group);
-    gtk_action_group_add_action_with_accel( action_group, action_import, "<control>I");
-    gtk_action_set_sensitive( action_import, FALSE);
-
-    action_playback = gtk_action_new( "playback", _("Play"), _("Start/Stop playback of media"), GTK_STOCK_MEDIA_PLAY);
-    g_signal_connect( action_playback, "activate", G_CALLBACK(menu_play), NULL);
-    gtk_action_group_add_action_with_accel( action_group, action_playback, "<control>x");
-    gtk_action_set_accel_group( action_playback, accel_group);
-    gtk_action_set_sensitive( action_playback, FALSE);
-
-    action_next_silence = gtk_action_new( "next-silence", _("Seek to next silence"), _("Jump to next silent frame"), GTK_STOCK_GO_FORWARD);
-    g_signal_connect( action_next_silence, "activate", G_CALLBACK(menu_next_silence), NULL);
-    gtk_action_group_add_action_with_accel( action_group, action_next_silence, "<control>l");
-    gtk_action_set_accel_group( action_next_silence, accel_group);
-    gtk_action_set_sensitive( action_next_silence, FALSE);
-
-    action_prev_silence = gtk_action_new( "prev-silence", _("Seek to previous silence"), _("Jump to previous silent frame"), GTK_STOCK_GO_BACK);
-    g_signal_connect( action_prev_silence, "activate", G_CALLBACK(menu_prev_silence), NULL);
-    gtk_action_group_add_action_with_accel( action_group, action_prev_silence, "<control>k");
-    gtk_action_set_accel_group( action_prev_silence, accel_group);
-    gtk_action_set_sensitive( action_prev_silence, FALSE);
-
-    action_about = gtk_action_new( "about", _("About"), _("Show information about " APPNAME), GTK_STOCK_ABOUT);
-    g_signal_connect( action_about, "activate", G_CALLBACK(menu_about), NULL);
-    gtk_action_set_accel_group( action_about, accel_group);
-}
 
 /*
  *-------------------------------------------------------------------------
@@ -3015,172 +2406,213 @@ delete_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
     return TRUE;
 }
 
-static void
-destroy(GtkWidget *widget, gpointer data)
+static GtkWidget *
+make_time_offset_widget()
 {
-    //g_print("destroy event occurred\n");
-    gtk_main_quit();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new( _("Time offset:")), FALSE, FALSE, 0);
+
+    cursor_marker_min_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 0);
+    cursor_marker_min_spinner = gtk_spin_button_new(cursor_marker_min_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_min_spinner, FALSE);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_min_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_min_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new(":"), FALSE, FALSE, 0);
+
+    cursor_marker_sec_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 59.0, 1.0, 74.0, 0);
+    cursor_marker_sec_spinner = gtk_spin_button_new(cursor_marker_sec_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_sec_spinner, FALSE);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_sec_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_sec_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+
+    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new("."), FALSE, FALSE, 0);
+
+    cursor_marker_subsec_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, CD_BLOCKS_PER_SEC-1, 1.0, 74.0, 0);
+    cursor_marker_subsec_spinner = gtk_spin_button_new(cursor_marker_subsec_spinner_adj, 1.0, 0);
+    gtk_widget_set_sensitive( cursor_marker_subsec_spinner, FALSE);
+    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_subsec_spinner, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(cursor_marker_subsec_spinner_adj), "value-changed",
+             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+
+    gtk_widget_show_all(hbox);
+
+    return hbox;
 }
 
-int main(int argc, char **argv)
+static void
+do_startup(GApplication *application, gpointer user_data)
+{
+    setlocale(LC_ALL, "");
+
+    (void)textdomain(PACKAGE);
+    (void)bindtextdomain(PACKAGE, LOCALEDIR);
+
+    appconfig_init();
+}
+
+static void
+menu_check_all(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    parts_check_cb(NULL, GINT_TO_POINTER(CHECK_ALL));
+}
+
+static void
+menu_check_none(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    parts_check_cb(NULL, GINT_TO_POINTER(CHECK_NONE));
+}
+
+static void
+menu_check_invert(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    parts_check_cb(NULL, GINT_TO_POINTER(CHECK_INVERT));
+}
+
+static void
+do_activate(GApplication *app, gpointer user_data)
 {
     GtkWidget *vbox;
     GtkWidget *tbl_widget;
-    GtkWidget *menu_widget;
-    GtkWidget *submenu;
-    GtkWidget *menu_item;
-    GtkWidget *icon;
 
     GtkWidget *vpane_vbox;
     GtkWidget *list_vbox;
     GtkWidget *frame;
 
     GtkWidget *hbox;
-    GtkWidget *hbbox;
     GtkWidget *button;
-    GtkWidget *button_hbox;
-    GtkWidget *label;
 
-    int i;
-    int x;
-    unsigned int factor_color, factor_white;
+    sample_surface = waveform_surface_create_sample();
+    summary_surface = waveform_surface_create_summary();
 
-    setlocale( LC_ALL, "");
-    textdomain( PACKAGE);
-    bindtextdomain( PACKAGE, LOCALEDIR);
+    main_window = gtk_application_window_new(GTK_APPLICATION(app));
 
-    gdk_threads_init();
-    gtk_init(&argc, &argv);
+    GActionEntry entries[] = {
+        { "open", menu_open_file, NULL, NULL, NULL, },
+        { "menu", menu_menu, NULL, NULL, NULL, },
 
-    appconfig_init();
+        // TODO: "save" is currently unused
+        { "save", menu_save, NULL, NULL, NULL, },
+        { "save_to_folder", menu_save_as, NULL, NULL, NULL, },
+        { "export", menu_export, NULL, NULL, NULL, },
+        { "import", menu_import, NULL, NULL, NULL, },
 
-    main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        { "add_break", menu_add_track_break, NULL, NULL, NULL, },
+        { "jump_cursor", jump_to_cursor_marker, NULL, NULL, NULL, },
+
+#if defined(WANT_MOODBAR)
+        { "display_moodbar", menu_view_moodbar, NULL, appconfig_get_show_moodbar()?"true":"false", NULL, },
+        { "generate_moodbar", menu_moodbar, NULL, NULL, NULL, },
+#endif
+
+        { "check_all", menu_check_all, NULL, NULL, NULL, },
+        { "check_none", menu_check_none, NULL, NULL, NULL, },
+        { "check_invert", menu_check_invert, NULL, NULL, NULL, },
+
+        { "auto_rename", menu_rename, NULL, NULL, NULL, },
+        { "remove_break", menu_delete_track_break, NULL, NULL, NULL, },
+        { "jump_break", jump_to_track_break, NULL, NULL, NULL, },
+    };
+
+    g_action_map_add_action_entries(G_ACTION_MAP(main_window),
+            entries, G_N_ELEMENTS(entries),
+            main_window);
+
+    set_action_enabled("add_break", FALSE);
+    set_action_enabled("jump_cursor", FALSE);
+
+    set_action_enabled("check_all", FALSE);
+    set_action_enabled("check_none", FALSE);
+    set_action_enabled("check_invert", FALSE);
+
+    set_action_enabled("auto_rename", FALSE);
+    set_action_enabled("remove_break", FALSE);
+    set_action_enabled("jump_break", FALSE);
+
+    set_action_enabled("export", FALSE);
+    set_action_enabled("import", FALSE);
+
+#if defined(WANT_MOODBAR)
+    set_action_enabled("display_moodbar", FALSE);
+    set_action_enabled("generate_moodbar", FALSE);
+#endif
+
     gtk_window_set_default_icon_name( PACKAGE);
+
+    header_bar = gtk_header_bar_new();
+    gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), APPNAME);
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header_bar), TRUE);
+
+    GtkWidget *open_button = gtk_button_new_from_icon_name("document-open-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(open_button, _("Open file"));
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(open_button), "win.open");
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), open_button);
+
+    GtkWidget *menu_button = gtk_button_new_from_icon_name("open-menu-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(menu_button, _("Open menu"));
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(menu_button), "win.menu");
+    gtk_header_bar_pack_end(GTK_HEADER_BAR(header_bar), menu_button);
+
+    GMenu *top_menu = g_menu_new();
+
+#if defined(WANT_MOODBAR)
+    GMenu *display_menu = g_menu_new();
+    g_menu_append(display_menu, _("Display moodbar"), "win.display_moodbar");
+    g_menu_append(display_menu, _("Generate moodbar"), "win.generate_moodbar");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(display_menu));
+#endif
+
+    GMenu *toc_menu = g_menu_new();
+    g_menu_append(toc_menu, _("Import track breaks"), "win.import");
+    g_menu_append(toc_menu, _("Export track breaks"), "win.export");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(toc_menu));
+
+    GMenu *tools_menu = g_menu_new();
+    g_menu_append(tools_menu, _("Merge wave files"), "app.guimerge");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(tools_menu));
+
+    GMenu *prefs_menu = g_menu_new();
+    g_menu_append(prefs_menu, _("Preferences"), "app.preferences");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(prefs_menu));
+
+    GMenu *about_menu = g_menu_new();
+    g_menu_append(about_menu, _("About"), "app.about");
+    g_menu_append_section(top_menu, NULL, G_MENU_MODEL(about_menu));
+
+    menu_popover = gtk_popover_new_from_model(menu_button, G_MENU_MODEL(top_menu));
+    gtk_popover_set_position(GTK_POPOVER(menu_popover), GTK_POS_BOTTOM);
+
+    header_bar_save_button = GTK_WIDGET(gtk_button_new_from_icon_name("document-save-as-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR));
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(header_bar_save_button), "win.save_to_folder");
+    gtk_widget_set_sensitive(header_bar_save_button, FALSE);
+    gtk_widget_set_tooltip_text(header_bar_save_button, _("Save file parts"));
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), header_bar_save_button);
+
+    gtk_window_set_titlebar(GTK_WINDOW(main_window), header_bar);
 
     set_title( NULL);
 
     g_signal_connect(G_OBJECT(main_window), "delete_event",
              G_CALLBACK(delete_event), NULL);
 
-    g_signal_connect(G_OBJECT(main_window), "destroy",
-             G_CALLBACK(destroy), NULL);
-
     gtk_container_set_border_width(GTK_CONTAINER(main_window), 0);
 
-    vbox = gtk_vbox_new(FALSE, 0);
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(main_window), vbox);
 
-    /* Menu Items */
-    accel_group = gtk_accel_group_new();
-    gtk_window_add_accel_group( GTK_WINDOW(main_window), accel_group);
-    init_actions();
-
-    menu_widget = gtk_menu_bar_new();
-
-    menu_item = gtk_menu_item_new_with_mnemonic( _("_File"));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
-    submenu = gtk_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_open));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_save_to));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_import));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_export));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_guimerge));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_preferences));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_quit));
-
-    menu_item = gtk_menu_item_new_with_mnemonic( _("_Edit"));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
-    submenu = gtk_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_add_break));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_remove_break));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_rename));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_split));
-
-    menu_item = gtk_menu_item_new_with_mnemonic( _("_Go"));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
-    submenu = gtk_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_playback));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_prev_silence));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_next_silence));
-
-    menu_item = gtk_menu_item_new_with_mnemonic( _("_View"));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
-    submenu = gtk_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_toolbar)));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( GTK_ACTION(action_view_moodbar)));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_moodbar));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_break));
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_jump_cursor));
-
-    menu_item = gtk_menu_item_new_with_mnemonic( _("_Help"));
-    gtk_menu_shell_append( GTK_MENU_SHELL(menu_widget), menu_item);
-    submenu = gtk_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(menu_item), submenu);
-    gtk_menu_shell_append( GTK_MENU_SHELL(submenu), gtk_action_create_menu_item( action_about));
-
-    gtk_box_pack_start(GTK_BOX(vbox), menu_widget, FALSE, TRUE, 0);
-
-    /* Button Toolbar */
-    toolbar = gtk_toolbar_new();
-
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_open)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_save_to)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_split)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_export)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_playback)), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-    gtk_toolbar_insert( GTK_TOOLBAR(toolbar), GTK_TOOL_ITEM(gtk_action_create_tool_item( action_quit)), -1);
-
-    gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, TRUE, 0);
-
-    /* Set default colors up */
-    bg_color.red   =
-    bg_color.green =
-    bg_color.blue  = 255*(65535/255);
-
-    nowrite_color.red   =
-    nowrite_color.green =
-    nowrite_color.blue  = 220*(65535/255);
-
-    for( i=0; i<SAMPLE_COLORS; i++) {
-        for( x=0; x<SAMPLE_SHADES; x++) {
-            factor_white = 0.5*(65535*x/(256*SAMPLE_SHADES));
-            factor_color = 65535/256-factor_white;
-            sample_colors[i][x].red = sample_colors_values[i][0]*factor_color+255*factor_white;
-            sample_colors[i][x].green = sample_colors_values[i][1]*factor_color+255*factor_white;
-            sample_colors[i][x].blue = sample_colors_values[i][2]*factor_color+255*factor_white;
-        }
-    }
-
     /* paned view */
-    vpane1 = gtk_vpaned_new();
+    vpane1 = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
     gtk_box_pack_start(GTK_BOX(vbox), vpane1, TRUE, TRUE, 0);
 
     /* vbox for the vpane */
-    vpane_vbox = gtk_vbox_new(FALSE, 0);
+    vpane_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
 
     /* paned view */
-    vpane2 = gtk_vpaned_new();
+    vpane2 = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
     gtk_box_pack_start(GTK_BOX(vpane_vbox), vpane2, TRUE, TRUE, 0);
 
     /* The summary_surface drawing area */
@@ -3236,18 +2668,25 @@ int main(int argc, char **argv)
     g_signal_connect(G_OBJECT(adj), "value_changed",
              G_CALLBACK(adj_value_changed), NULL);
 
-    scrollbar = gtk_hscrollbar_new(GTK_ADJUSTMENT(adj));
+    scrollbar = gtk_scrollbar_new(GTK_ORIENTATION_HORIZONTAL, GTK_ADJUSTMENT(adj));
     gtk_box_pack_start(GTK_BOX(vpane_vbox), scrollbar, FALSE, TRUE, 0);
 
 
 /* vbox for the list */
-    list_vbox = gtk_vbox_new(FALSE, 5);
+    list_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_set_border_width(GTK_CONTAINER(list_vbox), 5);
     gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, FALSE, TRUE);
 
 /* Add cursor marker spinner and track break add and delete buttons */
-    hbox = gtk_hbox_new(FALSE, 5);
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(list_vbox), hbox, FALSE, FALSE, 0);
+
+    play_button = gtk_button_new_from_icon_name("media-playback-start-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_sensitive(play_button, FALSE);
+    gtk_widget_set_tooltip_text(play_button, _("Toggle playback"));
+    gtk_box_pack_start(GTK_BOX(hbox), play_button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(play_button), "clicked", G_CALLBACK(menu_play), NULL);
+
 
     gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new( _("Cursor position:")), FALSE, FALSE, 0);
 
@@ -3258,99 +2697,77 @@ int main(int argc, char **argv)
     g_signal_connect(G_OBJECT(cursor_marker_spinner_adj), "value-changed",
              G_CALLBACK(cursor_marker_spinner_changed), NULL);
 
-    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new( _("Time offset:")), FALSE, FALSE, 0);
+    //gtk_box_pack_start(GTK_BOX(hbox), make_time_offset_widget(), FALSE, FALSE, 0);
 
-    cursor_marker_min_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 1000.0, 1.0, 74.0, 0);
-    cursor_marker_min_spinner = gtk_spin_button_new(cursor_marker_min_spinner_adj, 1.0, 0);
-    gtk_widget_set_sensitive( cursor_marker_min_spinner, FALSE);
-    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_min_spinner, FALSE, FALSE, 0);
-    g_signal_connect(G_OBJECT(cursor_marker_min_spinner_adj), "value-changed",
-             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+    // Jump Around
+    GtkWidget *bbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_box_pack_start(GTK_BOX(hbox), bbox, FALSE, FALSE, 0);
+    gtk_button_box_set_layout(GTK_BUTTON_BOX(bbox), GTK_BUTTONBOX_EXPAND);
 
-    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new(":"), FALSE, FALSE, 0);
+    button = gtk_button_new_from_icon_name("media-seek-backward-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(button, _("Seek to previous silence"));
+    gtk_box_pack_start(GTK_BOX(bbox), button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_prev_silence), NULL);
+    button_seek_backward = button;
 
-    cursor_marker_sec_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 59.0, 1.0, 74.0, 0);
-    cursor_marker_sec_spinner = gtk_spin_button_new(cursor_marker_sec_spinner_adj, 1.0, 0);
-    gtk_widget_set_sensitive( cursor_marker_sec_spinner, FALSE);
-    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_sec_spinner, FALSE, FALSE, 0);
-    g_signal_connect(G_OBJECT(cursor_marker_sec_spinner_adj), "value-changed",
-             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+    button = gtk_button_new_from_icon_name("preferences-system-time-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(button, _("Jump to time"));
+    gtk_box_pack_start(GTK_BOX(bbox), button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_jump_to), NULL);
 
-    gtk_box_pack_start( GTK_BOX( hbox), gtk_label_new("."), FALSE, FALSE, 0);
+    jump_to_popover = gtk_popover_new(button);
+    gtk_popover_set_position(GTK_POPOVER(jump_to_popover), GTK_POS_BOTTOM);
+    gtk_container_add(GTK_CONTAINER(jump_to_popover), make_time_offset_widget());
 
-    cursor_marker_subsec_spinner_adj = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, CD_BLOCKS_PER_SEC-1, 1.0, 74.0, 0);
-    cursor_marker_subsec_spinner = gtk_spin_button_new(cursor_marker_subsec_spinner_adj, 1.0, 0);
-    gtk_widget_set_sensitive( cursor_marker_subsec_spinner, FALSE);
-    gtk_box_pack_start(GTK_BOX(hbox), cursor_marker_subsec_spinner, FALSE, FALSE, 0);
-    g_signal_connect(G_OBJECT(cursor_marker_subsec_spinner_adj), "value-changed",
-             G_CALLBACK(cursor_marker_time_spinners_changed), NULL);
+    button_jump_to_time = button;
 
-    hbbox = gtk_hbutton_box_new();
-    gtk_box_pack_start(GTK_BOX(hbox), hbbox, FALSE, FALSE, 0);
-    gtk_box_set_spacing(GTK_BOX(hbbox), 5);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_START);
-    gtk_box_set_homogeneous(GTK_BOX(hbbox), FALSE);
+    button = gtk_button_new_from_icon_name("media-seek-forward-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(button, _("Seek to next silence"));
+    gtk_box_pack_start(GTK_BOX(bbox), button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_next_silence), NULL);
+    button_seek_forward = button;
+
+    // Spacer
+    gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new(""), TRUE, TRUE, 0);
+
+    button = gtk_button_new_from_icon_name("edit-cut-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_widget_set_tooltip_text(button, _("Auto-split by interval"));
+    gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(button), "clicked",
+             G_CALLBACK(menu_autosplit), NULL);
+    autosplit_popover = gtk_popover_new(button);
+    gtk_popover_set_position(GTK_POPOVER(autosplit_popover), GTK_POS_BOTTOM);
+    gtk_container_add(GTK_CONTAINER(autosplit_popover), autosplit_create(GTK_POPOVER(autosplit_popover)));
+    button_auto_split = button;
+
+    gtk_box_pack_start(GTK_BOX(hbox), gtk_separator_new(GTK_ORIENTATION_VERTICAL), FALSE, FALSE, 0);
 
     /* add track break button */
-    button = gtk_button_new();
-    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 0);
-    g_signal_connect(G_OBJECT(button), "clicked",
-             G_CALLBACK(menu_add_track_break), NULL);
-
-    button_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(button), button_hbox);
-
-    icon = gtk_image_new_from_stock( GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
-
-    label = gtk_label_new(_("Add"));
-    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    button = gtk_button_new_from_icon_name("list-add-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(button), "win.add_break");
+    gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
     button_add_break = button;
 
     /* delete track break button */
-    button = gtk_button_new();
-    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
-    g_signal_connect(G_OBJECT(button), "clicked",
-             G_CALLBACK(menu_delete_track_break), NULL);
-
-    button_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(button), button_hbox);
-
-    icon = gtk_image_new_from_stock( GTK_STOCK_REMOVE, GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
-
-    label = gtk_label_new(_("Remove"));
-    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
+    button = gtk_button_new_from_icon_name("list-remove-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+    gtk_actionable_set_action_name(GTK_ACTIONABLE(button), "win.remove_break");
+    gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
     button_remove_break = button;
 
-    /* rename track breaks button */
-    button = gtk_button_new();
-    gtk_box_pack_start(GTK_BOX(hbbox), button, FALSE, FALSE, 2);
-    g_signal_connect(G_OBJECT(button), "clicked",
-             G_CALLBACK(menu_rename), NULL);
-
-    button_hbox = gtk_hbox_new(FALSE, 0);
-    gtk_container_add(GTK_CONTAINER(button), button_hbox);
-
-    icon = gtk_image_new_from_stock( GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start(GTK_BOX(button_hbox), icon, FALSE, FALSE, 0);
-
-    label = gtk_label_new(_("Auto-Rename"));
-    gtk_box_pack_start(GTK_BOX(button_hbox), label, FALSE, FALSE, 0);
-    button_rename = button;
-
     /* Set buttons to be disabled initially */
-    gtk_widget_set_sensitive( button_add_break, FALSE);
-    gtk_widget_set_sensitive( button_remove_break, FALSE);
-    gtk_widget_set_sensitive( button_rename, FALSE);
+    gtk_widget_set_sensitive(button_seek_forward, FALSE);
+    gtk_widget_set_sensitive(button_jump_to_time, FALSE);
+    gtk_widget_set_sensitive(button_seek_backward, FALSE);
+    gtk_widget_set_sensitive(button_auto_split, FALSE);
+    gtk_widget_set_sensitive(button_add_break, FALSE);
+    gtk_widget_set_sensitive(button_remove_break, FALSE);
 
 /* Track Break List */
     tbl_widget = track_break_create_list_gui();
     gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
-
-/* Status Bar */
-    statusbar = gtk_statusbar_new();
-    gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, TRUE, 0);
 
 /* Finish up */
 
@@ -3374,21 +2791,53 @@ int main(int argc, char **argv)
 
     gtk_widget_show_all( GTK_WIDGET(main_window));
 
-    if( appconfig_get_show_toolbar()) {
-        gtk_widget_show_all( GTK_WIDGET(toolbar));
-    } else {
-        gtk_widget_hide(GTK_WIDGET(toolbar));
+    if (user_data) {
+        g_idle_add(open_file_arg, user_data);
     }
+}
 
-    handle_arguments( argc, argv);
+static void
+do_open(GApplication *application, gpointer files, gint n_files, gchar *hint, gpointer user_data)
+{
+    GFile **gfiles = (GFile **)files;
+    for (int i=0; i<n_files; ++i) {
+        const char *path = g_file_get_path(gfiles[i]);
+        do_activate(application, strdup(path));
+    }
+}
 
-    gdk_threads_enter();
-    gtk_main();
-    gdk_threads_leave();
+static void
+do_shutdown(GApplication *application, gpointer user_data)
+{
+    waveform_surface_free(sample_surface);
+    waveform_surface_free(summary_surface);
 
     appconfig_write_file();
+}
 
-    return 0;
+int
+main(int argc, char *argv[])
+{
+    GtkApplication *app;
+    int status;
+
+    app = gtk_application_new("net.sourceforge.wavbreaker", G_APPLICATION_HANDLES_OPEN);
+    g_signal_connect(app, "startup", G_CALLBACK (do_startup), NULL);
+    g_signal_connect(app, "activate", G_CALLBACK (do_activate), NULL);
+    g_signal_connect(app, "open", G_CALLBACK (do_open), NULL);
+    g_signal_connect(app, "shutdown", G_CALLBACK (do_shutdown), NULL);
+
+    static const GActionEntry entries[] = {
+        { "guimerge", menu_merge, NULL, NULL, NULL, },
+        { "preferences", menu_config, NULL, NULL, NULL },
+        { "about", menu_about, NULL, NULL, NULL },
+    };
+    g_action_map_add_action_entries(G_ACTION_MAP(app), entries, G_N_ELEMENTS(entries), app);
+
+    status = g_application_run(G_APPLICATION (app), argc, argv);
+    g_object_unref(app);
+
+    return status;
 }
 
 struct WriteStatus {
@@ -3544,7 +2993,7 @@ int track_breaks_load_from_file( gchar const *filename) {
 guint
 msf_time_to_offset( gchar *str )
 {
-    uint   offset;
+    guint   offset;
     int    mm = 0, ss = 0, ff = 0;
     int    consumed;
 

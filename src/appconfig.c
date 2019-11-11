@@ -86,12 +86,6 @@ static int vpane2_position = -1;
 static int silence_percentage = 2;
 static GtkWidget *silence_spin_button = NULL;
 
-/* Ask user if the user really wants to quit wavbreaker. */
-static int ask_really_quit = 1;
-
-/* Show toolbar in main window */
-static int show_toolbar = 1;
-
 /* Draw moodbar in main window */
 static int show_moodbar = 1;
 
@@ -205,25 +199,6 @@ int appconfig_get_silence_percentage()
 void appconfig_set_silence_percentage(int x)
 {
     silence_percentage = x;
-}
-
-int appconfig_get_ask_really_quit()
-{
-    return ask_really_quit;
-}
-
-void appconfig_set_ask_really_quit(int x)
-{
-    ask_really_quit = x;
-}
-
-int appconfig_get_show_toolbar() {
-    return show_toolbar;
-}
-
-void appconfig_set_show_toolbar(int x)
-{
-    show_toolbar = x;
 }
 
 int appconfig_get_show_moodbar() {
@@ -394,8 +369,9 @@ static void open_select_outputdir() {
 
     dialog = gtk_file_chooser_dialog_new(_("Select Output Directory"),
         GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN,
-        GTK_RESPONSE_ACCEPT, NULL);
+        _("Cancel"), GTK_RESPONSE_CANCEL,
+        _("Open"), GTK_RESPONSE_ACCEPT,
+        NULL);
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog),
         gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
 
@@ -410,7 +386,8 @@ static void open_select_outputdir() {
     gtk_widget_destroy(dialog);
 }
 
-static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
+static void
+on_appconfig_close(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
     appconfig_set_outputdir(gtk_entry_get_text(GTK_ENTRY(outputdir_entry)));
     appconfig_set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
@@ -426,51 +403,57 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 void appconfig_show(GtkWidget *main_window)
 {
     GtkWidget *vbox;
-    GtkWidget *table;
-    GtkWidget *hbbox;
-    GtkWidget *ok_button;
+    GtkWidget *grid;
     GtkWidget *label;
 
-    GtkWidget *notebook;
+    GtkWidget *stack;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_widget_realize(window);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
     gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DIALOG);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
-    gtk_window_set_title( GTK_WINDOW(window), _("wavbreaker Preferences"));
+
+    GtkWidget *header_bar = gtk_header_bar_new();
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header_bar), TRUE);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), _("Preferences"));
+    gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
 
     /* create the vbox for the first tab */
-    vbox = gtk_vbox_new(FALSE, 10);
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_container_add( GTK_CONTAINER(window), vbox);
 
-    notebook = gtk_notebook_new();
-    gtk_container_add( GTK_CONTAINER(vbox), notebook);
+    stack = gtk_stack_new();
+    gtk_container_add(GTK_CONTAINER(vbox), stack);
+
+    GtkWidget *stack_switcher = gtk_stack_switcher_new();
+    gtk_stack_switcher_set_stack(GTK_STACK_SWITCHER(stack_switcher), GTK_STACK(stack));
+    gtk_header_bar_set_custom_title(GTK_HEADER_BAR(header_bar), stack_switcher);
 
     /* Selectable Output Directory */
-    table = gtk_table_new(2, 3, FALSE);
-    gtk_container_set_border_width(GTK_CONTAINER(table), 10);
-    gtk_table_set_row_spacings( GTK_TABLE(table), 5);
-    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("General")));
+    grid = gtk_grid_new();
+    gtk_container_set_border_width(GTK_CONTAINER(grid), 10);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
+    gtk_stack_add_titled(GTK_STACK(stack), grid, "general", _("General"));
 
     use_outputdir_toggle = gtk_check_button_new_with_label(_("Save output files in folder:"));
-    gtk_table_attach(GTK_TABLE(table), use_outputdir_toggle,
-        0, 2, 0, 1, GTK_FILL, 0, 5, 0);
+    gtk_grid_attach(GTK_GRID(grid), use_outputdir_toggle,
+            0, 0, 2, 1);
     g_signal_connect(G_OBJECT(use_outputdir_toggle), "toggled",
         G_CALLBACK(use_outputdir_toggled), NULL);
 
     outputdir_entry = gtk_entry_new();
+    g_object_set(outputdir_entry, "hexpand", TRUE, NULL);
     gtk_entry_set_text(GTK_ENTRY(outputdir_entry), outputdir);
     gtk_entry_set_width_chars(GTK_ENTRY(outputdir_entry), 40);
-    gtk_table_attach(GTK_TABLE(table), outputdir_entry,
-        0, 1, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 0);
+    gtk_grid_attach(GTK_GRID(grid), outputdir_entry,
+        0, 1, 1, 1);
 
     browse_button = gtk_button_new_with_label(_("Browse"));
-    gtk_table_attach(GTK_TABLE(table), browse_button,
-        1, 2, 1, 2, GTK_FILL, 0, 5, 0);
+    gtk_grid_attach(GTK_GRID(grid), browse_button,
+        1, 1, 1, 1);
     g_signal_connect(G_OBJECT(browse_button), "clicked",
             (GCallback)browse_button_clicked, window);
 
@@ -479,71 +462,66 @@ void appconfig_show(GtkWidget *main_window)
     gtk_spin_button_set_value( GTK_SPIN_BUTTON(silence_spin_button), appconfig_get_silence_percentage());
     
     label = gtk_label_new( _("Maximum volume considered silence (in percent):"));
-    gtk_misc_set_alignment( GTK_MISC(label), 0.0, 0.5);
+    g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
 
-    gtk_table_attach( GTK_TABLE(table), label,
-        0, 1, 2, 3, GTK_FILL, 0, 5, 0);
-    gtk_table_attach( GTK_TABLE(table), silence_spin_button,
-        1, 2, 2, 3, GTK_EXPAND, 0, 5, 0);
+    gtk_grid_attach(GTK_GRID(grid), label,
+        0, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), silence_spin_button,
+        1, 2, 1, 1);
 
     /* Etree Filename Suffix */
 
-    table = gtk_table_new(4, 10, FALSE);
-    gtk_container_set_border_width(GTK_CONTAINER(table), 10);
-    gtk_notebook_append_page( GTK_NOTEBOOK(notebook), table, gtk_label_new( _("File Naming")));
+    grid = gtk_grid_new();
+    gtk_container_set_border_width(GTK_CONTAINER(grid), 10);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 5);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 5);
+    gtk_stack_add_titled(GTK_STACK(stack), grid, "naming", _("File Naming"));
 
     radio1 = gtk_radio_button_new_with_label(NULL, _("Standard (##)"));
-    gtk_table_attach(GTK_TABLE(table), radio1, 0, 3, 0, 1, GTK_FILL, 0, 5, 2);
+    gtk_grid_attach(GTK_GRID(grid), radio1, 0, 0, 3, 1);
     g_signal_connect(G_OBJECT(radio1), "toggled",
         G_CALLBACK(radio_buttons_toggled), NULL);
 
+    etree_filename_suffix_label = gtk_label_new(_("Separator:"));
+    g_object_set(G_OBJECT(etree_filename_suffix_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
+    gtk_grid_attach(GTK_GRID(grid), etree_filename_suffix_label,
+            1, 1, 1, 1);
+
+    etree_filename_suffix_entry = gtk_entry_new();
+    g_object_set(etree_filename_suffix_entry, "hexpand", TRUE, NULL);
+    gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
+    gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
+    gtk_grid_attach(GTK_GRID(grid), etree_filename_suffix_entry,
+            2, 1, 1, 1);
+
     label = gtk_label_new("   ");
-    gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), label,
-            0, 1, 2, 3, GTK_FILL, 0, 5, 2);
+    g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
+    gtk_grid_attach(GTK_GRID(grid), label,
+            0, 2, 1, 1);
 
     prepend_file_number_toggle = gtk_check_button_new_with_label(_("Prepend number before filename"));
-    gtk_table_attach(GTK_TABLE(table), prepend_file_number_toggle,
-            1, 3, 2, 3, GTK_FILL, 0, 5, 0);
+    gtk_grid_attach(GTK_GRID(grid), prepend_file_number_toggle,
+            1, 2, 2, 1);
     g_signal_connect(G_OBJECT(prepend_file_number_toggle), "toggled",
         G_CALLBACK(prepend_file_number_toggled), NULL);
 
-    etree_filename_suffix_label = gtk_label_new(_("Separator:"));
-    gtk_misc_set_alignment(GTK_MISC(etree_filename_suffix_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_label,
-            1, 2, 1, 2, GTK_FILL, 0, 5, 2);
-
-    etree_filename_suffix_entry = gtk_entry_new();
-    gtk_entry_set_text(GTK_ENTRY(etree_filename_suffix_entry), etree_filename_suffix);
-    gtk_entry_set_width_chars(GTK_ENTRY(etree_filename_suffix_entry), 10);
-    gtk_table_attach(GTK_TABLE(table), etree_filename_suffix_entry,
-            2, 3, 1, 2, GTK_EXPAND | GTK_FILL, 0, 5, 2);
-
     radio2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio1),
             _("etree.org (d#t##)"));
-    gtk_table_attach(GTK_TABLE(table), radio2, 0, 3, 3, 4, GTK_FILL, 0, 5, 2);
+    gtk_grid_attach(GTK_GRID(grid), radio2, 0, 3, 3, 1);
 
     etree_cd_length_label = gtk_label_new(_("CD Length:"));
-    gtk_misc_set_alignment(GTK_MISC(etree_cd_length_label), 0, 0.5);
-    gtk_table_attach(GTK_TABLE(table), etree_cd_length_label,
-            1, 2, 5, 6, GTK_FILL, 0, 5, 2);
+    g_object_set(G_OBJECT(etree_cd_length_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
+    gtk_grid_attach(GTK_GRID(grid), etree_cd_length_label,
+            1, 4, 1, 1);
 
     etree_cd_length_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(etree_cd_length_entry), etree_cd_length);
     gtk_entry_set_width_chars(GTK_ENTRY(etree_cd_length_entry), 10);
-    gtk_table_attach(GTK_TABLE(table), etree_cd_length_entry,
-            2, 3, 5, 6, GTK_EXPAND | GTK_FILL, 0, 5, 2);
+    gtk_grid_attach(GTK_GRID(grid), etree_cd_length_entry,
+            2, 4, 1, 1);
 
-    /* OK and Cancel Buttons */
-    hbbox = gtk_hbutton_box_new();
-    gtk_container_add(GTK_CONTAINER(vbox), hbbox);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
-    gtk_box_set_spacing(GTK_BOX(hbbox), 10);
-
-    ok_button = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
-    gtk_box_pack_end(GTK_BOX(hbbox), ok_button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(ok_button), "clicked",
-        (GCallback)ok_button_clicked, window);
+    g_signal_connect(G_OBJECT(window),
+        "delete-event", G_CALLBACK(on_appconfig_close), window);
 
     g_signal_connect(G_OBJECT(radio2), "toggled",
         G_CALLBACK(use_etree_filename_suffix_toggled), NULL);
@@ -604,8 +582,6 @@ struct ConfigOption_ {
     OPTION(vpane2_position, INTEGER),
 
     OPTION(silence_percentage, INTEGER),
-    OPTION(ask_really_quit, BOOLEAN),
-    OPTION(show_toolbar, BOOLEAN),
     OPTION(show_moodbar, BOOLEAN),
 #undef OPTION
     { NULL, INVALID, NULL, NULL },

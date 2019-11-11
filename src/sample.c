@@ -100,17 +100,20 @@ OpenThreadData open_thread_data;
 
 static void sample_max_min(GraphData *graphData, double *pct);
 
-#define ERROR_MESSAGE_SIZE 1024
-static char error_message[ERROR_MESSAGE_SIZE];
+static char *error_message;
 
 char *sample_get_error_message()
 {
-    return g_strdup(error_message);
+    return g_strdup(error_message ?: "");
 }
 
 void sample_set_error_message(const char *val)
 {
-    strncpy(error_message, val, ERROR_MESSAGE_SIZE);
+    if (error_message) {
+        g_free(error_message);
+    }
+
+    error_message = g_strdup(val);
 }
 
 #if defined(HAVE_MPG123)
@@ -542,7 +545,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     if (audio_type == UNKNOWN) {
         ask_result = ask_open_as_raw();
         if( ask_result == GTK_RESPONSE_CANCEL) {
-            sample_set_error_message( wav_get_error_message());
+            sample_set_error_message(wav_get_error_message());
             return 1;
         }
         cdda_read_header(sample_file, &sampleInfo);
@@ -559,8 +562,10 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
                                 CD_BLOCKS_PER_SEC);
 
         if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
-            snprintf(error_message, ERROR_MESSAGE_SIZE, _("Error opening %s: %s"),
-                     sample_file, strerror( errno));
+            if (error_message) {
+                g_free(error_message);
+            }
+            error_message = g_strdup_printf(_("Error opening %s: %s"), sample_file, strerror(errno));
             return 2;
         }
     }
