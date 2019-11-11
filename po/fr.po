@@ -4,29 +4,28 @@
 # Copyright (C) 2007 José Jorge
 # This file is distributed under the same license as the wavbreaker package.
 #
-# José Jorge <jjorge@free.fr>, 2007.
-# Jose Jorge <jjorge@free.fr>, 2007.
-# José JORGE <jose.jorge@cpam-auch.cnamts.fr>, 2007.
+# Jose JORGE <lists.jjorge@free.fr>, 2007, 2019.
 msgid ""
 msgstr ""
 "Project-Id-Version: fr\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2008-07-07 00:06+0200\n"
-"PO-Revision-Date: 2007-10-16 22:00+0200\n"
-"Last-Translator: Jose Jorge <jjorge@free.fr>\n"
-"Language-Team: português <pt@li.org>\n"
+"PO-Revision-Date: 2019-11-11 09:03+0100\n"
+"Last-Translator: Jose JORGE <lists.jjorge@free.fr>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.11.4\n"
+"X-Generator: Lokalize 19.08.1\n"
+"Language: fr_FR\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/about.c:30
 msgid "Split a wave file into multiple chunks"
-msgstr "Couper um fichier wave en plusieurs morceaux"
+msgstr "Couper un fichier wave en plusieurs morceaux"
 
 #: src/appconfig.c:61
 msgid "Disable audio output"
-msgstr "Désactiver le son"
+msgstr "Désactiver la sortie sonore"
 
 #: src/appconfig.c:634 src/browsedir.c:37
 msgid "Select Output Directory"
@@ -54,7 +53,7 @@ msgstr "Pourcentage maximal du volume considéré comme du silence:"
 
 #: src/appconfig.c:764
 msgid "File Naming"
-msgstr "Nomage des Fichiers"
+msgstr "Nommage des Fichiers"
 
 #: src/appconfig.c:766
 msgid "Standard (##)"
@@ -86,11 +85,11 @@ msgstr "Périphérique Audio :"
 
 #: src/appconfig.c:853
 msgid "Output device:"
-msgstr "Périphérique de son:"
+msgstr "Périphérique de lecture:"
 
 #: src/autosplit.c:136
 msgid "Enter the time for autosplit:"
-msgstr "Ecrivez la durée pour la coupure automatique :"
+msgstr "Écrivez la durée pour la coupure automatique :"
 
 #: src/autosplit.c:141
 msgid "Example (5min, 32sec, 12subsec):"
@@ -123,7 +122,7 @@ msgstr "Ajouter le fichier wave au collage"
 
 #: src/guimerge.c:284 src/wavbreaker.c:2861
 msgid "Merge wave files"
-msgstr "Concaténer des fichiers waves"
+msgstr "Concaténer des fichiers wave"
 
 #: src/guimerge.c:298
 msgid "Add wave files to this list and click on \"Merge\"."
@@ -131,7 +130,7 @@ msgstr "Ajoutez les fichiers wave à cette liste et cliquez sur \"Concaténer\".
 
 #: src/guimerge.c:322 src/wavbreaker.c:616
 msgid "File Name"
-msgstr "Nom du fichier"
+msgstr "Nom du Fichier"
 
 #: src/guimerge.c:332
 msgid "Length"
@@ -143,7 +142,7 @@ msgstr "Concaténer"
 
 #: src/guimerge.c:412
 msgid "Merging wave files"
-msgstr "Concatene les fichiers wave"
+msgstr "Concatène les fichiers wave"
 
 #: src/guimerge.c:424
 msgid "The selected files are now being merged. This can take some time."
@@ -190,11 +189,11 @@ msgstr "Écraser tous les fichiers"
 
 #: src/reallyquit.c:28
 msgid "Quit wavbreaker?"
-msgstr "Quitter?"
+msgstr "Quitter wavbreaker?"
 
 #: src/reallyquit.c:29
 msgid "If you quit wavbreaker now, any unsaved chunks will be lost."
-msgstr "Si vous quittez maintenant, tout morceau non enregistré sera perdu."
+msgstr "Si vous quittez maintenant, toute partie non enregistrée sera perdue."
 
 #: src/sample.c:264
 msgid "Open as RAW audio"
@@ -300,7 +299,7 @@ msgstr "Le fichier %s a été coupé en un morceau."
 #: src/wavbreaker.c:1339
 #, c-format
 msgid "Writing %s"
-msgstr "Ecriture de %s"
+msgstr "Écriture de %s"
 
 #: src/wavbreaker.c:1354
 #, c-format
@@ -398,25 +397,21 @@ msgid "Load track breaks from file"
 msgstr "Charger les séparations de piste depuis un fichier"
 
 #: src/wavbreaker.c:2685
-#, fuzzy
 msgid "TOC files"
-msgstr "Fichiers Texte"
+msgstr "Fichiers TOC"
 
 #: src/wavbreaker.c:2688
-#, fuzzy
 msgid "Load track breaks from TOC file"
-msgstr "Charger les séparations de piste depuis un fichier"
+msgstr "Charger les séparations de piste depuis un fichier TOC"
 
 #: src/wavbreaker.c:2701
-#, fuzzy
 msgid "Import failed"
-msgstr "L'exportation a échoué"
+msgstr "L'importation a échoué"
 
 #: src/wavbreaker.c:2701
-#, fuzzy
 msgid "There has been an error importing track breaks from the TOC file."
 msgstr ""
-"Une erreur est survenue lors de l'exportation des coupures de piste vers le "
+"Une erreur est survenue lors de l'importation des coupures de piste depuis le "
 "fichier TOC."
 
 #: src/wavbreaker.c:2840
@@ -449,7 +444,7 @@ msgstr "Préférences"
 
 #: src/wavbreaker.c:2856
 msgid "Configure wavbreaker"
-msgstr "Configurer"
+msgstr "Configurer wavbreaker"
 
 #: src/wavbreaker.c:2861
 msgid "Merge wave files together"
@@ -461,7 +456,7 @@ msgstr "Quitter"
 
 #: src/wavbreaker.c:2866
 msgid "Close wavbreaker"
-msgstr "Fermer"
+msgstr "Fermer wavbreaker"
 
 #: src/wavbreaker.c:2871
 msgid "Display toolbar"
@@ -477,7 +472,7 @@ msgstr "Afficher la barre d'ambiance sonore"
 
 #: src/wavbreaker.c:2877
 msgid "Draw moodbar over the waveform graph"
-msgstr "Dessiner la barre d'ambiance sur l'onde sonore"
+msgstr "Dessine la barre d'ambiance sous l'onde sonore"
 
 #: src/wavbreaker.c:2884
 msgid "Add track break"
@@ -513,15 +508,15 @@ msgstr "Définir la vue au marqueur du curseur"
 
 #: src/wavbreaker.c:2905
 msgid "Check all"
-msgstr ""
+msgstr "Séleccioner Tout"
 
 #: src/wavbreaker.c:2910
 msgid "Check none"
-msgstr ""
+msgstr "Déséleccioner tout"
 
 #: src/wavbreaker.c:2915
 msgid "Invert check"
-msgstr ""
+msgstr "Inverser la sélection"
 
 #: src/wavbreaker.c:2920
 msgid "Rename track breaks"
@@ -556,14 +551,12 @@ msgid "Export to CD-ROM TOC file for burning"
 msgstr "Exporte vers un fichier TOC de CD-ROM pour gravage"
 
 #: src/wavbreaker.c:2942
-#, fuzzy
 msgid "_Import from TOC"
-msgstr "Exportation vers TOC"
+msgstr "_Importation depuis TOC"
 
 #: src/wavbreaker.c:2942
-#, fuzzy
 msgid "Import track breaks from TOC file"
-msgstr "Charger les séparations de piste depuis un fichier"
+msgstr "Charger les séparations de piste depuis un fichier TOC"
 
 #: src/wavbreaker.c:2948
 msgid "_Save offsets to text file"

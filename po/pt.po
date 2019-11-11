@@ -4,21 +4,20 @@
 # Copyright (C) 2007 José Jorge
 # This file is distributed under the same license as the wavbreaker package.
 #
-# José Jorge <jjorge@free.fr>, 2007.
-# Jose Jorge <jjorge@free.fr>, 2007.
-# José JORGE <jose.jorge@cpam-auch.cnamts.fr>, 2007.
+# José JORGE <lists.jjorge@free.fr>, 2007, 2019.
 msgid ""
 msgstr ""
 "Project-Id-Version: pt\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2008-07-07 00:06+0200\n"
-"PO-Revision-Date: 2007-10-16 22:41+0200\n"
-"Last-Translator: Jose Jorge <jjorge@free.fr>\n"
-"Language-Team: português <pt@li.org>\n"
+"PO-Revision-Date: 2019-11-09 09:52+0100\n"
+"Last-Translator: José JORGE <lists.jjorge@free.fr>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.11.4\n"
+"X-Generator: Lokalize 19.08.1\n"
+"Language: pt_PT\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/about.c:30
 msgid "Split a wave file into multiple chunks"
@@ -26,11 +25,11 @@ msgstr "Dividir um ficheiro wave em partes múltiplas"
 
 #: src/appconfig.c:61
 msgid "Disable audio output"
-msgstr "Desactivar a saída áudio "
+msgstr "Desativar a saída áudio "
 
 #: src/appconfig.c:634 src/browsedir.c:37
 msgid "Select Output Directory"
-msgstr "Seleccionar a Pasta de Saída"
+msgstr "Selecionar a Pasta de Saída"
 
 #: src/appconfig.c:714
 msgid "wavbreaker Preferences"
@@ -46,11 +45,11 @@ msgstr "Gravar os ficheiros de saída na pasta:"
 
 #: src/appconfig.c:742
 msgid "Browse"
-msgstr "Escolher"
+msgstr "Navegar"
 
 #: src/appconfig.c:752
 msgid "Maximum volume considered silence (in percent):"
-msgstr "Percentagem máxima de volume considerada como silencio:"
+msgstr "Nível máximo de volume considerado como silencio (em percentagem):"
 
 #: src/appconfig.c:764
 msgid "File Naming"
@@ -397,24 +396,20 @@ msgid "Load track breaks from file"
 msgstr "Carregar as separações de pista num ficheiro"
 
 #: src/wavbreaker.c:2685
-#, fuzzy
 msgid "TOC files"
-msgstr "Ficheiros de texto"
+msgstr "Ficheiros TOC"
 
 #: src/wavbreaker.c:2688
-#, fuzzy
 msgid "Load track breaks from TOC file"
-msgstr "Carregar as separações de pista num ficheiro"
+msgstr "Carregar as separações de pista de um ficheiro TOC"
 
 #: src/wavbreaker.c:2701
-#, fuzzy
 msgid "Import failed"
-msgstr "A exportação falhou"
+msgstr "A importação falhou"
 
 #: src/wavbreaker.c:2701
-#, fuzzy
 msgid "There has been an error importing track breaks from the TOC file."
-msgstr "Ocorreu um erro ao exportar as marcas de separação no ficheiro TOC."
+msgstr "Ocorreu um erro ao importar as marcas de separação do ficheiro TOC."
 
 #: src/wavbreaker.c:2840
 msgid "_Open"
@@ -510,15 +505,15 @@ msgstr "Define a vista no marcador do cursor"
 
 #: src/wavbreaker.c:2905
 msgid "Check all"
-msgstr ""
+msgstr "Marcar tudo"
 
 #: src/wavbreaker.c:2910
 msgid "Check none"
-msgstr ""
+msgstr "Desmarcar tudo"
 
 #: src/wavbreaker.c:2915
 msgid "Invert check"
-msgstr ""
+msgstr "Inverter a seleção"
 
 #: src/wavbreaker.c:2920
 msgid "Rename track breaks"
@@ -526,7 +521,7 @@ msgstr "Mudar o nome das separações de pistas"
 
 #: src/wavbreaker.c:2920
 msgid "Automatically rename all track breaks"
-msgstr "Mudar automaticamente o nome de todas as partes"
+msgstr "Mudar automáticamente o nome de todas as partes"
 
 #: src/wavbreaker.c:2925
 msgid "Generate moodbar"
@@ -553,14 +548,12 @@ msgid "Export to CD-ROM TOC file for burning"
 msgstr "Exportar para um ficheiro TOC de CD ROM para gravação"
 
 #: src/wavbreaker.c:2942
-#, fuzzy
 msgid "_Import from TOC"
-msgstr "Exportar para um TOC"
+msgstr "_Importar de um TOC"
 
 #: src/wavbreaker.c:2942
-#, fuzzy
 msgid "Import track breaks from TOC file"
-msgstr "Carregar as separações de pista num ficheiro"
+msgstr "Carregar as separações de pista de um ficheiro TOC"
 
 #: src/wavbreaker.c:2948
 msgid "_Save offsets to text file"
