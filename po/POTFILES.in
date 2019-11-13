@@ -1,9 +1,9 @@
 src/about.c
 src/appconfig.c
 src/autosplit.c
-src/browsedir.c
 src/gettext.h
 src/guimerge.c
+src/moodbar.c
 src/overwritedialog.c
 src/reallyquit.c
 src/sample.c
