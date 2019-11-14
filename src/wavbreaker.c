@@ -1978,7 +1978,8 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
         return TRUE;
     }
 
-    cursor_marker = pixmap_offset + event->x;
+    int w = gtk_widget_get_allocated_width(widget);
+    cursor_marker = pixmap_offset + ((event->x < 0) ? 0 : ((event->x > (w-1)) ? (w-1) : event->x));
 
     if (event->type == GDK_BUTTON_RELEASE && event->button == 3) {
         GMenu *menu_model = g_menu_new();
