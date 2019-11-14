@@ -28,3 +28,4 @@ src/wavmerge
 src/Makefile
 src/Makefile.in
 src/.deps
+.DS_Store
