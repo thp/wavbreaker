@@ -400,7 +400,6 @@ track_break_create_list_gui()
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw),
                                     GTK_POLICY_AUTOMATIC,
                                     GTK_POLICY_AUTOMATIC);
-    gtk_widget_set_size_request(sw, 350, 100);
 
     /* create the data store */
     store = gtk_list_store_new(NUM_COLUMNS,
@@ -2683,7 +2682,6 @@ do_activate(GApplication *app, gpointer user_data)
 
     /* The summary_surface drawing area */
     draw_summary = gtk_drawing_area_new();
-    gtk_widget_set_size_request(draw_summary, 500, 75);
 
     g_signal_connect(G_OBJECT(draw_summary), "draw",
              G_CALLBACK(draw_summary_draw_event), NULL);
@@ -2708,7 +2706,6 @@ do_activate(GApplication *app, gpointer user_data)
 
     /* The sample_surface drawing area */
     draw = gtk_drawing_area_new();
-    gtk_widget_set_size_request(draw, 500, 200);
 
     g_signal_connect(G_OBJECT(draw), "draw",
              G_CALLBACK(draw_draw_event), NULL);
