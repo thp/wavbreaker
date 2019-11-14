@@ -1596,20 +1596,36 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
         /**
          * Draw RED cursor marker
          **/
-        cairo_set_source_rgba( cr, 1, 0, 0, 0.9);
-        cairo_move_to( cr, cursor_marker - pixmap_offset + 0.5, 0);
-        cairo_line_to( cr, cursor_marker - pixmap_offset + 0.5, height);
-        cairo_stroke( cr);
+        float x = cursor_marker - pixmap_offset + 0.5f;
+
+        cairo_set_source_rgba(cr, 1.f, 0.f, 0.f, 0.9f);
+        cairo_move_to(cr, x, 0.f);
+        cairo_line_to(cr, x, height);
+        cairo_stroke(cr);
+
+        static const float TRIANGLE_SIDE = 3.f;
+
+        cairo_move_to(cr, x-TRIANGLE_SIDE, 0.f);
+        cairo_line_to(cr, x+TRIANGLE_SIDE, 0.f);
+        cairo_line_to(cr, x, 2.f*TRIANGLE_SIDE);
+
+        cairo_move_to(cr, x-TRIANGLE_SIDE, height);
+        cairo_line_to(cr, x+TRIANGLE_SIDE, height);
+        cairo_line_to(cr, x, height-2.f*TRIANGLE_SIDE);
+
+        cairo_fill(cr);
     }
 
     if (sample_is_playing()) {
         /**
          * Draw GREEN play marker
          **/
-        cairo_set_source_rgba( cr, 0, 1, 0, 0.9);
-        cairo_move_to( cr, play_marker - pixmap_offset + 0.5, 0);
-        cairo_line_to( cr, play_marker - pixmap_offset + 0.5, height);
-        cairo_stroke( cr);
+        float x = play_marker - pixmap_offset + 0.5f;
+
+        cairo_set_source_rgba(cr, 0.f, 0.7f, 0.f, 0.9f);
+        cairo_move_to(cr, x, 0.f);
+        cairo_line_to(cr, x, height);
+        cairo_stroke(cr);
     }
 
     /**
