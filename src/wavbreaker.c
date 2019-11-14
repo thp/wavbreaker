@@ -387,6 +387,34 @@ cell_data_func_gpa (GtkTreeViewColumn *col,
 }
 */
 
+static void
+set_action_enabled(const char *action, gboolean enabled)
+{
+    g_object_set(G_OBJECT(g_action_map_lookup_action(G_ACTION_MAP(main_window), action)),
+            "enabled", enabled,
+            NULL);
+}
+
+static void
+on_tree_selection_changed(GtkTreeSelection *selection, gpointer user_data)
+{
+    gboolean can_remove = TRUE;
+
+    GList *list = gtk_tree_selection_get_selected_rows(selection, NULL);
+    GList *cur = list;
+    while (cur) {
+        GtkTreePath *path = cur->data;
+        if (gtk_tree_path_get_indices(path)[0] == 0) {
+            can_remove = FALSE;
+            break;
+        }
+        cur = cur->next;
+    }
+    g_list_free(list);
+
+    set_action_enabled("remove_break", can_remove);
+}
+
 GtkWidget *
 track_break_create_list_gui()
 {
@@ -413,6 +441,10 @@ track_break_create_list_gui()
     /* create the treeview */
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
     gtk_container_add(GTK_CONTAINER(sw), treeview);
+
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+    g_signal_connect(G_OBJECT(selection), "changed",
+            G_CALLBACK(on_tree_selection_changed), NULL);
 
     /* connect/add the right-click signal */
     gtk_widget_add_events(draw_summary, GDK_BUTTON_RELEASE_MASK);
@@ -616,12 +648,15 @@ void track_break_selection(gpointer data, gpointer user_data)
     TrackBreak *track_break;
     guint list_pos;
     gpointer list_data;
-    gchar *path_str;
     GtkTreeModel *model;
     GtkTreeIter iter;
 
-    path_str = gtk_tree_path_to_string(path);
-    list_pos = atoi(path_str);
+    list_pos = gtk_tree_path_get_indices(path)[0];
+    if (list_pos == 0) {
+        // Do not allow first break to be deleted
+        return;
+    }
+
     list_data = g_list_nth_data(track_break_list, list_pos);
     track_break = (TrackBreak *)list_data;
     track_break_list = g_list_remove(track_break_list, track_break);
@@ -638,7 +673,6 @@ void track_break_selection(gpointer data, gpointer user_data)
 */
 /* DEBUG CODE END */
 
-    g_free(path_str);
     gtk_tree_path_free(path);
 }
 
@@ -822,6 +856,17 @@ guint track_break_find_offset()
 */
 }
 
+static void
+select_and_show_track_break(int index)
+{
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+    gtk_tree_selection_unselect_all(selection);
+    GtkTreePath *path = gtk_tree_path_new_from_indices(index, -1);
+    gtk_tree_selection_select_path(selection, path);
+    gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(treeview), path, NULL, FALSE, 0.f, 0.f);
+    gtk_tree_path_free(path);
+}
+
 void track_break_add_entry()
 {
     TrackBreak *track_break = NULL;
@@ -856,6 +901,8 @@ void track_break_add_entry()
 
     track_break_set_durations();
     track_break_rename( FALSE);
+
+    select_and_show_track_break(g_list_index(track_break_list, track_break));
 
     force_redraw();
 }
@@ -1196,15 +1243,6 @@ file_play_progress_idle_func(gpointer data) {
  * File Open Dialog Stuff
  *-------------------------------------------------------------------------
  */
-
-static void
-set_action_enabled(const char *action, gboolean enabled)
-{
-    g_object_set(G_OBJECT(g_action_map_lookup_action(G_ACTION_MAP(main_window), action)),
-            "enabled", enabled,
-            NULL);
-}
-
 
 gboolean
 file_open_progress_idle_func(gpointer data) {
@@ -1940,10 +1978,13 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
         return TRUE;
     }
 
+    cursor_marker = pixmap_offset + event->x;
+
     if (event->type == GDK_BUTTON_RELEASE && event->button == 3) {
         GMenu *menu_model = g_menu_new();
 
         g_menu_append(menu_model, _("Add track break"), "win.add_break");
+        g_menu_append(menu_model, _("Remove track break"), "win.remove_break");
         g_menu_append(menu_model, _("Jump to cursor marker"), "win.jump_cursor");
 
         GtkMenu *menu = GTK_MENU(gtk_menu_new_from_model(G_MENU_MODEL(menu_model)));
@@ -1954,7 +1995,39 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
         return TRUE;
     }
 
-    cursor_marker = pixmap_offset + event->x;
+    TrackBreak *nearest_track_break = NULL;
+    int nearest_track_break_index = 0;
+    int containing_track_break_index = 0;
+    {
+        GList *cur = track_break_list;
+        int idx = 0;
+
+        nearest_track_break = cur ? cur->data : NULL;
+        while (cur) {
+            TrackBreak *tb = cur->data;
+            if (ABS((long)tb->offset - (long)cursor_marker) < ABS((long)nearest_track_break->offset - (long)cursor_marker)) {
+                nearest_track_break = tb;
+                nearest_track_break_index = idx;
+            }
+
+            if (tb->offset < cursor_marker) {
+                containing_track_break_index = idx;
+            }
+
+            cur = cur->next;
+            ++idx;
+        }
+    }
+
+    static const long SNAP_DISTANCE_FRAMES = 20;
+    if (nearest_track_break && ABS((long)cursor_marker - (long)nearest_track_break->offset) < SNAP_DISTANCE_FRAMES) {
+        // snap cursor to track break
+        cursor_marker = nearest_track_break->offset;
+        containing_track_break_index = nearest_track_break_index;
+    }
+
+    select_and_show_track_break(containing_track_break_index);
+
     gtk_adjustment_set_value(cursor_marker_spinner_adj, cursor_marker);
 
     /* DEBUG CODE START */
