@@ -1979,7 +1979,39 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     }
 
     int w = gtk_widget_get_allocated_width(widget);
-    cursor_marker = pixmap_offset + ((event->x < 0) ? 0 : ((event->x > (w-1)) ? (w-1) : event->x));
+
+    int center = pixmap_offset + w/2;
+
+    static const int MINIMUM_SCROLL_STEP = 10;
+    static const int MAXIMUM_SCROLL_STEP = 50;
+
+    if (event->x < 0) {
+        // scroll left
+        int offset = event->x;
+        if (offset > -MINIMUM_SCROLL_STEP) {
+            offset = -MINIMUM_SCROLL_STEP;
+        } else if (offset < -MAXIMUM_SCROLL_STEP) {
+            offset = -MAXIMUM_SCROLL_STEP;
+        }
+
+        reset_sample_display(center + offset);
+
+        cursor_marker = pixmap_offset;
+    } else if (event->x > w-1) {
+        // scroll right
+        int offset = event->x - (w-1);
+        if (offset < MINIMUM_SCROLL_STEP) {
+            offset = MINIMUM_SCROLL_STEP;
+        } else if (offset > MAXIMUM_SCROLL_STEP) {
+            offset = MAXIMUM_SCROLL_STEP;
+        }
+
+        reset_sample_display(center + offset);
+
+        cursor_marker = pixmap_offset + w-1;
+    } else {
+        cursor_marker = pixmap_offset + event->x;
+    }
 
     if (event->type == GDK_BUTTON_RELEASE && event->button == 3) {
         GMenu *menu_model = g_menu_new();
