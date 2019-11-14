@@ -1187,6 +1187,7 @@ file_play_progress_idle_func(gpointer data) {
         return TRUE;
     } else {
         set_play_icon();
+        play_progress_source_id = 0;
         return FALSE;
     }
 }
