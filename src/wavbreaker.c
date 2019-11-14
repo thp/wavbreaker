@@ -100,7 +100,15 @@ char *sample_filename = NULL;
 struct stat sample_stat;
 static gboolean overwrite_track_names = FALSE;
 
-static guint idle_func_num;
+// one-shot idle_add-style event sources
+static guint open_file_source_id;
+static guint redraw_source_id;
+
+// timeout-based (periodic) progress UI update event sources
+static guint file_open_progress_source_id;
+static guint play_progress_source_id;
+static guint file_write_progress_source_id;
+
 static gdouble progress_pct;
 static WriteInfo write_info;
 
@@ -1113,6 +1121,7 @@ file_write_progress_idle_func(gpointer data) {
         popupmessage_show( NULL, _("Operation successful"), tmp_str);
         g_free(tmp_str);
 
+        file_write_progress_source_id = 0;
         return FALSE;
     }
 
@@ -1296,6 +1305,7 @@ file_open_progress_idle_func(gpointer data) {
 
         /* --------------------------------------------------- */
 
+        file_open_progress_source_id = 0;
         return FALSE;
 
     } else {
@@ -1353,7 +1363,10 @@ static void open_file() {
 
     menu_stop(NULL, NULL);
 
-    idle_func_num = g_idle_add(file_open_progress_idle_func, NULL);
+    if (file_open_progress_source_id) {
+        g_source_remove(file_open_progress_source_id);
+    }
+    file_open_progress_source_id = g_timeout_add(100, file_open_progress_idle_func, NULL);
     set_title( basename( sample_filename));
 }
 
@@ -1367,6 +1380,7 @@ open_file_arg(gpointer data)
     }
 
     /* do not call this function again = return FALSE */
+    open_file_source_id = 0;
     return FALSE;
 }
 
@@ -1483,7 +1497,10 @@ static void redraw()
     if( redraw_done) {
         /* Only redraw if the last operation finished already. */
         redraw_done = 0;
-        g_idle_add( redraw_later, &redraw_done);
+        if (redraw_source_id) {
+            g_source_remove(redraw_source_id);
+        }
+        redraw_source_id = g_idle_add(redraw_later, &redraw_done);
     }
 }
 
@@ -1506,6 +1523,8 @@ static gboolean redraw_later( gpointer data)
     gtk_widget_queue_draw(draw_summary);
 
     *redraw_done = 1;
+
+    redraw_source_id = 0;
     return FALSE;
 }
 
@@ -2005,7 +2024,10 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     play_marker = cursor_marker;
     switch (play_sample(cursor_marker, &play_marker)) {
         case 0:
-            idle_func_num = g_idle_add(file_play_progress_idle_func, NULL);
+            if (play_progress_source_id) {
+                g_source_remove(play_progress_source_id);
+            }
+            play_progress_source_id = g_timeout_add(10, file_play_progress_idle_func, NULL);
             set_stop_icon();
             break;
         case 1:
@@ -2116,7 +2138,7 @@ void wavbreaker_write_files(char *dirname) {
     if (!sample_is_writing()) {
         sample_write_files(track_break_list, &write_info, dirname);
 
-        idle_func_num = g_idle_add(file_write_progress_idle_func, NULL);
+        file_write_progress_source_id = g_timeout_add(50, file_write_progress_idle_func, NULL);
     }
 }
 
@@ -2373,6 +2395,33 @@ static void save_window_sizes()
 }
 
 void wavbreaker_quit() {
+    stop_sample();
+
+    if (file_write_progress_source_id) {
+        g_source_remove(file_write_progress_source_id);
+        file_write_progress_source_id = 0;
+    }
+
+    if (open_file_source_id) {
+        g_source_remove(open_file_source_id);
+        open_file_source_id = 0;
+    }
+
+    if (file_open_progress_source_id) {
+        g_source_remove(file_open_progress_source_id);
+        file_open_progress_source_id = 0;
+    }
+
+    if (redraw_source_id) {
+        g_source_remove(redraw_source_id);
+        redraw_source_id = 0;
+    }
+
+    if (play_progress_source_id) {
+        g_source_remove(play_progress_source_id);
+        play_progress_source_id = 0;
+    }
+
     save_window_sizes();
     gtk_widget_destroy(main_window);
 }
@@ -2792,7 +2841,7 @@ do_activate(GApplication *app, gpointer user_data)
     gtk_widget_show_all( GTK_WIDGET(main_window));
 
     if (user_data) {
-        g_idle_add(open_file_arg, user_data);
+        open_file_source_id = g_idle_add(open_file_arg, user_data);
     }
 }
 

@@ -417,7 +417,6 @@ int play_sample(gulong startpos, gulong *play_marker)
     thread = g_thread_new("play_sample", play_thread, play_marker);
 
     g_mutex_unlock(&mutex);
-    g_thread_yield();
     //printf("finished creating the thread\n");
     return 0;
 }               
@@ -433,6 +432,10 @@ void stop_sample()
 
     kill_play_thread = TRUE;
     g_mutex_unlock(&mutex);
+
+    // Wait for play thread to actually quit
+    g_thread_join(thread);
+    thread = NULL;
 }
 
 static gpointer open_thread(gpointer data)
@@ -574,9 +577,8 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     open_thread_data.pct = pct;
 
     fflush(stdout);
-    thread = g_thread_new("open file", open_thread, &open_thread_data);
+    g_thread_unref(g_thread_new("open file", open_thread, &open_thread_data));
 
-    g_thread_yield();
     return 0;
 }
 
@@ -883,7 +885,7 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
         return;
     }
 
-    thread = g_thread_new("write data", write_thread, &wtd);
+    g_thread_unref(g_thread_new("write data", write_thread, &wtd));
 }
 
 static gpointer
@@ -940,6 +942,6 @@ void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write
     }
     write_info->merge_filename = mtd.merge_filename;
 
-    thread = g_thread_new("merge files", merge_thread, &mtd);
+    g_thread_unref(g_thread_new("merge files", merge_thread, &mtd));
 }
 
