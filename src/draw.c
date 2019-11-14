@@ -26,19 +26,19 @@ static void draw_sample_surface(struct WaveformSurface *self, struct WaveformSur
 static void draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawContext *ctx);
 
 /**
- * The SAMPLE_COLORS_VALUES array now uses colors from the
- * Tango Icon Theme Guidelines (except "Chocolate", as it looks too much like
- * "Orange" in the waveform sample view), see this URL for more information:
+ * Generated using the following Python 3 snippet (with some editing):
  *
- * http://tango.freedesktop.org/Tango_Icon_Theme_Guidelines
+ * import colorsys
+ * for i in range(6):
+ *     print('    { %3d, %3d, %3d, },' % tuple(int(x*255)
+ *           for x in colorsys.hsv_to_rgb(i/8., 0.8, 0.8)))
  **/
 const unsigned char SAMPLE_COLORS_VALUES[][3] = {
-    {  52, 101, 164 }, // Sky Blue
-    { 204,   0,   0 }, // Scarlet Red
-    { 115, 210,  22 }, // Chameleon
-    { 237, 212,   0 }, // Butter
-    { 245, 121,   0 }, // Orange
-    { 117,  80, 123 }, // Plum
+    { 204,  40,  40, },
+    { 204, 163,  40, },
+    { 122, 204,  40, },
+    {  40,  81, 204, },
+    {  40, 204, 204, },
 };
 
 #define SAMPLE_COLORS G_N_ELEMENTS(SAMPLE_COLORS_VALUES)
