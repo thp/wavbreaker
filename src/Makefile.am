@@ -9,17 +9,18 @@ DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@
 bin_PROGRAMS = wavbreaker wavmerge wavinfo wavgen
 
 wavbreaker_SOURCES = cdda.c cue.c sample.c wav.c wavbreaker.c about.c \
-	appconfig.c autosplit.c popupmessage.c saveas.c \
+	appconfig.c autosplit.c popupmessage.c saveas.c aoaudio.c \
 	toc.c reallyquit.c overwritedialog.c moodbar.c draw.c \
-	guimerge.c aoaudio.c
+	guimerge.c
 
 wavmerge_SOURCES = wav.c wavmerge.c
 wavinfo_SOURCES = wavinfo.c wav.c
 wavgen_SOURCES = wavgen.c wav.c
 
-noinst_HEADERS = cdda.h sample.h wav.h wavbreaker.h about.h \
+noinst_HEADERS = cdda.h cue.h sample.h wav.h wavbreaker.h about.h \
 	appconfig.h autosplit.h popupmessage.h saveas.h aoaudio.h \
-	toc.h reallyquit.h overwritedialog.h guimerge.h gettext.h moodbar.h draw.h
+	toc.h reallyquit.h overwritedialog.h moodbar.h draw.h \
+	guimerge.h gettext.h
 
 wavbreaker_LDADD = $(GTK3_LIBS) $(AO_LIBS) $(MPG123_LIBS)
 wavmerge_LDADD = $(GLIB_LIBS)
