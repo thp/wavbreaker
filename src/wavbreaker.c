@@ -1925,7 +1925,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
         return TRUE;
     }
 
-    if (event->button == 3) {
+    if (event->type == GDK_BUTTON_RELEASE && event->button == 3) {
         GMenu *menu_model = g_menu_new();
 
         g_menu_append(menu_model, _("Add track break"), "win.add_break");
@@ -2700,11 +2700,14 @@ do_activate(GApplication *app, gpointer user_data)
              G_CALLBACK(configure_event), NULL);
     g_signal_connect(G_OBJECT(draw), "button_release_event",
              G_CALLBACK(button_release), NULL);
+    g_signal_connect(G_OBJECT(draw), "motion_notify_event",
+             G_CALLBACK(button_release), NULL);
     g_signal_connect(G_OBJECT(draw), "scroll-event",
              G_CALLBACK(scroll_event), NULL);
 
     gtk_widget_add_events(draw, GDK_BUTTON_RELEASE_MASK);
     gtk_widget_add_events(draw, GDK_BUTTON_PRESS_MASK);
+    gtk_widget_add_events(draw, GDK_BUTTON_MOTION_MASK);
 
     frame = gtk_frame_new(NULL);
     gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
