@@ -1738,13 +1738,13 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
             }
         }
 
-        cairo_set_source_rgba( cr, 0, 0, 0, 0.5);
-        cairo_rectangle( cr, border_left, height - text_height - border*2, te.width + border*2, text_height + border*2);
-        cairo_fill( cr);
+        cairo_set_source_rgba(cr, 1.f, 1.f, 1.f, 0.8f);
+        cairo_rectangle(cr, border_left, height - text_height - border*2, te.width + border*2, text_height + border*2);
+        cairo_fill(cr);
 
-        cairo_set_source_rgb( cr, 1, 1, 1);
-        cairo_move_to( cr, border_left + border, height - (text_height+1)/2);
-        cairo_show_text( cr, tmp);
+        cairo_set_source_rgb(cr, 0.f, 0.f, 0.f);
+        cairo_move_to(cr, border_left + border, height - (text_height+1)/2);
+        cairo_show_text(cr, tmp);
     }
 
     if( tbs != NULL) {

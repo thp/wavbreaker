@@ -365,12 +365,10 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
             ++tb_index;
         }
 
-        float alpha = 1.f;
         if (ctx->moodbarData && ctx->moodbarData->numFrames) {
             set_cairo_source(cr, moodbar_sample_color(ctx->moodbarData, (float)(array_offset) / (float)(ctx->graphData->numSamples)));
             draw_cairo_line(cr, i, 0.f, height);
             cairo_stroke(cr);
-            alpha = 0.77f;
         }
 
         for( shade=0; shade<SAMPLE_SHADES; shade++) {
@@ -381,7 +379,7 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
                 new_color = nowrite_color;
             }
 
-            cairo_set_source_rgba(cr, new_color.red, new_color.green, new_color.blue, alpha);
+            cairo_set_source_rgb(cr, new_color.red, new_color.green, new_color.blue);
             draw_cairo_line(cr, i, y_min+(xaxis-y_min)*shade/SAMPLE_SHADES, y_min+(xaxis-y_min)*(shade+1)/SAMPLE_SHADES);
             draw_cairo_line(cr, i, y_max-(y_max-xaxis)*shade/SAMPLE_SHADES, y_max-(y_max-xaxis)*(shade+1)/SAMPLE_SHADES);
             cairo_stroke(cr);
