@@ -24,6 +24,12 @@ wavmerge tool will only work on files that have the same format (for example,
 44.100 Hz sample rate, 16-bit sample size, etc.).
 
 
+Screenshot
+----------
+
+![Main Window](data/screenshot.png)
+
+
 How to Build
 ------------
 
