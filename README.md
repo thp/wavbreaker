@@ -39,6 +39,11 @@ macOS Packaging
 
     scripts/build.sh macos
 
+Note that the macOS package doesn't include the runtime dependencies by
+default, those are expected to be installed via Homebrew:
+
+    brew install gtk+3 libao mpg122
+
 
 Windows Packaging
 -----------------
