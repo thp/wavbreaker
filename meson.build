@@ -11,6 +11,9 @@ glib = dependency('glib-2.0')
 gtk3 = dependency('gtk+-3.0', version : '>= 3.22')
 ao = dependency('ao')
 
+cc = meson.get_compiler('c')
+libm = cc.find_library('m')
+
 deps = [glib, gtk3, ao]
 
 have_mpg123 = false
@@ -93,7 +96,7 @@ executable('wavmerge',
 executable('wavgen',
            'src/wavgen.c',
            'src/wav.c',
-           dependencies : [glib],
+           dependencies : [glib, libm],
            install : true)
 
 executable('wavinfo',
