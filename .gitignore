@@ -1,9 +1,14 @@
 *~
 /build
+/linux_build
+/wavbreaker-*linux
+/wavbreaker-*linux.zip
 /macos_build
 /Applications
+/wavbreaker-*macos.zip
 /win32_build
-/wavbreaker-win32
+/wavbreaker-*win32
+/wavbreaker-*win32.zip
 po/POTFILES
 po/*.gmo
 po/stamp-po
