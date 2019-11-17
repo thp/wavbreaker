@@ -19,7 +19,38 @@
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
-#include "wavbreaker.h"
+#include <glib.h>
+
+typedef struct Points_ Points;
+struct Points_ {
+        int min, max;
+};
+
+typedef struct GraphData_ GraphData;
+struct GraphData_{
+	unsigned long numSamples;
+	unsigned long maxSampleValue;
+        unsigned long maxSampleAmp;
+        unsigned long minSampleAmp;
+	Points *data;
+};
+
+typedef struct WriteInfo_ WriteInfo;
+struct WriteInfo_ {
+	guint num_files;
+	guint cur_file;
+	char *cur_filename;
+	char *merge_filename;
+	double pct_done;
+	guint sync;
+	gint check_file_exists;
+	gint skip_file; /* -1 = waiting for check
+                     * 0 = don't overwrite file
+                     * 1 = file is ok to overwrite
+                     * 2 = overwrite all files
+                     */
+    gint sync_check_file_overwrite_to_write_progress;
+};
 
 #define DEFAULT_BUF_SIZE 4096
 
@@ -52,7 +83,7 @@ char * sample_get_sample_file();
 
 int sample_is_playing();
 int sample_is_writing();
-int play_sample(gulong, gulong *);
+int play_sample(gulong startpos, gulong *play_marker);
 void stop_sample();
 int sample_open_file(const char *, GraphData *, double *);
 void sample_close_file();

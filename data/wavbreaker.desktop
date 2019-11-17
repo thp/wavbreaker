@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=wavbreaker
+Comment=Split .wav files into multiple chunks
+Comment[de]=Teilen Sie .wav-Dateien in mehrere Teile
+Exec=wavbreaker
+Icon=wavbreaker
+Type=Application
+Categories=Application;AudioVideo;Audio;
+MimeType=audio/x-wav

@@ -20,7 +20,6 @@
 #define WAV_H
 
 #include "sample.h"
-#include "wavbreaker.h"
 
 #define RiffID "RIFF"
 #define WaveID "WAVE"

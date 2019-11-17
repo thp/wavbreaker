@@ -21,6 +21,7 @@
 #define APPCONFIG_H
 
 #include "sample.h"
+#include "wavbreaker.h"
 
 typedef struct AudioFunctionPointers_ AudioFunctionPointers;
 

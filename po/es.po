@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wavbreaker 0.10\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-11 09:20+0100\n"
+"POT-Creation-Date: 2019-11-15 20:23+0100\n"
 "PO-Revision-Date: 2009-05-14 19:11+0200\n"
 "Last-Translator: Ricardo Mones <ricardo@mones.org>\n"
 "Language-Team: Ricardo Mones <ricardo@mones.org>\n"
@@ -33,7 +33,7 @@ msgstr ""
 msgid "Open"
 msgstr "_Abrir"
 
-#: src/appconfig.c:419 src/wavbreaker.c:2578
+#: src/appconfig.c:419 src/wavbreaker.c:2749
 msgid "Preferences"
 msgstr "Preferencias"
 
@@ -86,13 +86,13 @@ msgstr ""
 msgid "Split"
 msgstr "Auto-recorte"
 
-#: src/guimerge.c:96 src/guimerge.c:188 src/wavbreaker.c:1395
-#: src/wavbreaker.c:2227
+#: src/guimerge.c:96 src/guimerge.c:188 src/wavbreaker.c:1447
+#: src/wavbreaker.c:2371
 msgid "All files"
 msgstr "Todos los ficheros"
 
-#: src/guimerge.c:100 src/guimerge.c:192 src/wavbreaker.c:1399
-#: src/wavbreaker.c:2231
+#: src/guimerge.c:100 src/guimerge.c:192 src/wavbreaker.c:1451
+#: src/wavbreaker.c:2375
 msgid "Supported files"
 msgstr "Ficheros soportados"
 
@@ -101,11 +101,11 @@ msgid "Select filename for merged wave file"
 msgstr "Seleccionar el nombre para el fichero de onda agregado"
 
 #: src/guimerge.c:106 src/guimerge.c:197 src/moodbar.c:110 src/saveas.c:52
-#: src/wavbreaker.c:1409 src/wavbreaker.c:2187 src/wavbreaker.c:2238
+#: src/wavbreaker.c:1461 src/wavbreaker.c:2331 src/wavbreaker.c:2382
 msgid "_Cancel"
 msgstr ""
 
-#: src/guimerge.c:107 src/saveas.c:53 src/wavbreaker.c:2188
+#: src/guimerge.c:107 src/saveas.c:53 src/wavbreaker.c:2332
 msgid "_Save"
 msgstr "_Guardar"
 
@@ -121,15 +121,15 @@ msgstr "Formato de fichero erróneo - ignorando el fichero"
 msgid "Add wave file to merge"
 msgstr "Añadir fichero de onda a la agregación"
 
-#: src/guimerge.c:198 src/wavbreaker.c:1410 src/wavbreaker.c:2239
+#: src/guimerge.c:198 src/wavbreaker.c:1462 src/wavbreaker.c:2383
 msgid "_Open"
 msgstr "_Abrir"
 
-#: src/guimerge.c:272 src/wavbreaker.c:2574
+#: src/guimerge.c:272 src/wavbreaker.c:2745
 msgid "Merge wave files"
 msgstr "Agregar ficheros de onda"
 
-#: src/guimerge.c:309 src/wavbreaker.c:434
+#: src/guimerge.c:309 src/wavbreaker.c:473
 msgid "File Name"
 msgstr "Nombre de fichero"
 
@@ -159,7 +159,7 @@ msgid "The selected files are now being merged. This can take some time."
 msgstr ""
 "Se están agreegando los ficheros seleccionados. Puede tardar cierto tiempo."
 
-#: src/guimerge.c:411 src/wavbreaker.c:1113
+#: src/guimerge.c:411 src/wavbreaker.c:1167
 msgid "Operation successful"
 msgstr "Operación completada con éxito"
 
@@ -216,7 +216,7 @@ msgstr ""
 "\n"
 "      http://amarok.kde.org/wiki/Moodbar"
 
-#: src/overwritedialog.c:97
+#: src/overwritedialog.c:98
 #, fuzzy, c-format
 msgid ""
 "%s already exists.\n"
@@ -227,16 +227,16 @@ msgstr ""
 "\n"
 "¿Quiere sobreescribir el fichero existente?"
 
-#: src/overwritedialog.c:104
+#: src/overwritedialog.c:105
 msgid "Overwrite all files"
 msgstr "Sobreescribir todos los ficheros"
 
-#: src/overwritedialog.c:117
+#: src/overwritedialog.c:118
 #, fuzzy
 msgid "_No"
 msgstr "_Ir"
 
-#: src/overwritedialog.c:122
+#: src/overwritedialog.c:123
 msgid "_Yes"
 msgstr ""
 
@@ -248,11 +248,11 @@ msgstr "¿Salir de wavbreaker?"
 msgid "If you quit wavbreaker now, any unsaved chunks will be lost."
 msgstr "Si sale de wavbreaker ahora cualquier trozo no guardado se perderá."
 
-#: src/sample.c:452
+#: src/sample.c:455
 msgid "Open as RAW audio"
 msgstr "Abrir como audio en crudo"
 
-#: src/sample.c:453
+#: src/sample.c:456
 msgid ""
 "The file you selected does not contain a wave header. wavbreaker can "
 "interpret the file as \"Signed 16 bit, 44100 Hz, Stereo\" audio. Choose the "
@@ -263,15 +263,15 @@ msgstr ""
 "44100 Hz, estéreo. Elija el orden de los bytes para el audio en crudo o "
 "cancelar para abortar."
 
-#: src/sample.c:461
+#: src/sample.c:464
 msgid "Big endian"
 msgstr "Más significativo"
 
-#: src/sample.c:462
+#: src/sample.c:465
 msgid "Little endian"
 msgstr "Menos significativo"
 
-#: src/sample.c:568
+#: src/sample.c:571
 #, c-format
 msgid "Error opening %s: %s"
 msgstr "Error abriendo %s: %s"
@@ -279,243 +279,6 @@ msgstr "Error abriendo %s: %s"
 #: src/saveas.c:49
 msgid "Select folder to save wave files"
 msgstr "Seleccione la carpeta para guardar los ficheros de onda"
-
-#: src/wavbreaker.c:423
-msgid "Write"
-msgstr "Escribir"
-
-#: src/wavbreaker.c:452
-msgid "Time"
-msgstr "Tiempo"
-
-#: src/wavbreaker.c:463
-msgid "Duration"
-msgstr "Duración"
-
-#: src/wavbreaker.c:473
-msgid "Offset"
-msgstr "Desplaz."
-
-#: src/wavbreaker.c:514
-msgid "Check all"
-msgstr "Marcar todo"
-
-#: src/wavbreaker.c:515
-msgid "Check none"
-msgstr "Marcar nada"
-
-#: src/wavbreaker.c:516
-msgid "Invert check"
-msgstr "Invertir marca"
-
-#: src/wavbreaker.c:520
-#, fuzzy
-msgid "Auto-rename track breaks"
-msgstr "Renombrar cortes de pista"
-
-#: src/wavbreaker.c:524
-msgid "Remove track break"
-msgstr "Eliminar corte de pista"
-
-#: src/wavbreaker.c:525
-msgid "Jump to track break"
-msgstr "Saltar al corte de pista"
-
-#: src/wavbreaker.c:1074
-msgid "Splitting wave file"
-msgstr "Dividir fichero de onda"
-
-#: src/wavbreaker.c:1085
-msgid ""
-"The selected track breaks are now written to disk. This can take some time."
-msgstr ""
-"Los trozos de pista seleccionado se están escribiendo en disco. Puede llevar "
-"un tiempo."
-
-#: src/wavbreaker.c:1109
-#, c-format
-msgid "The file %s has been split into %d parts."
-msgstr "El fichero %s se ha dividido en %d trozos."
-
-#: src/wavbreaker.c:1111
-#, c-format
-msgid "The file %s has been split into one part."
-msgstr "El fichero %s se ha dividido en un trozo."
-
-#: src/wavbreaker.c:1127
-#, c-format
-msgid "Writing %s"
-msgstr "Escribiendo %s"
-
-#: src/wavbreaker.c:1144
-#, c-format
-msgid "%d of %d parts written"
-msgstr "%d de %d trozos escritos"
-
-#: src/wavbreaker.c:1146
-#, c-format
-msgid "%d of 1 part written"
-msgstr "%d de 1 trozo escrito"
-
-#: src/wavbreaker.c:1227
-msgid "Analyzing waveform"
-msgstr "Analizando la onda"
-
-#: src/wavbreaker.c:1239
-msgid ""
-"The waveform data of the selected file is being analyzed and processed. This "
-"can take some time."
-msgstr ""
-"Los datos de onda del fichero seleccionado se están analizando y procesando. "
-"Esto puede llevar un tiempo."
-
-#: src/wavbreaker.c:1247
-#, c-format
-msgid "Analyzing %s"
-msgstr "Analizando %s"
-
-#: src/wavbreaker.c:1304
-#, c-format
-msgid "%d of %d MB analyzed"
-msgstr "%d de %d MB analizados"
-
-#: src/wavbreaker.c:1315
-msgid "Error opening file"
-msgstr "Error abriendo el fichero"
-
-#: src/wavbreaker.c:1407
-msgid "Open File"
-msgstr "Abrir fichero"
-
-#: src/wavbreaker.c:1911
-msgid "Add track break"
-msgstr "Añadir corte de pista"
-
-#: src/wavbreaker.c:1912
-msgid "Jump to cursor marker"
-msgstr "Saltar al cursor"
-
-#: src/wavbreaker.c:1980
-#, c-format
-msgid "Cursor"
-msgstr "Cursor"
-
-#: src/wavbreaker.c:1987
-msgid "Playing"
-msgstr "Reproduciendo"
-
-#: src/wavbreaker.c:2148 src/wavbreaker.c:2174
-msgid "Text files"
-msgstr "Ficheros de texto"
-
-#: src/wavbreaker.c:2150 src/wavbreaker.c:2178
-msgid "TOC files"
-msgstr "Ficheros TOC"
-
-#: src/wavbreaker.c:2152 src/wavbreaker.c:2182
-#, fuzzy
-msgid "CUE files"
-msgstr "Ficheros TOC"
-
-#: src/wavbreaker.c:2185
-#, fuzzy
-msgid "Export track breaks to file"
-msgstr "Guardar cortes en un fichero"
-
-#: src/wavbreaker.c:2236
-#, fuzzy
-msgid "Import track breaks from file"
-msgstr "Importa los cortes desde un fichero TOC"
-
-#: src/wavbreaker.c:2253 src/wavbreaker.c:2258
-msgid "Import failed"
-msgstr "Falló la importación"
-
-#: src/wavbreaker.c:2253
-msgid "There has been an error importing track breaks from the TOC file."
-msgstr "Hubo un error importando los cortes del fichero TOC."
-
-#: src/wavbreaker.c:2258
-#, fuzzy
-msgid "There has been an error importing track breaks from the CUE file."
-msgstr "Hubo un error importando los cortes del fichero TOC."
-
-#: src/wavbreaker.c:2414
-msgid "Time offset:"
-msgstr ""
-
-#: src/wavbreaker.c:2550
-#, fuzzy
-msgid "Open file"
-msgstr "Abrir fichero"
-
-#: src/wavbreaker.c:2555
-#, fuzzy
-msgid "Open menu"
-msgstr "Abrir fichero"
-
-#: src/wavbreaker.c:2563
-msgid "Display moodbar"
-msgstr "Mostrar barra de análisis"
-
-#: src/wavbreaker.c:2564
-msgid "Generate moodbar"
-msgstr "Generar barra de visualización"
-
-#: src/wavbreaker.c:2569
-#, fuzzy
-msgid "Import track breaks"
-msgstr "Saltar al corte de pista"
-
-#: src/wavbreaker.c:2570
-#, fuzzy
-msgid "Export track breaks"
-msgstr "Saltar al corte de pista"
-
-#: src/wavbreaker.c:2582
-msgid "About"
-msgstr "Acerca de"
-
-#: src/wavbreaker.c:2591
-msgid "Save file parts"
-msgstr ""
-
-#: src/wavbreaker.c:2686
-msgid "Toggle playback"
-msgstr ""
-
-#: src/wavbreaker.c:2691
-msgid "Cursor position:"
-msgstr "Posición del cursor:"
-
-#: src/wavbreaker.c:2708
-msgid "Seek to previous silence"
-msgstr "Buscar el silencio anterior"
-
-#: src/wavbreaker.c:2715
-#, fuzzy
-msgid "Jump to time"
-msgstr "Salta hasta la siguiente trama de silencio"
-
-#: src/wavbreaker.c:2727
-msgid "Seek to next silence"
-msgstr "Buscar el siguiente silencio"
-
-#: src/wavbreaker.c:2737
-msgid "Auto-split by interval"
-msgstr ""
-
-#: src/wavbreaker.c:2876 src/wavbreaker.c:2898
-msgid "Export failed"
-msgstr "La exportación falló"
-
-#: src/wavbreaker.c:2876
-msgid "There has been an error exporting track breaks to the TOC file."
-msgstr "Ha habido un error exportando los trozos de pista al fichero TOC."
-
-#: src/wavbreaker.c:2898
-msgid "Unrecognised export type"
-msgstr ""
 
 #: src/wav.c:35
 msgid ""
@@ -550,6 +313,243 @@ msgstr "Error desplazándose a %u en %s: %s"
 #: src/wav.c:178
 msgid "Loading compressed wave data is not supported."
 msgstr "La carga de datos de onda comprimidos no está soportada."
+
+#: src/wavbreaker.c:462
+msgid "Write"
+msgstr "Escribir"
+
+#: src/wavbreaker.c:491
+msgid "Time"
+msgstr "Tiempo"
+
+#: src/wavbreaker.c:502
+msgid "Duration"
+msgstr "Duración"
+
+#: src/wavbreaker.c:512
+msgid "Offset"
+msgstr "Desplaz."
+
+#: src/wavbreaker.c:553
+msgid "Check all"
+msgstr "Marcar todo"
+
+#: src/wavbreaker.c:554
+msgid "Check none"
+msgstr "Marcar nada"
+
+#: src/wavbreaker.c:555
+msgid "Invert check"
+msgstr "Invertir marca"
+
+#: src/wavbreaker.c:559
+#, fuzzy
+msgid "Auto-rename track breaks"
+msgstr "Renombrar cortes de pista"
+
+#: src/wavbreaker.c:563 src/wavbreaker.c:2020
+msgid "Remove track break"
+msgstr "Eliminar corte de pista"
+
+#: src/wavbreaker.c:564
+msgid "Jump to track break"
+msgstr "Saltar al corte de pista"
+
+#: src/wavbreaker.c:1128
+msgid "Splitting wave file"
+msgstr "Dividir fichero de onda"
+
+#: src/wavbreaker.c:1139
+msgid ""
+"The selected track breaks are now written to disk. This can take some time."
+msgstr ""
+"Los trozos de pista seleccionado se están escribiendo en disco. Puede llevar "
+"un tiempo."
+
+#: src/wavbreaker.c:1163
+#, c-format
+msgid "The file %s has been split into %d parts."
+msgstr "El fichero %s se ha dividido en %d trozos."
+
+#: src/wavbreaker.c:1165
+#, c-format
+msgid "The file %s has been split into one part."
+msgstr "El fichero %s se ha dividido en un trozo."
+
+#: src/wavbreaker.c:1182
+#, c-format
+msgid "Writing %s"
+msgstr "Escribiendo %s"
+
+#: src/wavbreaker.c:1199
+#, c-format
+msgid "%d of %d parts written"
+msgstr "%d de %d trozos escritos"
+
+#: src/wavbreaker.c:1201
+#, c-format
+msgid "%d of 1 part written"
+msgstr "%d de 1 trozo escrito"
+
+#: src/wavbreaker.c:1274
+msgid "Analyzing waveform"
+msgstr "Analizando la onda"
+
+#: src/wavbreaker.c:1286
+msgid ""
+"The waveform data of the selected file is being analyzed and processed. This "
+"can take some time."
+msgstr ""
+"Los datos de onda del fichero seleccionado se están analizando y procesando. "
+"Esto puede llevar un tiempo."
+
+#: src/wavbreaker.c:1294
+#, c-format
+msgid "Analyzing %s"
+msgstr "Analizando %s"
+
+#: src/wavbreaker.c:1352
+#, c-format
+msgid "%d of %d MB analyzed"
+msgstr "%d de %d MB analizados"
+
+#: src/wavbreaker.c:1363
+msgid "Error opening file"
+msgstr "Error abriendo el fichero"
+
+#: src/wavbreaker.c:1459
+msgid "Open File"
+msgstr "Abrir fichero"
+
+#: src/wavbreaker.c:2019
+msgid "Add track break"
+msgstr "Añadir corte de pista"
+
+#: src/wavbreaker.c:2021
+msgid "Jump to cursor marker"
+msgstr "Saltar al cursor"
+
+#: src/wavbreaker.c:2121
+#, c-format
+msgid "Cursor"
+msgstr "Cursor"
+
+#: src/wavbreaker.c:2128
+msgid "Playing"
+msgstr "Reproduciendo"
+
+#: src/wavbreaker.c:2292 src/wavbreaker.c:2318
+msgid "Text files"
+msgstr "Ficheros de texto"
+
+#: src/wavbreaker.c:2294 src/wavbreaker.c:2322
+msgid "TOC files"
+msgstr "Ficheros TOC"
+
+#: src/wavbreaker.c:2296 src/wavbreaker.c:2326
+#, fuzzy
+msgid "CUE files"
+msgstr "Ficheros TOC"
+
+#: src/wavbreaker.c:2329
+#, fuzzy
+msgid "Export track breaks to file"
+msgstr "Guardar cortes en un fichero"
+
+#: src/wavbreaker.c:2380
+#, fuzzy
+msgid "Import track breaks from file"
+msgstr "Importa los cortes desde un fichero TOC"
+
+#: src/wavbreaker.c:2397 src/wavbreaker.c:2402
+msgid "Import failed"
+msgstr "Falló la importación"
+
+#: src/wavbreaker.c:2397
+msgid "There has been an error importing track breaks from the TOC file."
+msgstr "Hubo un error importando los cortes del fichero TOC."
+
+#: src/wavbreaker.c:2402
+#, fuzzy
+msgid "There has been an error importing track breaks from the CUE file."
+msgstr "Hubo un error importando los cortes del fichero TOC."
+
+#: src/wavbreaker.c:2585
+msgid "Time offset:"
+msgstr ""
+
+#: src/wavbreaker.c:2721
+#, fuzzy
+msgid "Open file"
+msgstr "Abrir fichero"
+
+#: src/wavbreaker.c:2726
+#, fuzzy
+msgid "Open menu"
+msgstr "Abrir fichero"
+
+#: src/wavbreaker.c:2734
+msgid "Display moodbar"
+msgstr "Mostrar barra de análisis"
+
+#: src/wavbreaker.c:2735
+msgid "Generate moodbar"
+msgstr "Generar barra de visualización"
+
+#: src/wavbreaker.c:2740
+#, fuzzy
+msgid "Import track breaks"
+msgstr "Saltar al corte de pista"
+
+#: src/wavbreaker.c:2741
+#, fuzzy
+msgid "Export track breaks"
+msgstr "Saltar al corte de pista"
+
+#: src/wavbreaker.c:2753
+msgid "About"
+msgstr "Acerca de"
+
+#: src/wavbreaker.c:2762
+msgid "Save file parts"
+msgstr ""
+
+#: src/wavbreaker.c:2858
+msgid "Toggle playback"
+msgstr ""
+
+#: src/wavbreaker.c:2863
+msgid "Cursor position:"
+msgstr "Posición del cursor:"
+
+#: src/wavbreaker.c:2880
+msgid "Seek to previous silence"
+msgstr "Buscar el silencio anterior"
+
+#: src/wavbreaker.c:2887
+#, fuzzy
+msgid "Jump to time"
+msgstr "Salta hasta la siguiente trama de silencio"
+
+#: src/wavbreaker.c:2899
+msgid "Seek to next silence"
+msgstr "Buscar el siguiente silencio"
+
+#: src/wavbreaker.c:2909
+msgid "Auto-split by interval"
+msgstr ""
+
+#: src/wavbreaker.c:3048 src/wavbreaker.c:3070
+msgid "Export failed"
+msgstr "La exportación falló"
+
+#: src/wavbreaker.c:3048
+msgid "There has been an error exporting track breaks to the TOC file."
+msgstr "Ha habido un error exportando los trozos de pista al fichero TOC."
+
+#: src/wavbreaker.c:3070
+msgid "Unrecognised export type"
+msgstr ""
 
 #~ msgid "Disable audio output"
 #~ msgstr "Deshabilitar la salida de audio"

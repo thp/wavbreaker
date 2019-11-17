@@ -16,9 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,7 +121,7 @@ mp3_read_sample(mpg123_handle *handle,
                 int buf_size,
                 unsigned long start_pos)
 {
-    unsigned long result = -1;
+    size_t result;
     gboolean retried = FALSE;
 
     if (mpg123_offset != start_pos) {
@@ -134,16 +132,17 @@ retry:
 
     if (mpg123_read(handle, buf, buf_size, &result) == MPG123_OK) {
         mpg123_offset += result;
+        return result;
     } else {
         fprintf(stderr, "MP3 decoding failed: %s\n", mpg123_strerror(mpg123));
         if (!retried) {
-            fprintf(stderr, "Retrying read...\n");
+            fprintf(stderr, "Retrying read at %zu...\n", mpg123_offset);
             retried = TRUE;
             goto retry;
         }
     }
 
-    return result;
+    return -1;
 }
 
 //#define WAVBREAKER_MP3_DEBUG

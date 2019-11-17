@@ -20,6 +20,7 @@
  */
 
 #include "wavbreaker.h"
+#include "sample.h"
 #include "moodbar.h"
 
 struct WaveformSurfaceDrawContext {

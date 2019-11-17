@@ -1,0 +1,21 @@
+[binaries]
+c = '/usr/bin/x86_64-w64-mingw32-gcc'
+cpp = '/usr/bin/x86_64-w64-mingw32-g++'
+ar = '/usr/bin/x86_64-w64-mingw32-ar'
+strip = '/usr/bin/x86_64-w64-mingw32-strip'
+pkgconfig = '/usr/bin/x86_64-w64-mingw32-pkg-config'
+windres = '/usr/bin/x86_64-w64-mingw32-windres'
+exe_wrapper = 'wine64'
+
+[properties]
+# Directory that contains 'bin', 'lib', etc
+root = '/usr/x86_64-w64-mingw32'
+# Directory that contains 'bin', 'lib', etc for the toolchain and system libraries
+# 2019-11-16: Modified by thp: Needed to set this to / to get include paths to work
+sys_root = '/'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

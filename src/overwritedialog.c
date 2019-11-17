@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include <gtk/gtk.h>
+#include "sample.h"
 #include "wavbreaker.h"
 
 #include "gettext.h"

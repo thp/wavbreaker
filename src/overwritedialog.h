@@ -19,6 +19,8 @@
 #ifndef OVERWRITEDIALOG_H
 #define OVERWRITEDIALOG_H
 
+#include "wavbreaker.h"
+
 void overwritedialog_show(GtkWidget *, WriteInfo *);
 
 #endif /* OVERWRITEDIALOG_H */

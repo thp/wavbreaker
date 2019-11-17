@@ -1,7 +1,0 @@
-First, build the Docker iamge:
-
-    sh build-image.sh
-
-Then, in the wavbreaker root checkout, run:
-
-    sh win32-build/run-build.sh

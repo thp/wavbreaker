@@ -18,9 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
+#include <config.h>
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -2618,9 +2616,9 @@ static void
 do_startup(GApplication *application, gpointer user_data)
 {
     setlocale(LC_ALL, "");
-
-    (void)textdomain(PACKAGE);
-    (void)bindtextdomain(PACKAGE, LOCALEDIR);
+    bindtextdomain(PACKAGE, LOCALEDIR);
+    bind_textdomain_codeset(PACKAGE, "UTF-8");
+    textdomain(PACKAGE);
 
     appconfig_init();
 }

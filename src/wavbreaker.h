@@ -22,20 +22,6 @@
 
 #include <gtk/gtk.h>
 
-typedef struct Points_ Points;
-struct Points_ {
-        int min, max;
-};
-
-typedef struct GraphData_ GraphData;
-struct GraphData_{
-	unsigned long numSamples;
-	unsigned long maxSampleValue;
-        unsigned long maxSampleAmp;
-        unsigned long minSampleAmp;
-	Points *data;
-};
-
 typedef struct TrackBreak_ TrackBreak;
 struct TrackBreak_ {
 	gboolean  write;
@@ -44,23 +30,6 @@ struct TrackBreak_ {
 	gchar     time[128];
 	gchar     duration[128];
 	gboolean  editable;
-};
-
-typedef struct WriteInfo_ WriteInfo;
-struct WriteInfo_ {
-	guint num_files;
-	guint cur_file;
-	char *cur_filename;
-	char *merge_filename;
-	double pct_done;
-	guint sync;
-	gint check_file_exists;
-	gint skip_file; /* -1 = waiting for check
-                     * 0 = don't overwrite file
-                     * 1 = file is ok to overwrite
-                     * 2 = overwrite all files
-                     */
-    gint sync_check_file_overwrite_to_write_progress;
 };
 
 void wavbreaker_autosplit(long x);
