@@ -65,13 +65,13 @@ if get_option('macos_app')
   install_data('data/wavbreaker.icns', install_dir : 'Contents/Resources')
   install_data('data/Info.plist', install_dir : 'Contents')
 else
-  install_data('data/wavbreaker.desktop', install_dir: get_option('datadir') / 'applications')
-  icon_dir = get_option('datadir') / 'icons' / 'hicolor'
-  install_data('data/wavbreaker.svg', install_dir: icon_dir / 'scalable' / 'apps')
-  install_data('data/48x48/wavbreaker.png', install_dir: icon_dir / '48x48' / 'apps')
-  install_data('data/24x24/wavbreaker.png', install_dir: icon_dir / '24x24' / 'apps')
-  install_data('data/22x22/wavbreaker.png', install_dir: icon_dir / '22x22' / 'apps')
-  install_data('data/16x16/wavbreaker.png', install_dir: icon_dir / '16x16' / 'apps')
+  install_data('data/wavbreaker.desktop', install_dir: get_option('datadir') + '/applications')
+  icon_dir = get_option('datadir') + '/icons/hicolor'
+  install_data('data/wavbreaker.svg', install_dir: icon_dir + '/scalable/apps')
+  install_data('data/48x48/wavbreaker.png', install_dir: icon_dir + '/48x48/apps')
+  install_data('data/24x24/wavbreaker.png', install_dir: icon_dir + '/24x24/apps')
+  install_data('data/22x22/wavbreaker.png', install_dir: icon_dir + '/22x22/apps')
+  install_data('data/16x16/wavbreaker.png', install_dir: icon_dir + '/16x16/apps')
 endif
 
 install_man('man/wavbreaker.1')
