@@ -7,6 +7,7 @@ matrix:
           osx_image: xcode11.2
           sudo: required
           language: c
+          env: PATH=/usr/local/opt/gettext/bin:/usr/local/bin:/usr/bin:/bin:$PATH
 
 addons:
   apt:
