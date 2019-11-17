@@ -7,7 +7,7 @@ matrix:
         - os: linux
           dist: bionic
           language: c
-          env: BUILD_TYPE=windows CONFIGURE_SCRIPT="cd scripts/win32 && sh build_image.sh" BUILD_SCRIPT="sh scripts/win32/run-build.sh"
+          env: BUILD_TYPE=windows CONFIGURE_SCRIPT="docker build -t wavbreaker-win32-build scripts/win32" BUILD_SCRIPT="sh scripts/win32/run-build.sh"
         - os: osx
           osx_image: xcode11.2
           sudo: required
