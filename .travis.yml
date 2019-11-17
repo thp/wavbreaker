@@ -3,11 +3,19 @@ matrix:
         - os: linux
           dist: bionic
           language: c
+          env: BUILD_TYPE=linux
+        - os: linux
+          dist: bionic
+          language: c
+          env: BUILD_TYPE=windows CONFIGURE_SCRIPT="cd scripts/win32 && sh build_image.sh" BUILD_SCRIPT="sh scripts/win32/run-build.sh"
         - os: osx
           osx_image: xcode11.2
           sudo: required
           language: c
-          env: PATH=/usr/local/opt/gettext/bin:$PATH
+          env: BUILD_TYPE=macos PATH=/usr/local/opt/gettext/bin:$PATH
+
+services:
+    - docker
 
 addons:
   apt:
@@ -28,5 +36,5 @@ addons:
         - gettext
 
 script:
-    - meson build
-    - ninja -C build -v
+    - ${CONFIGURE_SCRIPT:-meson build}
+    - ${BUILD_SCRIPT:-ninja -C build -v}
