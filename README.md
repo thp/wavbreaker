@@ -2,6 +2,7 @@ wavbreaker
 ==========
 
 [![Build Status](https://travis-ci.org/thp/wavbreaker.svg?branch=master)](https://travis-ci.org/thp/wavbreaker)
+[![Packaging status](https://repology.org/badge/tiny-repos/wavbreaker.svg)](https://repology.org/project/wavbreaker/versions)
 
 This application's purpose in life is to take a WAV file and break it up
 into multiple WAV files. It makes a clean break at the correct position
