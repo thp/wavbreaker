@@ -1,6 +1,8 @@
 wavbreaker
 ==========
 
+[![Build Status](https://travis-ci.org/thp/wavbreaker.svg?branch=master)](https://travis-ci.org/thp/wavbreaker)
+
 This application's purpose in life is to take a WAV file and break it up
 into multiple WAV files. It makes a clean break at the correct position
 to burn the files to an Audio CD without any dead air between the tracks.
@@ -35,8 +37,10 @@ build wavbreaker in the `build` directory, run:
 macOS Packaging
 ---------------
 
-    meson --prefix=/Applications/wavbreaker.app \
-          --bindir=Contents/MacOS \
-          -Dmacos_app=true \
-          macos_build
-    DESTDIR=$(pwd)/ ninja -C macos_build install
+    scripts/build.sh macos
+
+
+Windows Packaging
+-----------------
+
+    scripts/build.sh windows
