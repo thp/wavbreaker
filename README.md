@@ -48,7 +48,7 @@ macOS Packaging
 Note that the macOS package doesn't include the runtime dependencies by
 default, those are expected to be installed via Homebrew:
 
-    brew install gtk+3 libao mpg122
+    brew install gtk+3 libao mpg123
 
 
 Windows Packaging
