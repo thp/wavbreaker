@@ -16,6 +16,7 @@ addons:
         - libmpg123-dev
         - meson
         - ninja-build
+        - gettext
   homebrew:
     packages:
         - gtk+3
@@ -23,6 +24,7 @@ addons:
         - mpg123
         - meson
         - ninja
+        - gettext
 
 script:
     - meson build
