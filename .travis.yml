@@ -7,7 +7,7 @@ matrix:
           osx_image: xcode11.2
           sudo: required
           language: c
-          env: PATH=/usr/local/opt/gettext/bin:/usr/local/bin:/usr/bin:/bin:$PATH
+          env: PATH=/usr/local/opt/gettext/bin:$PATH
 
 addons:
   apt:
@@ -29,4 +29,4 @@ addons:
 
 script:
     - meson build
-    - ninja -C build
+    - ninja -C build -v
