@@ -43,7 +43,7 @@ void about_show(GtkWidget *main_window)
                           "website", URL,
                           "website-label", URL,
                           "authors", authors,
-                          "logo-icon-name", PACKAGE,
+                          "logo-icon-name", "net.sourceforge.wavbreaker",
                           NULL);
 }
 

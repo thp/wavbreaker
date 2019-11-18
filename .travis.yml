@@ -8,6 +8,15 @@ matrix:
           dist: bionic
           language: c
           env: BUILD_TYPE=windows
+#        - os: linux
+#          dist: bionic
+#          language: c
+#          sudo: required
+#          env: BUILD_TYPE=flatpak
+#        - os: linux
+#          dist: bionic
+#          language: c
+#          env: BUILD_TYPE=snap
         - os: osx
           osx_image: xcode11.2
           sudo: required
@@ -26,6 +35,13 @@ addons:
         - meson
         - ninja-build
         - gettext
+        - flatpak-builder
+  snaps:
+      - name: snapcraft
+        confinement: classic
+      - name: multipass
+        confinement: classic
+        channel: edge
   homebrew:
     packages:
         - gtk+3

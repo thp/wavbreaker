@@ -28,6 +28,16 @@ case "$1" in
         mkdir -p dist
         zip -r "dist/wavbreaker-$VERSION-win32.zip" "wavbreaker-$VERSION-win32" $DOCFILES
         ;;
+    flatpak)
+        sudo flatpak install -y org.freedesktop.Sdk//19.08
+        sh scripts/flatpak/package.sh
+        ;;
+    snap)
+        ln -sf scripts/snap .
+        snapcraft
+        mkdir -p dist
+        mv wavbreaker_*.snap dist/
+        ;;
     macos)
         meson --prefix=/Applications/wavbreaker.app \
               --bindir=Contents/MacOS \

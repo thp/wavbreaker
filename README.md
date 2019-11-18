@@ -56,3 +56,16 @@ Windows Packaging
 -----------------
 
     scripts/build.sh windows
+
+
+Snap Packaging
+--------------
+
+    ln -s scripts/snap .
+    snapcraft
+
+
+Flatpack Packaging
+------------------
+
+    sh scripts/flatpak/package.sh

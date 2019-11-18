@@ -1,0 +1,35 @@
+{
+    "app-id": "net.sourceforge.wavbreaker",
+    "runtime": "org.freedesktop.Platform",
+    "runtime-version": "19.08",
+    "sdk": "org.freedesktop.Sdk",
+    "command": "wavbreaker",
+    "modules": [
+        {
+            "name": "libao",
+            "buildsystem": "autotools",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "git://git.xiph.org/libao.git"
+                }
+            ]
+        },
+        {
+            "name": "wavbreaker",
+            "buildsystem": "meson",
+            "sources": [
+                {
+                    "type": "archive",
+                    "path": "wavbreaker.tgz"
+                }
+            ]
+        }
+    ],
+    "finish-args": [
+       "--socket=wayland",
+       "--socket=fallback-x11",
+       "--socket=pulseaudio",
+       "--filesystem=home"
+    ]
+}

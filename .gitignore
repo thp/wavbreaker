@@ -9,6 +9,13 @@
 /win32_build
 /wavbreaker-*win32
 /wavbreaker-*win32.zip
+/.flatpak-builder/
+/flatpak_build/
+/flatpak_repo/
+/wavbreaker-*.flatpak
+/snap
+/wavbreaker_*.snap
+/dist
 po/POTFILES
 po/*.gmo
 po/stamp-po

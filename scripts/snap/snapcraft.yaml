@@ -1,0 +1,94 @@
+name: wavbreaker
+title: wavbreaker
+icon: data/net.sourceforge.wavbreaker.svg
+grade: stable
+license: GPL-2.0
+version: '0.12'
+summary: GUI tool to split WAV and MP3 files
+description: |
+    This application's purpose in life is to take a WAV file
+    and break it up into multiple WAV files. It makes a
+    clean break at the correct position to burn the files to
+    an Audio CD without any dead air between the tracks.
+confinement: devmode
+base: core18
+parts:
+  wavbreaker:
+      override-pull: |
+          snapcraftctl pull
+          # Point icon to the correct location
+          sed -i.bak -e 's|Icon=net.sourceforge.wavbreaker|Icon=/usr/share/icons/hicolor/scalable/apps/net.sourceforge.wavbreaker.svg|g' data/net.sourceforge.wavbreaker.desktop
+      plugin: meson
+      source-type: local
+      source: .
+      # ??? https://forum.snapcraft.io/t/gtk3-applications/13483
+      meson-parameters: ["--prefix=/usr"]
+      build-packages:
+          - meson
+          - ninja-build
+          - libao-dev
+          - libmpg123-dev
+          - libgtk-3-dev
+          - gettext
+      stage-packages:
+          - libao4
+          - libmpg123-0
+          - libatk-bridge2.0-0
+          - libatk1.0-0
+          - libatspi2.0-0
+          - libcairo-gobject2
+          - libcairo2
+          - libdatrie1
+          - libepoxy0
+          - libfontconfig1
+          - libfreetype6
+          - libgdk-pixbuf2.0-0
+          - libgraphite2-3
+          - libgtk-3-0
+          - libharfbuzz0b
+          - libpango-1.0-0
+          - libpangocairo-1.0-0
+          - libpangoft2-1.0-0
+          - libpixman-1-0
+          - libpng16-16
+          - libthai0
+          - libwayland-client0
+          - libwayland-cursor0
+          - libwayland-egl1
+          - libx11-6
+          - libxau6
+          - libxcb-render0
+          - libxcb-shm0
+          - libxcb1
+          - libxcomposite1
+          - libxcursor1
+          - libxdamage1
+          - libxdmcp6
+          - libxext6
+          - libxfixes3
+          - libxi6
+          - libxinerama1
+          - libxkbcommon0
+          - libxrandr2
+          - libxrender1
+slots:
+    wavbreaker-slot:
+        interface: dbus
+        bus: session
+        name: net.sourceforge.wavbreaker
+apps:
+    wavbreaker:
+        command: usr/bin/wavbreaker
+        extensions: [gnome-3-28]
+        # cargo-culted from https://forum.snapcraft.io/t/snap-issues-with-gtk/5120/2
+        plugs:
+            - gsettings
+            - home
+            - x11
+            - wayland # let it run on wayland, because it's gtk3 so it should be fine
+            - desktop # needed for a lot of gtk3 and glib interaction with the host system
+            - desktop-legacy # needed for accessibility tools IIRC
+            - network-bind
+        slots:
+            - wavbreaker-slot
+        desktop: usr/share/applications/net.sourceforge.wavbreaker.desktop
