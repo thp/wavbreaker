@@ -29,7 +29,7 @@ case "$1" in
         zip -r "dist/wavbreaker-$VERSION-win32.zip" "wavbreaker-$VERSION-win32" $DOCFILES
         ;;
     flatpak)
-        sudo flatpak install -y org.freedesktop.Sdk//19.08
+        docker build -t wavbreaker-flatpak-build scripts/flatpak
         sh scripts/flatpak/package.sh
         ;;
     snap)

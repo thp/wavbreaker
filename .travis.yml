@@ -8,11 +8,11 @@ matrix:
           dist: bionic
           language: c
           env: BUILD_TYPE=windows
-#        - os: linux
-#          dist: bionic
-#          language: c
-#          sudo: required
-#          env: BUILD_TYPE=flatpak
+        - os: linux
+          dist: bionic
+          language: c
+          sudo: required
+          env: BUILD_TYPE=flatpak
 #        - os: linux
 #          dist: bionic
 #          language: c

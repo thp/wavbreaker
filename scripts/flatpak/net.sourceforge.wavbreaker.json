@@ -20,8 +20,8 @@
             "buildsystem": "meson",
             "sources": [
                 {
-                    "type": "archive",
-                    "path": "wavbreaker.tgz"
+                    "type": "dir",
+                    "path": "../.."
                 }
             ]
         }
