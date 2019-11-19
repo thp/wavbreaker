@@ -1,6 +1,10 @@
 project('wavbreaker', 'c',
   version : '0.12',
-  default_options : ['warning_level=1'])
+  default_options: [
+    'c_std=c99',
+    'warning_level=1',
+  ],
+)
 
 subdir('po')
 
