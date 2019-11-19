@@ -2972,7 +2972,7 @@ do_open(GApplication *application, gpointer files, gint n_files, gchar *hint, gp
     GFile **gfiles = (GFile **)files;
     for (int i=0; i<n_files; ++i) {
         const char *path = g_file_get_path(gfiles[i]);
-        do_activate(application, strdup(path));
+        do_activate(application, g_strdup(path));
     }
 }
 
@@ -3089,7 +3089,7 @@ void track_break_write_cue( gpointer data, gpointer user_data) {
     char* time;
     char* p;
 
-    time = strdup( track_break->time);
+    time = g_strdup( track_break->time);
     p = time;
     while (*p != '\0') {
 	if (*p == '.') {

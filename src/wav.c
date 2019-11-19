@@ -509,7 +509,7 @@ wav_merge_files(char *filename,
             if (write_info->cur_filename != NULL) {
                 free(write_info->cur_filename);
             }
-            write_info->cur_filename = strdup(filenames[i]);
+            write_info->cur_filename = g_strdup(filenames[i]);
         }
 
         if ((read_fp = fopen(filenames[i], "rb")) == NULL) {
@@ -552,7 +552,7 @@ wav_merge_files(char *filename,
     if( write_info != NULL) {
         write_info->sync = 1;
         if (write_info->cur_filename != NULL) {
-            free(write_info->cur_filename);
+            g_free(write_info->cur_filename);
         }
         write_info->cur_filename = NULL;
     }

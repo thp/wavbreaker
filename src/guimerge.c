@@ -89,7 +89,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
         memset (&value, 0, sizeof (GValue));
         gtk_tree_model_get_value( GTK_TREE_MODEL(store), &iter, 0, &value);
         tmp = (char*)g_value_peek_pointer( &value);
-        filenames = g_list_append(filenames, strdup(tmp));
+        filenames = g_list_append(filenames, g_strdup(tmp));
     } while( gtk_tree_model_iter_next( GTK_TREE_MODEL(store), &iter) == TRUE);
 
     filter_all = gtk_file_filter_new();

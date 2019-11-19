@@ -477,7 +477,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     int ask_result = 0;
     sample_close_file();
 
-    sample_file = strdup(filename);
+    sample_file = g_strdup(filename);
 
     audio_type = UNKNOWN;
     if( wav_read_header(sample_file, &sampleInfo, 0) == 0) {
@@ -595,7 +595,7 @@ void sample_close_file()
     }
 
     if( sample_file != NULL) {
-        free( sample_file);
+        g_free(sample_file);
         sample_file = NULL;
     }
 } 
@@ -810,9 +810,9 @@ write_thread(gpointer data)
             write_info->pct_done = 0.0;
             write_info->cur_file++;
             if (write_info->cur_filename != NULL) {
-                free(write_info->cur_filename);
+                g_free(write_info->cur_filename);
             }
-            write_info->cur_filename = strdup(filename);
+            write_info->cur_filename = g_strdup(filename);
 
             if (write_info->skip_file < 2) {
                 if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
@@ -854,7 +854,7 @@ write_thread(gpointer data)
     }
     write_info->sync = 1;
     if (write_info->cur_filename != NULL) {
-        free(write_info->cur_filename);
+        g_free(write_info->cur_filename);
     }
     write_info->cur_filename = NULL;
 
@@ -932,12 +932,12 @@ merge_thread(gpointer data)
 
 void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write_info)
 {
-    mtd.merge_filename = strdup(merge_filename);
+    mtd.merge_filename = g_strdup(merge_filename);
     mtd.filenames = filenames;
     mtd.write_info = write_info;
 
     if (write_info->merge_filename != NULL) {
-        free(write_info->merge_filename);
+        g_free(write_info->merge_filename);
     }
     write_info->merge_filename = mtd.merge_filename;
 

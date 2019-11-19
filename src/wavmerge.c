@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
             usage();
             return 1;
         }
-        merge_filename = strdup(argv[2]);
+        merge_filename = g_strdup(argv[2]);
         num_files = argc - 3;
         filenames = &argv[3];
     } else {
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
             usage();
             return 1;
         }
-        merge_filename = strdup("merged.wav");
+        merge_filename = g_strdup("merged.wav");
         num_files = argc - 1;
         filenames = &argv[1];
     }
@@ -71,6 +71,8 @@ int main(int argc, char *argv[])
 );
         return 1;
     }
+
+    g_free(merge_filename);
 
     return 0;
 }
