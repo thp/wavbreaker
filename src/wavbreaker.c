@@ -1313,10 +1313,6 @@ file_open_progress_idle_func(gpointer data) {
         /* Reset things because we have a new file             */
         /* --------------------------------------------------- */
 
-        cursor_marker = 0;
-        track_break_clear_list();
-        track_break_add_entry();
-
         gtk_adjustment_set_value(GTK_ADJUSTMENT(adj), 0);
         gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_spinner_adj), 0);
         gtk_adjustment_set_value(GTK_ADJUSTMENT(cursor_marker_min_spinner_adj), 0);
@@ -1398,6 +1394,10 @@ static void open_file() {
     gtk_widget_set_sensitive(button_remove_break, TRUE);
 
     menu_stop(NULL, NULL);
+
+    cursor_marker = 0;
+    track_break_clear_list();
+    track_break_add_entry();
 
     if (file_open_progress_source_id) {
         g_source_remove(file_open_progress_source_id);
