@@ -36,6 +36,7 @@
 static pid_t moodbar_pid;
 static gboolean moodbar_cancelled;
 static GtkWidget *moodbar_wait_dialog;
+static guint moodbar_update_source_id;
 
 static void
 cancel_moodbar_process(GtkWidget *widget, gpointer user_data)
@@ -55,6 +56,29 @@ hide_moodbar_process(GtkWidget *widget, gpointer user_data)
     gtk_widget_hide(GTK_WIDGET(user_data));
 }
 
+static gboolean
+update_moodbar_func(gpointer user_data)
+{
+	GtkWidget *child = user_data;
+
+	gtk_progress_bar_pulse(GTK_PROGRESS_BAR(child));
+
+	int child_status;
+	if (waitpid(moodbar_pid, &child_status, WNOHANG) != 0) {
+		gtk_widget_destroy(moodbar_wait_dialog);
+		moodbar_wait_dialog = NULL;
+
+		if (child_status != 0 && !moodbar_cancelled) {
+			popupmessage_show(NULL, _("Cannot launch \"moodbar\""), _("wavbreaker could not launch the moodbar application, which is needed to generate the moodbar. You can download the moodbar package from:\n\n      http://amarok.kde.org/wiki/Moodbar"));
+		}
+
+		moodbar_update_source_id = 0;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static gchar *
 get_moodbar_filename(const gchar *filename)
 {
@@ -65,21 +89,20 @@ get_moodbar_filename(const gchar *filename)
 	return fn;
 }
 
-gboolean
+void
 moodbar_generate(GtkWidget *window, const gchar *filename)
 {
     struct stat st;
-    int child_status;
     GtkWidget *child, *cancel_button;
 
     gchar *fn = get_moodbar_filename(filename);
 
     if (stat(fn, &st) == 0) {
-		return TRUE;
+		return;
 	}
 
 	if (moodbar_wait_dialog != NULL) {
-		return FALSE;
+		return;
 	}
 
 	moodbar_cancelled = FALSE;
@@ -114,32 +137,14 @@ moodbar_generate(GtkWidget *window, const gchar *filename)
 		gtk_window_set_title(GTK_WINDOW(moodbar_wait_dialog), _("Generating moodbar"));
 		gtk_widget_show_all(moodbar_wait_dialog);
 
-        // FIXME: Do this via g_idle_add()
-		time_t t = time(NULL);
-		while (waitpid(moodbar_pid, &child_status, WNOHANG) == 0) {
-			while (gtk_events_pending()) {
-				gtk_main_iteration();
-			}
-
-			if (time(NULL) > t) {
-				gtk_progress_bar_pulse(GTK_PROGRESS_BAR(child));
-				t = time(NULL);
-			}
+		// Update progress bar/window in idle thread
+		if (moodbar_update_source_id) {
+			g_source_remove(moodbar_update_source_id);
 		}
-
-		gtk_widget_destroy(moodbar_wait_dialog);
-		moodbar_wait_dialog = NULL;
-
-		if (child_status != 0 && !moodbar_cancelled) {
-			popupmessage_show(NULL, _("Cannot launch \"moodbar\""), _("wavbreaker could not launch the moodbar application, which is needed to generate the moodbar. You can download the moodbar package from:\n\n      http://amarok.kde.org/wiki/Moodbar"));
-            return FALSE;
-		}
-
-        return TRUE;
+		moodbar_update_source_id = g_timeout_add(500, update_moodbar_func, child);
 	}
 
     fprintf(stderr, "fork() failed for moodbar process: %s\n", strerror(errno));
-    return FALSE;
 }
 
 MoodbarData *
@@ -188,10 +193,9 @@ moodbar_free(MoodbarData *data)
 }
 
 #else
-gboolean
+void
 moodbar_generate(GtkWidget *window, const gchar *filename)
 {
-    return FALSE;
 }
 
 MoodbarData *
