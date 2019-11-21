@@ -27,8 +27,11 @@ struct MoodbarData_ {
     GdkRGBA *frames;
 };
 
-gboolean
+void
 moodbar_generate(GtkWidget *window, const gchar *filename);
+
+void
+moodbar_abort();
 
 MoodbarData *
 moodbar_open(const gchar *filename);

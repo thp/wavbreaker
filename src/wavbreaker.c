@@ -2429,16 +2429,9 @@ menu_menu(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 }
 
 #if defined(WANT_MOODBAR)
-static void
-menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+void
+wavbreaker_update_moodbar_state()
 {
-    GVariant *state = g_action_get_state(G_ACTION(action));
-    gboolean new_value = !g_variant_get_boolean(state);
-    g_variant_unref(state);
-
-    g_action_change_state(G_ACTION(action), g_variant_new("b", new_value));
-    appconfig_set_show_moodbar(new_value);
-
     if (moodbarData) {
         moodbar_free(moodbarData);
     }
@@ -2450,18 +2443,22 @@ menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 static void
+menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+    GVariant *state = g_action_get_state(G_ACTION(action));
+    gboolean new_value = !g_variant_get_boolean(state);
+    g_variant_unref(state);
+
+    g_action_change_state(G_ACTION(action), g_variant_new("b", new_value));
+    appconfig_set_show_moodbar(new_value);
+
+    wavbreaker_update_moodbar_state();
+}
+
+static void
 menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    (void)moodbar_generate(main_window, sample_filename);
-
-    if (moodbarData) {
-        moodbar_free(moodbarData);
-    }
-    moodbarData = moodbar_open(sample_filename);
-    set_action_enabled("display_moodbar", moodbarData != NULL);
-    set_action_enabled("generate_moodbar", moodbarData == NULL);
-
-    redraw();
+    moodbar_generate(main_window, sample_filename);
 }
 #endif
 
@@ -2979,6 +2976,10 @@ do_open(GApplication *application, gpointer files, gint n_files, gchar *hint, gp
 static void
 do_shutdown(GApplication *application, gpointer user_data)
 {
+#if defined(WANT_MOODBAR)
+    moodbar_abort();
+#endif
+
     waveform_surface_free(sample_surface);
     waveform_surface_free(summary_surface);
 
