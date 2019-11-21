@@ -67,4 +67,4 @@ Snap Packaging
 Flatpack Packaging
 ------------------
 
-    sh scripts/flatpak/package.sh
+    scripts/build.sh flatpak
