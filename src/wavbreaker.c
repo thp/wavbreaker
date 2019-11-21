@@ -2976,7 +2976,9 @@ do_open(GApplication *application, gpointer files, gint n_files, gchar *hint, gp
 static void
 do_shutdown(GApplication *application, gpointer user_data)
 {
+#if defined(WANT_MOODBAR)
     moodbar_abort();
+#endif
 
     waveform_surface_free(sample_surface);
     waveform_surface_free(summary_surface);
