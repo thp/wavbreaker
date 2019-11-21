@@ -68,9 +68,15 @@ conf.set('HAVE_MPG123', have_mpg123)
 configure_file(output : 'config.h',
                configuration : conf)
 
+meta = configuration_data()
+meta.set('VERSION', meson.project_version())
+info_plist = configure_file(output : 'Info.plist',
+                            input : 'data/Info.plist.in',
+                            configuration : meta)
+
 if get_option('macos_app')
   install_data('data/wavbreaker.icns', install_dir : 'Contents/Resources')
-  install_data('data/Info.plist', install_dir : 'Contents')
+  install_data(info_plist, install_dir : 'Contents')
 else
   install_data('data/net.sourceforge.wavbreaker.desktop', install_dir: get_option('datadir') + '/applications')
   icon_dir = get_option('datadir') + '/icons/hicolor'
