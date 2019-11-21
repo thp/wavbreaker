@@ -4,7 +4,7 @@ DOCFILES="AUTHORS CONTRIBUTORS COPYING README.md"
 
 VERSION=$(sed -n "s/^  version : '\(.*\)',/\1/p" meson.build)
 
-USAGE="Usage: $0 <linux|windows|macos>"
+USAGE="Usage: $0 <linux|windows|macos|flatpak|snap>"
 
 if [ $# -eq 0 ]; then
     echo "$USAGE"
@@ -33,7 +33,6 @@ case "$1" in
         sh scripts/flatpak/package.sh
         ;;
     snap)
-        ln -sf scripts/snap .
         snapcraft
         mkdir -p dist
         mv wavbreaker_*.snap dist/
