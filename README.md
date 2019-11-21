@@ -61,7 +61,6 @@ Windows Packaging
 Snap Packaging
 --------------
 
-    ln -s scripts/snap .
     snapcraft
 
 
