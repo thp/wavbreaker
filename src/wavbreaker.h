@@ -38,6 +38,7 @@ void wavbreaker_write_files(char *dirname);
 GtkWidget *wavbreaker_get_main_window();
 void track_break_add_offset(char *filename, gulong offset);
 void track_break_clear_list();
+void wavbreaker_update_moodbar_state();
 void wavbreaker_quit();
 
 guint msf_time_to_offset( gchar *str );

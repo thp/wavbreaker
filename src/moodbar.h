@@ -30,6 +30,9 @@ struct MoodbarData_ {
 void
 moodbar_generate(GtkWidget *window, const gchar *filename);
 
+void
+moodbar_abort();
+
 MoodbarData *
 moodbar_open(const gchar *filename);
 

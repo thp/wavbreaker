@@ -21,6 +21,7 @@
 
 #include "moodbar.h"
 #include "popupmessage.h"
+#include "wavbreaker.h"
 
 #if defined(WANT_MOODBAR)
 
@@ -37,23 +38,35 @@ static pid_t moodbar_pid;
 static gboolean moodbar_cancelled;
 static GtkWidget *moodbar_wait_dialog;
 static guint moodbar_update_source_id;
+static gchar *moodbar_filename;
 
 static void
 cancel_moodbar_process(GtkWidget *widget, gpointer user_data)
 {
-    const gchar *fn = user_data;
-
     moodbar_cancelled = TRUE;
-    kill(moodbar_pid, SIGKILL);
+    if (moodbar_pid != 0) {
+        kill(moodbar_pid, SIGKILL);
+        moodbar_pid = 0;
+    }
 
-    /* remove (partial) .mood file */
-    unlink(fn);
+    if (moodbar_filename) {
+        /* remove (partial) .mood file */
+        unlink(moodbar_filename);
+        free(moodbar_filename);
+        moodbar_filename = NULL;
+    }
 }
 
 static void
 hide_moodbar_process(GtkWidget *widget, gpointer user_data)
 {
     gtk_widget_hide(GTK_WIDGET(user_data));
+}
+
+void
+moodbar_abort()
+{
+    cancel_moodbar_process(NULL, NULL);
 }
 
 static gboolean
@@ -73,6 +86,9 @@ update_moodbar_func(gpointer user_data)
 		}
 
 		moodbar_update_source_id = 0;
+
+		wavbreaker_update_moodbar_state();
+
 		return FALSE;
 	}
 
@@ -92,12 +108,15 @@ get_moodbar_filename(const gchar *filename)
 void
 moodbar_generate(GtkWidget *window, const gchar *filename)
 {
-    struct stat st;
-    GtkWidget *child, *cancel_button;
+	struct stat st;
+	GtkWidget *child, *cancel_button;
 
-    gchar *fn = get_moodbar_filename(filename);
+	if (moodbar_filename) {
+		free(moodbar_filename);
+	}
+	moodbar_filename = get_moodbar_filename(filename);
 
-    if (stat(fn, &st) == 0) {
+	if (stat(moodbar_filename, &st) == 0) {
 		return;
 	}
 
@@ -109,7 +128,7 @@ moodbar_generate(GtkWidget *window, const gchar *filename)
 	moodbar_pid = fork();
 
 	if (moodbar_pid == 0) {
-		if (execlp("moodbar", "moodbar", "-o", fn, filename, (char*)NULL) == -1) {
+		if (execlp("moodbar", "moodbar", "-o", moodbar_filename, filename, (char*)NULL) == -1) {
 			fprintf(stderr, "Error running moodbar: %s (Have you installed the \"moodbar\" package?)\n", strerror(errno));
 			_exit(-1);
 		}
@@ -121,7 +140,6 @@ moodbar_generate(GtkWidget *window, const gchar *filename)
 							  _("Generating moodbar"));
 
 		child = gtk_progress_bar_new();
-		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(child), basename(fn));
 		gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(moodbar_wait_dialog))), child, FALSE, TRUE, 0);
 
 		cancel_button = gtk_button_new_with_mnemonic(_("_Hide window"));
@@ -129,7 +147,7 @@ moodbar_generate(GtkWidget *window, const gchar *filename)
 		gtk_dialog_add_action_widget(GTK_DIALOG(moodbar_wait_dialog), cancel_button, -1);
 
 		cancel_button = gtk_button_new_with_mnemonic(_("_Cancel"));
-		g_signal_connect(G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), fn);
+		g_signal_connect(G_OBJECT(cancel_button), "clicked", G_CALLBACK(cancel_moodbar_process), NULL);
 		gtk_dialog_add_action_widget(GTK_DIALOG(moodbar_wait_dialog), cancel_button, -1);
 
 		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(moodbar_wait_dialog),
@@ -142,9 +160,9 @@ moodbar_generate(GtkWidget *window, const gchar *filename)
 			g_source_remove(moodbar_update_source_id);
 		}
 		moodbar_update_source_id = g_timeout_add(500, update_moodbar_func, child);
+	} else {
+		fprintf(stderr, "fork() failed for moodbar process: %s\n", strerror(errno));
 	}
-
-    fprintf(stderr, "fork() failed for moodbar process: %s\n", strerror(errno));
 }
 
 MoodbarData *
