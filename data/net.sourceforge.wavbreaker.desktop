@@ -2,6 +2,7 @@
 Name=wavbreaker
 Comment=Split .wav files into multiple chunks
 Comment[de]=Teilen Sie .wav-Dateien in mehrere Teile
+Comment[fr]=Diviser les fichiers .wav en plusieurs parties
 Exec=wavbreaker
 Icon=net.sourceforge.wavbreaker
 Type=Application
