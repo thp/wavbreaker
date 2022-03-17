@@ -6,7 +6,7 @@ WORKDIR /build
 
 RUN dnf -y install make mingw32-gcc mingw64-gtk3 diffutils findutils automake autoconf meson gettext libtool git wget bzip2
 
-RUN git clone https://git.xiph.org/libao.git && \
+RUN git clone https://github.com/xiph/libao.git && \
     cd libao && \
     git checkout 1.2.2 && \
     ./autogen.sh && \

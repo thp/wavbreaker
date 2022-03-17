@@ -1,7 +1,7 @@
 wavbreaker
 ==========
 
-[![Build Status](https://travis-ci.org/thp/wavbreaker.svg?branch=master)](https://travis-ci.org/thp/wavbreaker)
+[![Build Status](https://github.com/thp/wavbreaker/actions/workflows/build.yml/badge.svg)](https://github.com/thp/wavbreaker/actions)
 [![Packaging status](https://repology.org/badge/tiny-repos/wavbreaker.svg)](https://repology.org/project/wavbreaker/versions)
 
 This application's purpose in life is to take a WAV file and break it up
