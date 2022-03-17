@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOCFILES="AUTHORS CONTRIBUTORS COPYING README.md"
+DOCFILES="AUTHORS CONTRIBUTORS COPYING README.md CHANGELOG.md"
 
 VERSION=$(sed -n "s/^  version : '\(.*\)',/\1/p" meson.build)
 

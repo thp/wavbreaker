@@ -3,7 +3,7 @@ title: wavbreaker
 icon: data/net.sourceforge.wavbreaker.svg
 grade: stable
 license: GPL-2.0
-version: '0.13'
+version: '0.14'
 summary: GUI tool to split WAV and MP3 files
 description: |
     This application's purpose in life is to take a WAV file
