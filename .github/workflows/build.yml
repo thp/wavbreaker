@@ -1,0 +1,72 @@
+name: Build from source
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '**'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.build_host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build_host:
+          - ubuntu-latest
+        build_type:
+          - linux
+          - windows
+          - flatpak
+          - snap
+        include:
+          - build_host: macos-latest
+            build_type: macos
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install APT dependencies
+        if: matrix.build_type == 'linux'
+        run: |
+          sudo apt update
+          sudo apt-get install --yes \
+            libgtk-3-dev libao-dev libmpg123-dev \
+            meson ninja-build \
+            gettext flatpak-builder
+      - name: Install Snap dependencies
+        if: matrix.build_type == 'snap'
+        run: |
+          sudo snap install --classic snapcraft
+          sudo snap install --classic multipass
+      - name: Install Homebrew dependencies
+        if: matrix.build_type == 'macos'
+        run: |
+          brew install \
+            gtk+3 libao mpg123 \
+            meson ninja gettext
+      - name: Build for ${{ matrix.build_type }}
+        if: matrix.build_type != 'snap'
+        run: scripts/build.sh ${{ matrix.build_type }}
+      - name: Snapcraft Build
+        if: matrix.build_type == 'snap'
+        uses: snapcore/action-build@v1
+      - name: Snapcraft Dist
+        if: matrix.build_type == 'snap'
+        run: |
+          mkdir -p dist/
+          mv -v wavbreaker_*.snap dist/
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-result
+          path: dist/*
+          if-no-files-found: ignore
+      - name: Upload release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          gh release create "${GITHUB_REF#refs/tags/}" || true
+          gh release upload "${GITHUB_REF#refs/tags/}" dist/* || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
