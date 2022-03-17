@@ -8,15 +8,15 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ### Added
 
-* contrib/track-break-to-ffmpeg.py: Script to convert an exported track break
+* `contrib/track-break-to-ffmpeg.py`: Script to convert an exported track break
   file to a shell script using ffmpeg
-* Added `CHANGELOG.md`
+* `CHANGELOG.md`: Added
 
 ### Changed
 
 * Migrated CI from Travis to Github Actions
 * Improved .desktop file for Linux
- * Add %F to Exec= line (patch by Sebastian Ramacher, from Debian0
+ * Add `%F` to `Exec=` line (patch by Sebastian Ramacher, from Debian)
  * Add French translation (PR #11, by Olivier Humbert)
  * Add MP3 mime type, fix categories
 * Snapcraft: Reduce snap size by not shipping system libraries
