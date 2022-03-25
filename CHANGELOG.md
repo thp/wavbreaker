@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## UNRELEASED
+
+### Added
+
+* Support for Ogg Vorbis audio files using `libvorbisfile`
+
+
 ## [0.15] -- 2022-04-04
 
 ### Added

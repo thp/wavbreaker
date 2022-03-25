@@ -41,12 +41,20 @@
 #include <mpg123.h>
 #endif
 
+#if defined(HAVE_VORBISFILE)
+#include <vorbis/codec.h>
+#include <vorbis/vorbisfile.h>
+#endif
+
 enum AudioType {
     UNKNOWN = 0,
     CDDA = 1,
     WAV = 2,
 #if defined(HAVE_MPG123)
     MP3 = 3,
+#endif
+#if defined(HAVE_VORBISFILE)
+    OGG_VORBIS = 4,
 #endif
 };
 
@@ -65,6 +73,11 @@ static FILE *write_sample_fp = NULL;
 #if defined(HAVE_MPG123)
 static mpg123_handle *mpg123 = NULL;
 static size_t mpg123_offset = 0;
+#endif
+
+#if defined(HAVE_VORBISFILE)
+static OggVorbis_File ogg_vorbis_file;
+static size_t ogg_vorbis_offset = 0;
 #endif
 
 static GThread *thread;
@@ -113,6 +126,57 @@ void sample_set_error_message(const char *val)
 
     error_message = g_strdup(val);
 }
+
+#if defined(HAVE_VORBISFILE)
+long
+ogg_vorbis_read_sample(OggVorbis_File *vf,
+                unsigned char *buf,
+                int buf_size,
+                unsigned long start_pos)
+{
+    if (ogg_vorbis_offset != start_pos) {
+        ov_pcm_seek(vf, start_pos / sampleInfo.blockAlign);
+        ogg_vorbis_offset = start_pos;
+    }
+
+    long result = 0;
+
+    while (buf_size > 0) {
+        long res = ov_read(vf, (char *)buf, buf_size, 0, 2, 1, NULL);
+        if (res < 0) {
+            fprintf(stderr, "Error in ov_read(): %ld\n", res);
+            return -1;
+        }
+
+        result += res;
+        ogg_vorbis_offset += res;
+        buf += res;
+        buf_size -= res;
+
+        if (res == 0) {
+            break;
+        }
+    }
+
+    return result;
+}
+
+int
+ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, unsigned long start_pos, unsigned long end_pos)
+{
+    printf("TODO: Write file '%s', start=%lu, end=%lu\n", filename, start_pos, end_pos);
+
+    uint32_t start_samples = start_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
+    uint32_t end_samples = end_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
+
+    // TODO: Copy Ogg Vorbis samples from source to output file
+    (void)start_samples;
+    (void)end_samples;
+
+    return -1;
+}
+#endif /* HAVE_VORBISFILE */
+
 
 #if defined(HAVE_MPG123)
 int
@@ -192,7 +256,7 @@ mp3_parse_header(uint32_t header, uint32_t *bitrate, uint32_t *frequency, uint32
     return TRUE;
 }
 
-void
+int
 mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, unsigned long start_pos, unsigned long end_pos)
 {
     start_pos /= sampleInfo->blockSize;
@@ -202,7 +266,7 @@ mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, u
 
     if (!output_file) {
         fprintf(stderr, "Could not open '%s' for writing\n", filename);
-        return;
+        return -1;
     }
 
     fseek(input_file, 0, SEEK_SET);
@@ -276,8 +340,31 @@ mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, u
 #endif /* WAVBREAKER_MP3_DEBUG */
 
     fclose(output_file);
+
+    return 0;
 }
 #endif
+
+
+static long
+read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
+{
+    if (audio_type == CDDA) {
+        return cdda_read_sample(read_sample_fp, buf, buf_size, start_pos);
+    } else if (audio_type == WAV) {
+        return wav_read_sample(read_sample_fp, buf, buf_size, start_pos);
+#if defined(HAVE_MPG123)
+    } else if (audio_type == MP3) {
+        return mp3_read_sample(mpg123, buf, buf_size, start_pos);
+#endif
+#if defined(HAVE_VORBISFILE)
+    } else if (audio_type == OGG_VORBIS) {
+        return ogg_vorbis_read_sample(&ogg_vorbis_file, buf, buf_size, start_pos);
+#endif
+    }
+
+    return -1;
+}
 
 void sample_init()
 {
@@ -324,18 +411,7 @@ static gpointer play_thread(gpointer thread_data)
         return NULL;
     }
 
-    if (audio_type == CDDA) {
-        read_ret = cdda_read_sample(read_sample_fp, devbuf, sampleInfo.bufferSize,
-            sample_start + (sampleInfo.bufferSize * i++));
-    } else if (audio_type == WAV) {
-        read_ret = wav_read_sample(read_sample_fp, devbuf, sampleInfo.bufferSize,
-            sample_start + (sampleInfo.bufferSize * i++));
-#if defined(HAVE_MPG123)
-    } else if (audio_type == MP3) {
-        read_ret = mp3_read_sample(mpg123, devbuf, sampleInfo.bufferSize,
-            sample_start + (sampleInfo.bufferSize * i++));
-#endif
-    }
+    read_ret = read_sample(devbuf, sampleInfo.bufferSize, sample_start + (sampleInfo.bufferSize * i++));
 
     while (read_ret > 0 && read_ret <= sampleInfo.bufferSize) {
         /*
@@ -357,21 +433,7 @@ static gpointer play_thread(gpointer thread_data)
             g_mutex_unlock(&mutex);
         }
 
-        if (audio_type == CDDA) {
-            read_ret = cdda_read_sample(read_sample_fp, devbuf,
-                sampleInfo.bufferSize,
-                sample_start + (sampleInfo.bufferSize * i++));
-        } else if (audio_type == WAV) {
-            read_ret = wav_read_sample(read_sample_fp, devbuf,
-                sampleInfo.bufferSize,
-                sample_start + (sampleInfo.bufferSize * i++));
-#if defined(HAVE_MPG123)
-        } else if (audio_type == MP3) {
-            read_ret = mp3_read_sample(mpg123, devbuf,
-                sampleInfo.bufferSize,
-                sample_start + (sampleInfo.bufferSize * i++));
-#endif
-        }
+        read_ret = read_sample(devbuf, sampleInfo.bufferSize, sample_start + (sampleInfo.bufferSize * i++));
 
         *play_marker = ((sampleInfo.bufferSize * i) + sample_start) /
 	    sampleInfo.blockSize;
@@ -547,6 +609,37 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     }
 #endif
 
+#if defined(HAVE_VORBISFILE)
+    if (audio_type == UNKNOWN) {
+        fprintf(stderr, "Trying as Ogg Vorbis...\n");
+        int ogg_res = ov_fopen(sample_file, &ogg_vorbis_file);
+
+        if (ogg_res == 0) {
+            fprintf(stderr, "Detected Ogg Vorbis!\n");
+
+            ogg_vorbis_offset = 0;
+
+            vorbis_info *info = ov_info(&ogg_vorbis_file, -1);
+
+            fprintf(stderr, "Ogg Vorbis info: version=%d, channels=%d, rate=%ld, samples=%ld\n",
+                    info->version, info->channels, info->rate, (long int)ov_pcm_total(&ogg_vorbis_file, -1));
+
+            sampleInfo.channels = info->channels;
+            sampleInfo.samplesPerSec = info->rate;
+            sampleInfo.bitsPerSample = 16;
+
+            sampleInfo.blockAlign = sampleInfo.channels * (sampleInfo.bitsPerSample / 8);
+            sampleInfo.avgBytesPerSec = sampleInfo.blockAlign * sampleInfo.samplesPerSec;
+            sampleInfo.bufferSize = DEFAULT_BUF_SIZE;
+            sampleInfo.blockSize = sampleInfo.avgBytesPerSec / CD_BLOCKS_PER_SEC;
+            sampleInfo.numBytes = ov_pcm_total(&ogg_vorbis_file, -1) * sampleInfo.blockAlign;
+
+            audio_type = OGG_VORBIS;
+        } else {
+            fprintf(stderr, "ov_fopen() returned %d, probably not an Ogg file\n", ogg_res);
+        }
+    }
+#endif
 
     if (audio_type == UNKNOWN) {
         ask_result = ask_open_as_raw();
@@ -591,6 +684,10 @@ void sample_close_file()
     if (mpg123 != NULL) {
         mpg123_close(mpg123), mpg123 = NULL;
     }
+#endif
+
+#if defined(HAVE_VORBISFILE)
+    ov_clear(&ogg_vorbis_file);
 #endif
 
     if( read_sample_fp != NULL) {
@@ -639,18 +736,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
 
     i = 0;
 
-    if (audio_type == CDDA) {
-        ret = cdda_read_sample(read_sample_fp, devbuf, sampleInfo.blockSize,
-			       sampleInfo.blockSize * i);
-    } else if (audio_type == WAV) {
-        ret = wav_read_sample(read_sample_fp, devbuf, sampleInfo.blockSize,
-			      sampleInfo.blockSize * i);
-#if defined(HAVE_MPG123)
-    } else if (audio_type == MP3) {
-        ret = mp3_read_sample(mpg123, devbuf, sampleInfo.blockSize,
-			      sampleInfo.blockSize * i);
-#endif
-    }
+    ret = read_sample(devbuf, sampleInfo.blockSize, sampleInfo.blockSize * i);
 
     min_sample = SHRT_MAX; /* highest value for 16-bit samples */
     max_sample = 0;
@@ -692,21 +778,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
             max_sample = (max-min);
         }
 
-        if (audio_type == CDDA) {
-            ret = cdda_read_sample(read_sample_fp, devbuf,
-				   sampleInfo.blockSize,
-				   sampleInfo.blockSize * i);
-        } else if (audio_type == WAV) {
-            ret = wav_read_sample(read_sample_fp, devbuf,
-				  sampleInfo.blockSize,
-				  sampleInfo.blockSize * i);
-#if defined(HAVE_MPG123)
-        } else if (audio_type == MP3) {
-            ret = mp3_read_sample(mpg123, devbuf,
-				  sampleInfo.blockSize,
-				  sampleInfo.blockSize * i);
-#endif
-        }
+        ret = read_sample(devbuf, sampleInfo.blockSize, sampleInfo.blockSize * i);
 
         *pct = (double) i / numSampleBlocks;
         i++;
@@ -738,6 +810,31 @@ static void sample_max_min(GraphData *graphData, double *pct)
     printf("graphData->maxSampleValue: %ld\n\n", graphData->maxSampleValue);
     */
     /* DEBUG CODE END */
+}
+
+static int
+write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, WriteInfo *write_info,
+        unsigned long start_pos, unsigned long end_pos)
+{
+    if (audio_type == CDDA) {
+        return cdda_write_file(input_file, filename,
+            sample_info->bufferSize, start_pos, end_pos);
+    } else if (audio_type == WAV) {
+        return wav_write_file(input_file, filename,
+                             sample_info->blockSize,
+                             sample_info, start_pos, end_pos,
+                             &write_info->pct_done);
+#if defined(HAVE_MPG123)
+    } else if (audio_type == MP3) {
+        return mp3_write_file(input_file, filename, sample_info, start_pos, end_pos);
+#endif
+#if defined(HAVE_VORBISFILE)
+    } else if (audio_type == OGG_VORBIS) {
+        return ogg_vorbis_write_file(input_file, filename, sample_info, start_pos, end_pos);
+#endif
+    }
+
+    return -1;
 }
 
 static gpointer
@@ -812,6 +909,10 @@ write_thread(gpointer data)
                 } else if (audio_type == MP3) {
                     source_file_extension = ".mp3";
 #endif
+#if defined(HAVE_VORBISFILE)
+                } else if (audio_type == OGG_VORBIS) {
+                    source_file_extension = ".ogg";
+#endif
                 }
             }
 
@@ -841,18 +942,9 @@ write_thread(gpointer data)
             }
 
             if (write_info->skip_file > 0) {
-                if (audio_type == CDDA) {
-                    cdda_write_file(write_sample_fp, filename,
-                        sampleInfo.bufferSize, start_pos, end_pos);
-                } else if (audio_type == WAV) {
-                    wav_write_file(write_sample_fp, filename,
-					 sampleInfo.blockSize,
-					 &sampleInfo, start_pos, end_pos,
-					 &write_info->pct_done);
-#if defined(HAVE_MPG123)
-                } else if (audio_type == MP3) {
-                    mp3_write_file(write_sample_fp, filename, &sampleInfo, start_pos, end_pos);
-#endif
+                int res = write_file(write_sample_fp, filename, &sampleInfo, write_info, start_pos, end_pos);
+                if (res == -1) {
+                    fprintf(stderr, "Could not write file %s\n", filename);
                 }
                 i++;
             }
