@@ -10,6 +10,7 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 * Support for lossless cutting of MPEG-1 Audio Layer II (MP2) files, this is a
   special case of the MP3 support, and also needs `mpg123` as library dependency
+* Support for Ogg Vorbis audio files using `libvorbisfile`
 
 
 ## [0.14] -- 2022-03-17

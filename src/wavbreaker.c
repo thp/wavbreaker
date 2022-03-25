@@ -1452,6 +1452,9 @@ static void open_select_file() {
     gtk_file_filter_add_pattern( filter_supported, "*.mp2");
     gtk_file_filter_add_pattern( filter_supported, "*.mp3");
 #endif
+#if defined(HAVE_VORBISFILE)
+    gtk_file_filter_add_pattern( filter_supported, "*.ogg");
+#endif
     gtk_file_filter_add_pattern( filter_supported, "*.dat");
     gtk_file_filter_add_pattern( filter_supported, "*.raw");
 

@@ -83,7 +83,7 @@ cdda_read_sample(FILE *fp,
 
 int
 cdda_write_file(FILE *fp,
-                char *filename,
+                const char *filename,
                 int buf_size,
                 unsigned long start_pos,
                 unsigned long end_pos)

@@ -61,7 +61,7 @@ wav_write_file_header(FILE *fp,
 
 int
 wav_write_file(FILE *fp,
-               char *filename,
+               const char *filename,
                int buf_size,
                SampleInfo *sample_info,
                unsigned long start_pos,
