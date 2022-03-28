@@ -32,9 +32,11 @@ endif
 have_vorbisfile = false
 if get_option('ogg_vorbis')
   vorbisfile = dependency('vorbisfile', required : false)
-  if vorbisfile.found()
+  ogg = dependency('ogg', required : false)
+  if vorbisfile.found() and ogg.found()
     have_vorbisfile = true
     deps += vorbisfile
+    deps += ogg
   endif
 endif
 

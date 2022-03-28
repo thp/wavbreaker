@@ -27,6 +27,7 @@
 #include <limits.h>
 #include <gtk/gtk.h>
 #include <stdint.h>
+#include <inttypes.h>
  
 #include "wavbreaker.h"
 
@@ -42,6 +43,7 @@
 #endif
 
 #if defined(HAVE_VORBISFILE)
+#include <ogg/ogg.h>
 #include <vorbis/codec.h>
 #include <vorbis/vorbisfile.h>
 #endif
@@ -173,6 +175,76 @@ ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample
     (void)start_samples;
     (void)end_samples;
 
+    ogg_sync_state ogg;
+    ogg_sync_init(&ogg);
+
+    ogg_stream_state stream;
+    gboolean stream_inited = FALSE;
+
+    gboolean fail = FALSE;
+
+    fseek(input_file, 0, SEEK_SET);
+    while (!feof(input_file)) {
+        size_t chunk = 4096;
+
+        char *buf = ogg_sync_buffer(&ogg, chunk);
+        if (buf == NULL) {
+            fail = TRUE;
+            break;
+        }
+
+        size_t read = fread(buf, 1, chunk, input_file);
+        if (read == 0) {
+            fail = TRUE;
+            break;
+        }
+
+        if (ogg_sync_wrote(&ogg, read) != 0) {
+            fail = TRUE;
+            break;
+        }
+
+        ogg_page page;
+        while (ogg_sync_pageout(&ogg, &page) == 1) {
+            printf("Got ogg page: header=%p, header_len=%ld, body=%p, body_len=%ld\n",
+                    page.header, page.header_len, page.body, page.body_len);
+            if (!stream_inited) {
+                printf("page serial no: 0x%08x\n", ogg_page_serialno(&page));
+                ogg_stream_init(&stream, ogg_page_serialno(&page));
+                stream_inited = TRUE;
+            }
+            if (ogg_stream_pagein(&stream, &page) == -1) {
+                fail = TRUE;
+                break;
+            }
+
+            ogg_packet packet;
+            while (ogg_stream_packetout(&stream, &packet) == 1) {
+                printf("Got ogg packet: packet=%p, bytes=%ld, bos=%ld, eos=%ld, granulepos=%" PRId64 ", packetno=%" PRId64 "\n",
+                        packet.packet, packet.bytes, packet.b_o_s, packet.e_o_s,
+                        packet.granulepos, packet.packetno);
+            }
+        }
+    }
+
+    if (stream_inited) {
+        ogg_stream_clear(&stream);
+    }
+    ogg_sync_clear(&ogg);
+
+    if (fail) {
+        return -1;
+    }
+
+    return -1;
+
+    FILE *out = fopen(filename, "wb");
+    if (out == NULL) {
+        fprintf(stderr, "Could not open '%s' for writing\n", filename);
+        return -1;
+    }
+
+    fclose(out);
     return -1;
 }
 #endif /* HAVE_VORBISFILE */
