@@ -31,10 +31,12 @@ endif
 
 have_vorbisfile = false
 if get_option('ogg_vorbis')
+  vorbis = dependency('vorbis', required : false)
   vorbisfile = dependency('vorbisfile', required : false)
   ogg = dependency('ogg', required : false)
-  if vorbisfile.found() and ogg.found()
+  if vorbis.found() and vorbisfile.found() and ogg.found()
     have_vorbisfile = true
+    deps += vorbis
     deps += vorbisfile
     deps += ogg
   endif

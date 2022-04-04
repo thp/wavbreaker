@@ -166,25 +166,57 @@ ogg_vorbis_read_sample(OggVorbis_File *vf,
 int
 ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, unsigned long start_pos, unsigned long end_pos)
 {
-    printf("TODO: Write file '%s', start=%lu, end=%lu\n", filename, start_pos, end_pos);
+    ogg_int64_t start_samples = start_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
+    ogg_int64_t end_samples = end_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
+    ogg_int64_t duration_samples = end_samples - start_samples;
 
-    uint32_t start_samples = start_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
-    uint32_t end_samples = end_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
+    printf("TODO: Write file '%s', start samples=%"PRId64", end samples=%"PRId64" (total %"PRId64" samples)\n",
+            filename, start_samples, end_samples, duration_samples);
 
     // TODO: Copy Ogg Vorbis samples from source to output file
     (void)start_samples;
     (void)end_samples;
 
+    FILE *out = fopen(filename, "wb");
+    if (out == NULL) {
+        fprintf(stderr, "Could not open '%s' for writing\n", filename);
+        return -1;
+    }
+
+    guint32 out_stream_serialno = g_random_int();
+
+    fprintf(stderr, "Output stream will get serial number 0x%08x\n", out_stream_serialno);
+
+    ogg_stream_state out_stream;
+    ogg_stream_init(&out_stream, out_stream_serialno);
+    ogg_page out_page;
+
     ogg_sync_state ogg;
     ogg_sync_init(&ogg);
 
-    ogg_stream_state stream;
-    gboolean stream_inited = FALSE;
+    ogg_stream_state in_stream;
+    gboolean in_stream_inited = FALSE;
 
+    gboolean done = FALSE;
     gboolean fail = FALSE;
+    gboolean last_packet = FALSE;
+
+    int written_packets = 0;
+
+    ogg_int64_t last_granule_pos = 0;
+
+    gboolean samples_shift_inited = FALSE;
+    ogg_int64_t samples_shift = 0;
+
+    vorbis_info vi;
+    vorbis_comment vc;
+    ogg_int64_t sample_position_for_block_size = 0;
+
+    vorbis_info_init(&vi);
+    vorbis_comment_init(&vc);
 
     fseek(input_file, 0, SEEK_SET);
-    while (!feof(input_file)) {
+    while (!fail && !done && !feof(input_file)) {
         size_t chunk = 4096;
 
         char *buf = ogg_sync_buffer(&ogg, chunk);
@@ -205,47 +237,131 @@ ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample
         }
 
         ogg_page page;
-        while (ogg_sync_pageout(&ogg, &page) == 1) {
-            printf("Got ogg page: header=%p, header_len=%ld, body=%p, body_len=%ld\n",
-                    page.header, page.header_len, page.body, page.body_len);
-            if (!stream_inited) {
-                printf("page serial no: 0x%08x\n", ogg_page_serialno(&page));
-                ogg_stream_init(&stream, ogg_page_serialno(&page));
-                stream_inited = TRUE;
+        while (!fail && !done && ogg_sync_pageout(&ogg, &page) == 1) {
+            ogg_int64_t granule_pos = ogg_page_granulepos(&page);
+            printf("[IN] Got ogg page: header=%p, header_len=%ld, body=%p, body_len=%ld, granulepos=%" PRId64 "\n",
+                    page.header, page.header_len, page.body, page.body_len, granule_pos);
+            if (!in_stream_inited) {
+                printf("[IN] page serial no: 0x%08x\n", ogg_page_serialno(&page));
+                ogg_stream_init(&in_stream, ogg_page_serialno(&page));
+                in_stream_inited = TRUE;
             }
-            if (ogg_stream_pagein(&stream, &page) == -1) {
-                fail = TRUE;
-                break;
+
+            if (written_packets < 3 || granule_pos > start_samples || TRUE) {
+                if (granule_pos > start_samples && !samples_shift_inited) {
+                    ogg_int64_t this_page_size = (granule_pos - last_granule_pos);
+                    printf("[IN] This page is %"PRId64" samples long (prev=%"PRId64", cur=%"PRId64")\n",
+                            this_page_size, last_granule_pos, granule_pos);
+                    samples_shift = start_samples - last_granule_pos;
+                    printf("[IN] Samples shift is now %"PRId64" samples (number of samples to cut from beginning)\n", samples_shift);
+                    samples_shift_inited = TRUE;
+                }
+
+                printf("[IN] Want this page\n");
+                if (ogg_stream_pagein(&in_stream, &page) == -1) {
+                    fail = TRUE;
+                    break;
+                }
+
+                if (granule_pos > end_samples) {
+                    printf("[IN] We are done here, last page\n");
+                    done = TRUE;
+                }
+            } else {
+                printf("[IN] Skipping page (before/after start samples?)\n");
             }
 
             ogg_packet packet;
-            while (ogg_stream_packetout(&stream, &packet) == 1) {
-                printf("Got ogg packet: packet=%p, bytes=%ld, bos=%ld, eos=%ld, granulepos=%" PRId64 ", packetno=%" PRId64 "\n",
+            while (!fail && ogg_stream_packetout(&in_stream, &packet) == 1) {
+                printf("[IN] Got ogg packet: packet=%p, bytes=%ld, bos=%ld, eos=%ld, granulepos=%" PRId64 ", packetno=%" PRId64 "\n",
                         packet.packet, packet.bytes, packet.b_o_s, packet.e_o_s,
                         packet.granulepos, packet.packetno);
+
+                if (packet.packetno >= 0 && packet.packetno <= 2) {
+                    int res = vorbis_synthesis_headerin(&vi, &vc, &packet);
+                    printf("vorbis synthesis header in: %d\n", res);
+
+                    // Force granule pos of first 3 packets to zero
+                    packet.granulepos = 0;
+
+                    if (packet.packetno == 1) {
+                        // TODO: Modify vorbis comments, leave vendor only
+                    }
+
+                    ++written_packets;
+                } else {
+                    long block_size = vorbis_packet_blocksize(&vi, &packet);
+                    sample_position_for_block_size += block_size;
+                    printf("Packet (%ld bytes) block size: %ld (sample pos: %"PRId64"\n", packet.bytes, block_size, sample_position_for_block_size);
+
+                    packet.b_o_s = 0;
+                    packet.e_o_s = 0;
+                    packet.packetno = written_packets++;
+
+                    if (packet.granulepos >= duration_samples + samples_shift) {
+                        printf("Cut short last packet due to end_samples (%"PRId64" - %"PRId64" samples = %"PRId64" samples)\n",
+                                packet.granulepos, duration_samples + samples_shift, packet.granulepos - (duration_samples + samples_shift));
+                        packet.granulepos = duration_samples + samples_shift;
+                        packet.e_o_s = 1;
+                        last_packet = TRUE;
+                    }
+
+                    if (packet.granulepos > 0) {
+                        packet.granulepos -= samples_shift;
+                    }
+                }
+
+                printf("[OUT] Writing packet %" PRId64 " -> granulepos=%"PRId64"\n", packet.packetno, packet.granulepos);
+                if (ogg_stream_packetin(&out_stream, &packet) != 0) {
+                    fail = TRUE;
+                    break;
+                }
+
+                if (written_packets == 1 || written_packets == 3 || last_packet) {
+                    printf("[OUT] Force-flushing after header is done\n");
+                    while (ogg_stream_flush(&out_stream, &out_page) != 0) {
+                        printf("[OUT] page with granulepos=%"PRId64"\n", ogg_page_granulepos(&out_page));
+                        if (fwrite(out_page.header, out_page.header_len, 1, out) != 1) {
+                            fail = TRUE;
+                        } else if (fwrite(out_page.body, out_page.body_len, 1, out) != 1) {
+                            fail = TRUE;
+                        }
+                    }
+                } else {
+                    printf("[OUT] Writing out pages (delayed), if any\n");
+                    while (ogg_stream_pageout(&out_stream, &out_page) != 0) {
+                        printf("[OUT] page with granulepos=%"PRId64"\n", ogg_page_granulepos(&out_page));
+                        if (fwrite(out_page.header, out_page.header_len, 1, out) != 1) {
+                            fail = TRUE;
+                            break;
+                        } else if (fwrite(out_page.body, out_page.body_len, 1, out) != 1) {
+                            fail = TRUE;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (granule_pos > 0) {
+                last_granule_pos = granule_pos;
             }
         }
     }
 
-    if (stream_inited) {
-        ogg_stream_clear(&stream);
+    vorbis_info_clear(&vi);
+    vorbis_comment_clear(&vc);
+
+    if (in_stream_inited) {
+        ogg_stream_clear(&in_stream);
     }
+
+    ogg_stream_clear(&out_stream);
+
     ogg_sync_clear(&ogg);
 
-    if (fail) {
-        return -1;
-    }
-
-    return -1;
-
-    FILE *out = fopen(filename, "wb");
-    if (out == NULL) {
-        fprintf(stderr, "Could not open '%s' for writing\n", filename);
-        return -1;
-    }
-
     fclose(out);
-    return -1;
+
+    return fail ? -1 : 0;
 }
 #endif /* HAVE_VORBISFILE */
 
