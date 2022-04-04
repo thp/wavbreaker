@@ -1449,6 +1449,7 @@ static void open_select_file() {
     gtk_file_filter_set_name( filter_supported, _("Supported files"));
     gtk_file_filter_add_pattern( filter_supported, "*.wav");
 #if defined(HAVE_MPG123)
+    gtk_file_filter_add_pattern( filter_supported, "*.mp2");
     gtk_file_filter_add_pattern( filter_supported, "*.mp3");
 #endif
     gtk_file_filter_add_pattern( filter_supported, "*.dat");

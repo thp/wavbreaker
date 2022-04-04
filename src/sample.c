@@ -158,18 +158,22 @@ mp3_parse_header(uint32_t header, uint32_t *bitrate, uint32_t *frequency, uint32
     int f = ((header >> 10) & 0x0003);
     int g = ((header >> 9) & 0x0001);
 
-    static const int BITRATES_V1_L3[] = { -1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1 };
+    static const int BITRATES_V1_L2[] = { -1, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, -1 };
+    static const int BITRATES_V1_L3[] = { -1, 32, 40, 48, 56, 64, 80,  96, 112, 128, 160, 192, 224, 256, 320, -1 };
     static const int FREQUENCIES[] = { 44100, 48000, 32000, 0 };
+
+    static const int LAYER_II = 0x2;  /* 0b10 */
+    static const int LAYER_III = 0x1; /* 0b01 */
 
     if (a != 0x7ff /* sync */ ||
             b != 0x3 /* MPEG1 */ ||
-            c != 0x1 /* Layer III */ ||
+            (c != LAYER_II && c != LAYER_III) ||
             e == 0x0 /* freeform bitrate */ || e == 0xf /* invalid bitrate */ ||
             f == 0x3 /* invalid frequency */) {
         return FALSE;
     }
 
-    *bitrate = BITRATES_V1_L3[e];
+    *bitrate = (c == LAYER_III) ? BITRATES_V1_L3[e] : BITRATES_V1_L2[e];
     *frequency = FREQUENCIES[f];
     *samples = 1152;
     *framesize = (int)((*samples) / 8 * 1000 * (*bitrate) / (*frequency)) + g /* padding */;
@@ -797,16 +801,25 @@ write_thread(gpointer data)
 
             strcat(filename, tb_cur->filename);
 
-            /* add file extension to filename */
-            if ((audio_type == WAV) && (!strstr(filename, ".wav"))) {
-                strcat(filename, ".wav");
-            } else if ((audio_type == CDDA) && (!strstr(filename, ".dat"))) {
-                strcat(filename, ".dat");
+            const char *source_file_extension = sample_file ? strrchr(sample_file, '.') : NULL;
+            if (source_file_extension == NULL) {
+                /* Fallback extensions if not in source filename */
+                if (audio_type == WAV) {
+                    source_file_extension = ".wav";
+                } else if (audio_type == CDDA) {
+                    source_file_extension = ".dat";
 #if defined(HAVE_MPG123)
-            } else if ((audio_type == MP3) && (!strstr(filename, ".mp3"))) {
-                strcat(filename, ".mp3");
+                } else if (audio_type == MP3) {
+                    source_file_extension = ".mp3";
 #endif
+                }
             }
+
+            /* add file extension to filename */
+            if (source_file_extension != NULL && strstr(filename, source_file_extension) == NULL) {
+                strcat(filename, source_file_extension);
+            }
+
             write_info->pct_done = 0.0;
             write_info->cur_file++;
             if (write_info->cur_filename != NULL) {
