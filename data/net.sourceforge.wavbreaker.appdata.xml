@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2022 Thomas Perl <m@thp.io> -->
+<component type="desktop-application">
+  <id>net.sourceforge.wavbreaker</id>
+  <metadata_license>FSFAP</metadata_license>
+  <content_rating>none</content_rating>
+  <project_license>GPL-2.0+</project_license>
+  <name>wavbreaker</name>
+  <summary>GUI tool to split WAV, MP2 and MP3 files</summary>
+  <description>
+    <p>
+    wavbreaker's purpose in life is to take a WAV file and break it up
+    into multiple WAV files. It makes a clean break at the correct position
+    to burn the files to an Audio CD without any dead air between the tracks.
+    </p>
+
+    <p>
+    wavbreaker also supports breaking up MP2 and MP3 files without re-encoding
+    meaning it's fast and there is no generational loss. Decoding (using mpg123)
+    is only done for playback and waveform display.
+    </p>
+
+    <p>
+    The GUI displays a waveform summary of the entire file at the top. The middle
+    portion displays a zoomed-in view that allows you to select where to start
+    playing and where it will make the break. The bottom portion contains a list
+    of track breaks. You may change file names and uncheck parts that you do not
+    want to have written out to disk when saving.
+    </p>
+
+    <p>
+    There is also a command line tool wavmerge to merge WAV files together.
+    If you download a show and don't like how it was tracked, you can merge them
+    together with wavmerge and then break them back up with wavbreaker. The
+    wavmerge tool will only work on files that have the same format (for example,
+    44.100 Hz sample rate, 16-bit sample size, etc.).
+    </p>
+  </description>
+  <launchable type="desktop-id">net.sourceforge.wavbreaker.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Splitting an audio file into multiple parts</caption>
+      <image>https://github.com/thp/wavbreaker/raw/master/data/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://wavbreaker.sourceforge.io/</url>
+
+  <provides>
+    <binary>wavbreaker</binary>
+    <binary>wavgen</binary>
+    <binary>wavinfo</binary>
+    <binary>wavmerge</binary>
+  </provides>
+
+  <releases>
+    <release version="0.14" date="2022-03-17">
+      <description>
+        <p>Continous integration migrated from Travis to Github,
+          plus various small patches from distributions merged.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -79,6 +79,7 @@ if get_option('macos_app')
   install_data(info_plist, install_dir : 'Contents')
 else
   install_data('data/net.sourceforge.wavbreaker.desktop', install_dir: get_option('datadir') + '/applications')
+  install_data('data/net.sourceforge.wavbreaker.appdata.xml', install_dir: get_option('datadir') + '/metainfo')
   icon_dir = get_option('datadir') + '/icons/hicolor'
   install_data('data/net.sourceforge.wavbreaker.svg', install_dir: icon_dir + '/scalable/apps')
 endif
