@@ -1,5 +1,5 @@
 project('wavbreaker', 'c',
-  version : '0.14',
+  version : '0.15',
   default_options: [
     'c_std=c99',
     'warning_level=1',

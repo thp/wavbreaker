@@ -54,6 +54,11 @@
   </provides>
 
   <releases>
+    <release version="0.15" date="2022-04-04">
+      <description>
+        <p>Support for lossless cutting of MPEG-1 Audio Layer II (MP2) files</p>
+      </description>
+    </release>
     <release version="0.14" date="2022-03-17">
       <description>
         <p>Continous integration migrated from Travis to Github,
