@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## UNRELEASED
+
+### Added
+
+* Support for lossless cutting of MPEG-1 Audio Layer II (MP2) files, this is a
+  special case of the MP3 support, and also needs `mpg123` as library dependency
+
+
 ## [0.14] -- 2022-03-17
 
 ### Added

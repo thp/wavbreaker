@@ -1,4 +1,4 @@
 option('moodbar', type : 'boolean', value : true, description : 'Moodbar support')
-option('mp3', type : 'boolean', value : true, description : 'MP3 support')
+option('mp3', type : 'boolean', value : true, description : 'MP2/MP3 support')
 option('macos_app', type : 'boolean', value : false, description : 'macOS app bundle install layout')
 option('windows_app', type : 'boolean', value : false, description : 'Windows exe icon resource data')

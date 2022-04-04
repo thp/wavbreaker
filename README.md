@@ -8,7 +8,7 @@ This application's purpose in life is to take a WAV file and break it up
 into multiple WAV files. It makes a clean break at the correct position
 to burn the files to an Audio CD without any dead air between the tracks.
 
-wavbreaker now also directly supports breaking up MP3s without re-encoding
+wavbreaker also supports breaking up MP2 and MP3 files without re-encoding
 meaning it's fast and there is no generational loss. Decoding (using mpg123)
 is only done for playback and waveform display.
 
