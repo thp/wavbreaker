@@ -38,11 +38,6 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-#if defined(HAVE_VORBISFILE)
-#include <vorbis/codec.h>
-#include <vorbis/vorbisfile.h>
-#endif
-
 SampleInfo sampleInfo;
 static AudioFunctionPointers *audio_function_pointers;
 static unsigned long sample_start = 0;
@@ -57,11 +52,6 @@ opened_audio_file = NULL;
 static char *sample_file = NULL;
 static FILE *read_sample_fp = NULL;
 static FILE *write_sample_fp = NULL;
-
-#if defined(HAVE_VORBISFILE)
-static OggVorbis_File ogg_vorbis_file;
-static size_t ogg_vorbis_offset = 0;
-#endif
 
 static GThread *thread;
 static GMutex mutex;
@@ -110,57 +100,6 @@ void sample_set_error_message(const char *val)
     error_message = g_strdup(val);
 }
 
-#if defined(HAVE_VORBISFILE)
-long
-ogg_vorbis_read_sample(OggVorbis_File *vf,
-                unsigned char *buf,
-                int buf_size,
-                unsigned long start_pos)
-{
-    if (ogg_vorbis_offset != start_pos) {
-        ov_pcm_seek(vf, start_pos / sampleInfo.blockAlign);
-        ogg_vorbis_offset = start_pos;
-    }
-
-    long result = 0;
-
-    while (buf_size > 0) {
-        long res = ov_read(vf, (char *)buf, buf_size, 0, 2, 1, NULL);
-        if (res < 0) {
-            fprintf(stderr, "Error in ov_read(): %ld\n", res);
-            return -1;
-        }
-
-        result += res;
-        ogg_vorbis_offset += res;
-        buf += res;
-        buf_size -= res;
-
-        if (res == 0) {
-            break;
-        }
-    }
-
-    return result;
-}
-
-int
-ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, unsigned long start_pos, unsigned long end_pos)
-{
-    fprintf(stderr, "TODO: Write file '%s', start=%lu, end=%lu\n", filename, start_pos, end_pos);
-
-    uint32_t start_samples = start_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
-    uint32_t end_samples = end_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
-
-    // TODO: Copy Ogg Vorbis samples from source to output file
-    (void)start_samples;
-    (void)end_samples;
-
-    return -1;
-}
-#endif /* HAVE_VORBISFILE */
-
-
 static long
 read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 {
@@ -170,10 +109,6 @@ read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 
     if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_read_sample(read_sample_fp, buf, buf_size, start_pos);
-#if defined(HAVE_VORBISFILE)
-    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
-        return ogg_vorbis_read_sample(&ogg_vorbis_file, buf, buf_size, start_pos);
-#endif
     }
 
     return -1;
@@ -367,38 +302,6 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         audio_type = opened_audio_file->mod->type;
     }
 
-#if defined(HAVE_VORBISFILE)
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
-        fprintf(stderr, "Trying as Ogg Vorbis...\n");
-        int ogg_res = ov_fopen(sample_file, &ogg_vorbis_file);
-
-        if (ogg_res == 0) {
-            fprintf(stderr, "Detected Ogg Vorbis!\n");
-
-            ogg_vorbis_offset = 0;
-
-            vorbis_info *info = ov_info(&ogg_vorbis_file, -1);
-
-            fprintf(stderr, "Ogg Vorbis info: version=%d, channels=%d, rate=%ld, samples=%ld\n",
-                    info->version, info->channels, info->rate, (long int)ov_pcm_total(&ogg_vorbis_file, -1));
-
-            sampleInfo.channels = info->channels;
-            sampleInfo.samplesPerSec = info->rate;
-            sampleInfo.bitsPerSample = 16;
-
-            sampleInfo.blockAlign = sampleInfo.channels * (sampleInfo.bitsPerSample / 8);
-            sampleInfo.avgBytesPerSec = sampleInfo.blockAlign * sampleInfo.samplesPerSec;
-            sampleInfo.bufferSize = DEFAULT_BUF_SIZE;
-            sampleInfo.blockSize = sampleInfo.avgBytesPerSec / CD_BLOCKS_PER_SEC;
-            sampleInfo.numBytes = ov_pcm_total(&ogg_vorbis_file, -1) * sampleInfo.blockAlign;
-
-            audio_type = WAVBREAKER_AUDIO_TYPE_OGG_VORBIS;
-        } else {
-            fprintf(stderr, "ov_fopen() returned %d, probably not an Ogg file\n", ogg_res);
-        }
-    }
-#endif
-
     if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
         ask_result = ask_open_as_raw();
         if (ask_result == GTK_RESPONSE_CANCEL) {
@@ -440,10 +343,6 @@ void sample_close_file()
     if (opened_audio_file != NULL) {
         format_close_file(g_steal_pointer(&opened_audio_file));
     }
-
-#if defined(HAVE_VORBISFILE)
-    ov_clear(&ogg_vorbis_file);
-#endif
 
     if( read_sample_fp != NULL) {
         fclose( read_sample_fp);
@@ -578,10 +477,6 @@ write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, Writ
     if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_write_file(input_file, filename,
             sample_info->bufferSize, start_pos, end_pos);
-#if defined(HAVE_VORBISFILE)
-    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
-        return ogg_vorbis_write_file(input_file, filename, sample_info, start_pos, end_pos);
-#endif
     }
 
     return -1;
@@ -648,10 +543,6 @@ write_thread(gpointer data)
                     source_file_extension = opened_audio_file->mod->default_file_extension;
                 } else if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
                     source_file_extension = ".dat";
-#if defined(HAVE_VORBISFILE)
-                } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
-                    source_file_extension = ".ogg";
-#endif
                 }
             }
 

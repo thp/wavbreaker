@@ -20,6 +20,7 @@
 
 #include "wav.h"
 #include "format_mp3.h"
+#include "format_ogg_vorbis.h"
 
 void
 format_module_set_error_message(char **error_message, const char *fmt, ...)
@@ -70,18 +71,25 @@ g_modules = NULL;
 void
 format_init(void)
 {
+    static gboolean format_inited = FALSE;
+
     static const format_module_load_func
     CANDIDATES[] = {
         &format_module_wav,
         &format_module_mp3,
+        &format_module_ogg_vorbis,
     };
 
-    for (size_t i=0; i<sizeof(CANDIDATES)/sizeof(CANDIDATES[0]); ++i) {
-        const FormatModule *mod = CANDIDATES[i]();
-        if (mod != NULL) {
-            g_debug("Loaded format module: %s", mod->name);
-            g_modules = g_list_append(g_modules, (gpointer)mod);
+    if (!format_inited) {
+        for (size_t i=0; i<sizeof(CANDIDATES)/sizeof(CANDIDATES[0]); ++i) {
+            const FormatModule *mod = CANDIDATES[i]();
+            if (mod != NULL) {
+                g_debug("Loaded format module: %s", mod->name);
+                g_modules = g_list_append(g_modules, (gpointer)mod);
+            }
         }
+
+        format_inited = TRUE;
     }
 }
 

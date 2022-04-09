@@ -43,6 +43,7 @@ format_sources = [
   'src/wav.c',
   'src/format.c',
   'src/format_mp3.c',
+  'src/format_ogg_vorbis.c',
 ]
 
 wavbreaker_sources = [
