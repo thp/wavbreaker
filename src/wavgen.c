@@ -28,7 +28,7 @@
 #endif
 
 
-#include "wav.h"
+#include "format_wav.h"
 #include "sample.h"
 
 

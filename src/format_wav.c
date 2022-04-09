@@ -24,7 +24,7 @@
 
 #include <glib.h>
 
-#include "wav.h"
+#include "format_wav.h"
 #include "gettext.h"
 
 #define RiffID "RIFF"

@@ -28,7 +28,7 @@
 #include "sample.h"
 #include "wavbreaker.h"
 #include "popupmessage.h"
-#include "wav.h"
+#include "format_wav.h"
 
 #include "gettext.h"
 

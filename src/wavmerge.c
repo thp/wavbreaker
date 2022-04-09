@@ -23,7 +23,7 @@
 #include <sys/stat.h>
 
 #include "sample.h"
-#include "wav.h"
+#include "format_wav.h"
 
 void usage() {
     printf("Must pass filenames of wave files to merge.\n");

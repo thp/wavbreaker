@@ -41,7 +41,7 @@ endif
 
 format_sources = [
   'src/format.c',
-  'src/wav.c',
+  'src/format_wav.c',
   'src/format_cdda_raw.c',
   'src/format_mp3.c',
   'src/format_ogg_vorbis.c',

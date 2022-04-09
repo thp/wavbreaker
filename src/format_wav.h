@@ -16,8 +16,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef WAV_H
-#define WAV_H
+#pragma once
 
 #include "format.h"
 
@@ -37,5 +36,3 @@ wav_merge_files(char *filename,
                 char *filenames[],
                 int buf_size,
                 WriteInfo *write_info);
-
-#endif /* WAV_H */

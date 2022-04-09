@@ -18,7 +18,7 @@
 
 #include "format.h"
 
-#include "wav.h"
+#include "format_wav.h"
 #include "format_cdda_raw.h"
 #include "format_mp3.h"
 #include "format_ogg_vorbis.h"
