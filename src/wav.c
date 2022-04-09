@@ -280,7 +280,7 @@ error:
 
 static const FormatModule
 WAV_FORMAT_MODULE = {
-    .name = "WAVE File Format",
+    .name = "RIFF WAVE",
     .type = WAVBREAKER_AUDIO_TYPE_WAV,
     .default_file_extension = ".wav",
 

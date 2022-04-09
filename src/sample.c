@@ -38,10 +38,6 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-#if defined(HAVE_MPG123)
-#include <mpg123.h>
-#endif
-
 #if defined(HAVE_VORBISFILE)
 #include <vorbis/codec.h>
 #include <vorbis/vorbisfile.h>
@@ -61,11 +57,6 @@ opened_audio_file = NULL;
 static char *sample_file = NULL;
 static FILE *read_sample_fp = NULL;
 static FILE *write_sample_fp = NULL;
-
-#if defined(HAVE_MPG123)
-static mpg123_handle *mpg123 = NULL;
-static size_t mpg123_offset = 0;
-#endif
 
 #if defined(HAVE_VORBISFILE)
 static OggVorbis_File ogg_vorbis_file;
@@ -170,174 +161,6 @@ ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample
 #endif /* HAVE_VORBISFILE */
 
 
-#if defined(HAVE_MPG123)
-int
-mp3_read_sample(mpg123_handle *handle,
-                unsigned char *buf,
-                int buf_size,
-                unsigned long start_pos)
-{
-    size_t result;
-    gboolean retried = FALSE;
-
-    if (mpg123_offset != start_pos) {
-retry:
-        mpg123_seek(handle, start_pos / sampleInfo.blockAlign, SEEK_SET);
-        mpg123_offset = start_pos;
-    }
-
-    if (mpg123_read(handle, buf, buf_size, &result) == MPG123_OK) {
-        mpg123_offset += result;
-        return result;
-    } else {
-        fprintf(stderr, "MP3 decoding failed: %s\n", mpg123_strerror(mpg123));
-        if (!retried) {
-            fprintf(stderr, "Retrying read at %zu...\n", mpg123_offset);
-            retried = TRUE;
-            goto retry;
-        }
-    }
-
-    return -1;
-}
-
-//#define WAVBREAKER_MP3_DEBUG
-
-static gboolean
-mp3_parse_header(uint32_t header, uint32_t *bitrate, uint32_t *frequency, uint32_t *samples, uint32_t *framesize)
-{
-    // http://www.datavoyage.com/mpgscript/mpeghdr.htm
-    int a = ((header >> 21) & 0x07ff);
-    int b = ((header >> 19) & 0x0003);
-    int c = ((header >> 17) & 0x0003);
-    int e = ((header >> 12) & 0x000f);
-    int f = ((header >> 10) & 0x0003);
-    int g = ((header >> 9) & 0x0001);
-
-    static const int BITRATES_V1_L2[] = { -1, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, -1 };
-    static const int BITRATES_V1_L3[] = { -1, 32, 40, 48, 56, 64, 80,  96, 112, 128, 160, 192, 224, 256, 320, -1 };
-    static const int FREQUENCIES[] = { 44100, 48000, 32000, 0 };
-
-    static const int LAYER_II = 0x2;  /* 0b10 */
-    static const int LAYER_III = 0x1; /* 0b01 */
-
-    if (a != 0x7ff /* sync */ ||
-            b != 0x3 /* MPEG1 */ ||
-            (c != LAYER_II && c != LAYER_III) ||
-            e == 0x0 /* freeform bitrate */ || e == 0xf /* invalid bitrate */ ||
-            f == 0x3 /* invalid frequency */) {
-        return FALSE;
-    }
-
-    *bitrate = (c == LAYER_III) ? BITRATES_V1_L3[e] : BITRATES_V1_L2[e];
-    *frequency = FREQUENCIES[f];
-    *samples = 1152;
-    *framesize = (int)((*samples) / 8 * 1000 * (*bitrate) / (*frequency)) + g /* padding */;
-
-#if defined(WAVBREAKER_MP3_DEBUG)
-    static const char *VERSIONS[] = { "MPEG 2.5", NULL, "MPEG 2", "MPEG 1" };
-    static const char *LAYERS[] = { NULL, "III", "II", "I" };
-
-    const char *mpeg_version = VERSIONS[b];
-    const char *layer = LAYERS[c];
-
-    fprintf(stderr, "MP3 frame: %s %s, %dHz, %dkbps, %d samples (%d bytes)\n", mpeg_version, layer,
-            *frequency, *bitrate, *samples, *framesize);
-#endif /* WAVBREAKER_MP3_DEBUG */
-
-    return TRUE;
-}
-
-int
-mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, unsigned long start_pos, unsigned long end_pos)
-{
-    start_pos /= sampleInfo->blockSize;
-    end_pos /= sampleInfo->blockSize;
-
-    FILE *output_file = fopen(filename, "wb");
-
-    if (!output_file) {
-        fprintf(stderr, "Could not open '%s' for writing\n", filename);
-        return -1;
-    }
-
-    fseek(input_file, 0, SEEK_SET);
-
-    uint32_t header = 0x00000000;
-    uint32_t sample_position = 0;
-    uint32_t file_offset = 0;
-    uint32_t last_frame_end = 0;
-    uint32_t frames_written = 0;
-
-    while (!feof(input_file)) {
-        fseek(input_file, file_offset, SEEK_SET);
-
-        int a = fgetc(input_file);
-        if (a == EOF) {
-            break;
-        }
-
-        header = ((header & 0xffffff) << 8) | (a & 0xff);
-
-        uint32_t bitrate = 0;
-        uint32_t frequency = 0;
-        uint32_t samples = 0;
-        uint32_t framesize = 0;
-
-        if (mp3_parse_header(header, &bitrate, &frequency, &samples, &framesize)) {
-            uint32_t frame_start = file_offset - 3;
-
-            if (last_frame_end < frame_start) {
-                fprintf(stderr, "Skipped non-frame data in MP3 @ 0x%08x (%d bytes)\n",
-                        last_frame_end, frame_start - last_frame_end);
-            }
-
-            uint32_t start_samples = start_pos * frequency / CD_BLOCKS_PER_SEC;
-            if (start_samples <= sample_position) {
-                // Write this frame to the output file
-                char *buf = malloc(framesize);
-                fseek(input_file, frame_start, SEEK_SET);
-                if (fread(buf, 1, framesize, input_file) != framesize) {
-                    fprintf(stderr, "Tried to read over the end of the input file\n");
-                    break;
-                }
-                if (fwrite(buf, 1, framesize, output_file) != framesize) {
-                    fprintf(stderr, "Failed to write %d bytes to output file\n", framesize);
-                    break;
-                }
-                free(buf);
-
-                frames_written++;
-
-                uint32_t end_samples = end_pos * frequency / CD_BLOCKS_PER_SEC;
-                if (end_samples > 0 && end_samples <= sample_position + samples) {
-                    // Done writing this part
-                    break;
-                }
-            }
-
-            sample_position += samples;
-
-            file_offset = frame_start + framesize;
-            last_frame_end = file_offset;
-
-            header = 0x00000000;
-        } else {
-            file_offset++;
-        }
-    }
-
-#if defined(WAVBREAKER_MP3_DEBUG)
-    fprintf(stderr, "Wrote %d MP3 frames from '%s' to '%s'\n", frames_written, sample_file, filename);
-#endif /* WAVBREAKER_MP3_DEBUG */
-
-    fclose(output_file);
-
-    return 0;
-}
-#endif
-
-
 static long
 read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 {
@@ -347,10 +170,6 @@ read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 
     if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_read_sample(read_sample_fp, buf, buf_size, start_pos);
-#if defined(HAVE_MPG123)
-    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
-        return mp3_read_sample(mpg123, buf, buf_size, start_pos);
-#endif
 #if defined(HAVE_VORBISFILE)
     } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
         return ogg_vorbis_read_sample(&ogg_vorbis_file, buf, buf_size, start_pos);
@@ -364,11 +183,7 @@ void sample_init()
 {
     g_mutex_init(&mutex);
 
-#if defined(HAVE_MPG123)
-    if (mpg123_init() != MPG123_OK) {
-        fprintf(stderr, "Failed to initialize libmpg123\n");
-    }
-#endif
+    format_init();
 }
 
 static gpointer play_thread(gpointer thread_data)
@@ -552,65 +367,6 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         audio_type = opened_audio_file->mod->type;
     }
 
-#if defined(HAVE_MPG123)
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
-        fprintf(stderr, "Trying to open as MP3...\n");
-
-        if (mpg123 != NULL) {
-            mpg123_close(mpg123), mpg123 = NULL;
-        }
-
-        if ((mpg123 = mpg123_new(NULL, NULL)) == NULL) {
-            fprintf(stderr, "Failed to create MP3 decoder\n");
-        }
-
-        if (mpg123_open(mpg123, sample_file) == MPG123_OK) {
-            fprintf(stderr, "Detected MP3 format\n");
-
-            long rate;
-            int channels;
-            int encoding;
-            if (mpg123_getformat(mpg123, &rate, &channels, &encoding) != MPG123_OK ) {
-                fprintf(stderr, "Could not get file format\n");
-            }
-
-            fprintf(stderr, "Scanning MP3 file...\n");
-            if (mpg123_scan(mpg123) != MPG123_OK) {
-                fprintf(stderr, "Failed to scan MP3\n");
-            }
-
-            struct mpg123_frameinfo fi;
-            memset(&fi, 0, sizeof(fi));
-
-            if (mpg123_info(mpg123, &fi) == MPG123_OK) {
-                sampleInfo.channels = (fi.mode == MPG123_M_MONO) ? 1 : 2;
-                sampleInfo.samplesPerSec = fi.rate;
-                sampleInfo.bitsPerSample = 16;
-
-                sampleInfo.blockAlign = sampleInfo.channels * (sampleInfo.bitsPerSample / 8);
-                sampleInfo.avgBytesPerSec = sampleInfo.blockAlign * sampleInfo.samplesPerSec;
-                sampleInfo.bufferSize = DEFAULT_BUF_SIZE;
-                sampleInfo.blockSize = sampleInfo.avgBytesPerSec / CD_BLOCKS_PER_SEC;
-                sampleInfo.numBytes = mpg123_length(mpg123) * sampleInfo.blockAlign;
-                fprintf(stderr, "Channels: %d, rate: %d, bits: %d, decoded size: %lu\n",
-                        sampleInfo.channels, sampleInfo.samplesPerSec,
-                        sampleInfo.bitsPerSample, sampleInfo.numBytes);
-
-                mpg123_format_none(mpg123);
-                if (mpg123_format(mpg123, sampleInfo.samplesPerSec,
-                                  (sampleInfo.channels == 1) ? MPG123_STEREO : MPG123_MONO,
-                                  MPG123_ENC_SIGNED_16) != MPG123_OK) {
-                    fprintf(stderr, "Failed to set mpg123 format\n");
-                } else {
-                    fprintf(stderr, "MP3 file reading successfully set up\n");
-                    audio_type = WAVBREAKER_AUDIO_TYPE_MP3;
-                }
-            }
-        }
-
-    }
-#endif
-
 #if defined(HAVE_VORBISFILE)
     if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
         fprintf(stderr, "Trying as Ogg Vorbis...\n");
@@ -684,12 +440,6 @@ void sample_close_file()
     if (opened_audio_file != NULL) {
         format_close_file(g_steal_pointer(&opened_audio_file));
     }
-
-#if defined(HAVE_MPG123)
-    if (mpg123 != NULL) {
-        mpg123_close(mpg123), mpg123 = NULL;
-    }
-#endif
 
 #if defined(HAVE_VORBISFILE)
     ov_clear(&ogg_vorbis_file);
@@ -828,10 +578,6 @@ write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, Writ
     if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_write_file(input_file, filename,
             sample_info->bufferSize, start_pos, end_pos);
-#if defined(HAVE_MPG123)
-    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
-        return mp3_write_file(input_file, filename, sample_info, start_pos, end_pos);
-#endif
 #if defined(HAVE_VORBISFILE)
     } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
         return ogg_vorbis_write_file(input_file, filename, sample_info, start_pos, end_pos);
@@ -898,14 +644,10 @@ write_thread(gpointer data)
             const char *source_file_extension = sample_file ? strrchr(sample_file, '.') : NULL;
             if (source_file_extension == NULL) {
                 /* Fallback extensions if not in source filename */
-                if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV) {
-                    source_file_extension = ".wav";
+                if (opened_audio_file != NULL) {
+                    source_file_extension = opened_audio_file->mod->default_file_extension;
                 } else if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
                     source_file_extension = ".dat";
-#if defined(HAVE_MPG123)
-                } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
-                    source_file_extension = ".mp3";
-#endif
 #if defined(HAVE_VORBISFILE)
                 } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
                     source_file_extension = ".ogg";
