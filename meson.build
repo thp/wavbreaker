@@ -19,13 +19,14 @@ cc = meson.get_compiler('c')
 libm = cc.find_library('m')
 
 deps = [glib, gtk3, ao]
+format_deps = []
 
 have_mpg123 = false
 if get_option('mp3')
   mpg123 = dependency('libmpg123', required : false)
   if mpg123.found()
     have_mpg123 = true
-    deps += mpg123
+    format_deps += mpg123
   endif
 endif
 
@@ -34,16 +35,23 @@ if get_option('ogg_vorbis')
   vorbisfile = dependency('vorbisfile', required : false)
   if vorbisfile.found()
     have_vorbisfile = true
-    deps += vorbisfile
+    format_deps += vorbisfile
   endif
 endif
+
+format_sources = [
+  'src/format.c',
+  'src/format_wav.c',
+  'src/format_cdda_raw.c',
+  'src/format_mp3.c',
+  'src/format_ogg_vorbis.c',
+]
 
 wavbreaker_sources = [
   'src/about.c',
   'src/aoaudio.c',
   'src/appconfig.c',
   'src/autosplit.c',
-  'src/cdda.c',
   'src/cue.c',
   'src/draw.c',
   'src/guimerge.c',
@@ -54,7 +62,6 @@ wavbreaker_sources = [
   'src/sample.c',
   'src/saveas.c',
   'src/toc.c',
-  'src/wav.c',
   'src/wavbreaker.c',
 ]
 
@@ -100,24 +107,25 @@ install_man('man/wavmerge.1')
 
 executable('wavbreaker',
            wavbreaker_sources,
-           dependencies : deps,
+           format_sources,
+           dependencies : deps + format_deps,
            gui_app : true,
            install : true)
 
 executable('wavmerge',
            'src/wavmerge.c',
-           'src/wav.c',
-           dependencies : [glib],
+           format_sources,
+           dependencies : [glib] + format_deps,
            install : true)
 
 executable('wavgen',
            'src/wavgen.c',
-           'src/wav.c',
-           dependencies : [glib, libm],
+           format_sources,
+           dependencies : [glib, libm] + format_deps,
            install : true)
 
 executable('wavinfo',
            'src/wavinfo.c',
-           'src/wav.c',
-           dependencies : [glib],
+           format_sources,
+           dependencies : [glib, libm] + format_deps,
            install : true)

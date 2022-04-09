@@ -20,22 +20,11 @@
 #ifndef APPCONFIG_H
 #define APPCONFIG_H
 
-#include "sample.h"
 #include "wavbreaker.h"
-
-typedef struct AudioFunctionPointers_ AudioFunctionPointers;
-
-struct AudioFunctionPointers_ {
-    void (*audio_close_device)();
-    int (*audio_open_device)(SampleInfo *);
-    int (*audio_write)(unsigned char *, int);
-};
 
 void appconfig_show(GtkWidget *);
 void appconfig_write_file();
 void appconfig_init();
-
-AudioFunctionPointers *get_audio_function_pointers();
 
 int appconfig_get_use_outputdir();
 char *appconfig_get_outputdir();

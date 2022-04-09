@@ -12,6 +12,21 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
   implemented yet; save track breaks to a .txt file and use `track-break-to-ffmpeg.py`
   to break up Ogg files until Ogg file writing is implemented)
 
+### Changed
+
+* Format modules: WAV, CDDA RAW, MP2/MP3 and Ogg Vorbis are now handled as separate
+  modules for opening, reading, decoding (for playback) and lossless cutting
+* File detection: CDDA RAW and MP2/MP3 files must have `cdda.raw`, `.mp2` and `.mp3`
+  file extensions to be detected properly (avoids file misdetection)
+* `wavinfo` uses the new format modules for MP2/MP3 and Ogg Vorbis support; the
+  output format is slightly changed to show duration, number of samples and the
+  uncompressed audio format
+
+### Removed
+
+* Removed support for little-endian RAW audio (CDDA); use e.g. `sox` to
+  convert the raw audio to a file with WAV header and load that instead
+* Removed interactive query for opening as RAW CDDA audio (use `.cdda.raw` instead)
 
 ## [0.15] -- 2022-04-04
 

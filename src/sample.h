@@ -20,6 +20,7 @@
 #define SAMPLE_H
 
 #include <glib.h>
+#include <stdio.h>
 
 typedef struct Points_ Points;
 struct Points_ {
@@ -53,13 +54,8 @@ struct WriteInfo_ {
 	GList *errors;
 };
 
-#define DEFAULT_BUF_SIZE 4096
-
-#define CD_BLOCKS_PER_SEC               (75)
-
-/* Responses for the ask open raw dialog */
-#define WB_RESPONSE_LITTLE_ENDIAN 1
-#define WB_RESPONSE_BIG_ENDIAN 2
+#define DEFAULT_BUF_SIZE (4096)
+#define CD_BLOCKS_PER_SEC (75)
 
 typedef struct SampleInfo_ SampleInfo;
 
@@ -70,7 +66,6 @@ struct SampleInfo_ {
     unsigned short  blockAlign;
     unsigned short  bitsPerSample;
     unsigned long   numBytes;
-    unsigned int    bufferSize;
     unsigned int    blockSize;
 };
 
@@ -89,6 +84,5 @@ void stop_sample();
 int sample_open_file(const char *, GraphData *, double *);
 void sample_close_file();
 void sample_write_files(GList *, WriteInfo *, char *);
-void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write_info);
 
 #endif /* SAMPLE_H*/

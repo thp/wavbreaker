@@ -16,43 +16,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef WAV_H
-#define WAV_H
+#pragma once
 
-#include "sample.h"
+#include "format.h"
 
-#define RiffID "RIFF"
-#define WaveID "WAVE"
-#define FormatID "fmt "
-#define WaveDataID "data"
-
-typedef char ID[4];
-
-typedef struct {
-	ID riffID;
-	unsigned int totSize;
-	ID wavID;
-} WaveHeader;
-
-typedef struct {
-	ID chunkID;
-	int chunkSize;
-} ChunkHeader;
-
-typedef struct {
-	short wFormatTag;
-	unsigned short  wChannels;
-	unsigned int   dwSamplesPerSec;
-	unsigned int   dwAvgBytesPerSec;
-	unsigned short  wBlockAlign;
-	unsigned short  wBitsPerSample;
-//	unsigned short  extraNonPcm;
-} FormatChunk;
-
-const char *wav_get_error_message();
+const FormatModule *
+format_module_wav(void);
 
 int wav_read_header(char *, SampleInfo *, int);
-int wav_read_sample(FILE *, unsigned char *, int, unsigned long);
 
 int
 wav_write_file_header(FILE *fp,
@@ -60,19 +31,7 @@ wav_write_file_header(FILE *fp,
                       unsigned long num_bytes);
 
 int
-wav_write_file(FILE *fp,
-               const char *filename,
-               int buf_size,
-               SampleInfo *sample_info,
-               unsigned long start_pos,
-               unsigned long end_pos,
-			   double *pct_done);
-
-int
 wav_merge_files(char *filename,
                 int num_files,
                 char *filenames[],
-                int buf_size,
                 WriteInfo *write_info);
-
-#endif /* WAV_H */
