@@ -1969,11 +1969,121 @@ static gboolean scroll_event( GtkWidget *widget, GdkEventScroll *event, gpointer
     return TRUE;
 }
 
+static gboolean
+sample_view_button_press(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+    gtk_widget_grab_focus(widget);
+    return TRUE;
+}
+
+static struct {
+    guint32 space_press_time;
+    guint32 last_press_time;
+} g_key_toggle_state = {
+    .space_press_time = 0,
+    .last_press_time = 0,
+};
+
+static gboolean
+sample_view_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+    if (event->time == g_key_toggle_state.last_press_time) {
+        //printf("key repeat press\n");
+        return TRUE;
+    }
+    g_key_toggle_state.last_press_time = event->time;
+
+    printf("Key pressed time=%u\n", event->time);
+
+    switch (event->keyval) {
+        case GDK_KEY_space:
+            menu_play(widget, NULL);
+            g_key_toggle_state.space_press_time = event->time;
+            break;
+        case GDK_KEY_Up:
+        case GDK_KEY_Down:
+            // Stop here (up = update cursor, down = go back)
+            if (sample_is_playing()) {
+                if (event->keyval == GDK_KEY_Up) {
+                    cursor_marker = play_marker;
+                }
+
+                menu_play(widget, NULL);
+
+                if (event->keyval == GDK_KEY_Down) {
+                    reset_sample_display(cursor_marker);
+                }
+
+                gtk_adjustment_set_value(cursor_marker_spinner_adj, cursor_marker);
+                update_status(FALSE);
+                redraw();
+            }
+            break;
+        case GDK_KEY_Left:
+        case GDK_KEY_Right:
+            if (sample_is_playing()) {
+                // TODO: Scrub play marker only
+            } else {
+                glong diff = (event->keyval == GDK_KEY_Right) ? +1 : -1;
+
+                if (cursor_marker > 0 || diff > 0) {
+                    cursor_marker += diff;
+                }
+
+                // TODO: Make sure cursor marker can't go beyond thingie
+
+                gtk_adjustment_set_value(cursor_marker_spinner_adj, cursor_marker);
+                update_status(FALSE);
+                redraw();
+            }
+            break;
+        default:
+            return FALSE;
+            break;
+    }
+
+    return TRUE;
+}
+
+static gboolean
+sample_view_key_release(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+    if (event->time == g_key_toggle_state.last_press_time) {
+        //printf("key repeat release\n");
+        return TRUE;
+    }
+
+    switch (event->keyval) {
+        case GDK_KEY_space:
+            if (g_key_toggle_state.space_press_time != 0) {
+                guint32 delta = event->time - g_key_toggle_state.space_press_time;
+                if (delta > 200) {
+                    printf("stopping playback after long space press\n");
+                    if (sample_is_playing()) {
+                        menu_play(widget, NULL);
+                    }
+                } else {
+                    printf("too short. ignoring release\n");
+                }
+            }
+            break;
+        case GDK_KEY_Up:
+        case GDK_KEY_Down:
+        case GDK_KEY_Left:
+        case GDK_KEY_Right:
+            break;
+        default:
+            return FALSE;
+            break;
+    }
+
+    printf("Key release: 0x%08x\n", event->keyval);
+    return TRUE;
+}
+
 static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
-    gtk_widget_grab_focus(play_button);
-
     if (event->x + pixmap_offset > sample_get_num_samples(g_sample)) {
         return TRUE;
     }
@@ -2813,11 +2923,19 @@ do_activate(GApplication *app, gpointer user_data)
 
     /* The sample_surface drawing area */
     draw = gtk_drawing_area_new();
+    gtk_widget_set_can_focus(draw, TRUE);
+    gtk_widget_add_events(draw, GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
 
+    g_signal_connect(G_OBJECT(draw), "key-press-event",
+            G_CALLBACK(sample_view_key_press), NULL);
+    g_signal_connect(G_OBJECT(draw), "key-release-event",
+            G_CALLBACK(sample_view_key_release), NULL);
     g_signal_connect(G_OBJECT(draw), "draw",
              G_CALLBACK(draw_draw_event), NULL);
     g_signal_connect(G_OBJECT(draw), "configure_event",
              G_CALLBACK(configure_event), NULL);
+    g_signal_connect(G_OBJECT(draw), "button_press_event",
+             G_CALLBACK(sample_view_button_press), NULL);
     g_signal_connect(G_OBJECT(draw), "button_release_event",
              G_CALLBACK(button_release), NULL);
     g_signal_connect(G_OBJECT(draw), "motion_notify_event",
