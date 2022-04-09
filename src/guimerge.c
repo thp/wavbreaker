@@ -72,6 +72,73 @@ int get_merge_files_count()
     return i;
 }
 
+typedef struct MergeThreadData_ MergeThreadData;
+struct MergeThreadData_ {
+    char *merge_filename;
+    int num_files;
+    GList *filenames;
+    WriteInfo *write_info;
+};
+MergeThreadData mtd;
+
+static gpointer
+merge_thread(gpointer data)
+{
+    MergeThreadData *thread_data = data;
+    char *filenames[g_list_length(thread_data->filenames)];
+    GList *cur, *head;
+    int index, i;
+    char *list_data;
+
+    head = thread_data->filenames;
+    cur = head;
+    i = 0;
+    while (cur != NULL) {
+        index = g_list_position(head, cur);
+        list_data = (char *)g_list_nth_data(head, index);
+
+        filenames[i++] = list_data;
+
+        cur = g_list_next(cur);
+    }
+
+    wav_merge_files(thread_data->merge_filename,
+                        g_list_length(thread_data->filenames),
+                        filenames,
+                        DEFAULT_BUF_SIZE,
+                        thread_data->write_info);
+
+    head = thread_data->filenames;
+    cur = head;
+    while (cur != NULL) {
+        index = g_list_position(head, cur);
+        list_data = (char *)g_list_nth_data(head, index);
+
+        free(list_data);
+
+        cur = g_list_next(cur);
+    }
+
+    g_list_free(thread_data->filenames);
+
+    return NULL;
+}
+
+static void
+do_merge_files(char *merge_filename, GList *filenames, WriteInfo *write_info)
+{
+    mtd.merge_filename = g_strdup(merge_filename);
+    mtd.filenames = filenames;
+    mtd.write_info = write_info;
+
+    if (write_info->merge_filename != NULL) {
+        g_free(write_info->merge_filename);
+    }
+    write_info->merge_filename = mtd.merge_filename;
+
+    g_thread_unref(g_thread_new("merge files", merge_thread, &mtd));
+}
+
 static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
 {
     GtkWidget *dialog;
@@ -126,7 +193,7 @@ static void ok_button_clicked(GtkWidget *widget, gpointer user_data)
     if( gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         tmp = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
         write_info.pct_done = 0.0;
-        sample_merge_files( tmp, filenames, &write_info);
+        do_merge_files(tmp, filenames, &write_info);
         gtk_widget_destroy(GTK_WIDGET(user_data));
         g_idle_add( file_merge_progress_idle_func, NULL);
     }

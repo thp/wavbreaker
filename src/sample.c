@@ -32,7 +32,6 @@
 
 #include "sample.h"
 #include "format.h"
-#include "wav.h"
 #include "cdda.h"
 #include "appconfig.h"
 #include "overwritedialog.h"
@@ -65,15 +64,6 @@ struct WriteThreadData_ {
     char *outputdir;
 };
 WriteThreadData wtd;
-
-typedef struct MergeThreadData_ MergeThreadData;
-struct MergeThreadData_ {
-    char *merge_filename;
-    int num_files;
-    GList *filenames;
-    WriteInfo *write_info;
-};
-MergeThreadData mtd;
 
 typedef struct OpenThreadData_ OpenThreadData;
 struct OpenThreadData_ {
@@ -631,59 +621,3 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
     g_thread_unref(g_thread_new("write data", write_thread, &wtd));
 }
 
-static gpointer
-merge_thread(gpointer data)
-{
-    MergeThreadData *thread_data = data;
-    char *filenames[g_list_length(thread_data->filenames)];
-    GList *cur, *head;
-    int index, i;
-    char *list_data;
-
-    head = thread_data->filenames;
-    cur = head;
-    i = 0;
-    while (cur != NULL) {
-        index = g_list_position(head, cur);
-        list_data = (char *)g_list_nth_data(head, index);
-
-        filenames[i++] = list_data;
-
-        cur = g_list_next(cur);
-    }
-
-    wav_merge_files(thread_data->merge_filename,
-                        g_list_length(thread_data->filenames),
-                        filenames,
-                        DEFAULT_BUF_SIZE,
-                        thread_data->write_info);
-
-    head = thread_data->filenames;
-    cur = head;
-    while (cur != NULL) {
-        index = g_list_position(head, cur);
-        list_data = (char *)g_list_nth_data(head, index);
-
-        free(list_data);
-
-        cur = g_list_next(cur);
-    }
-    
-    g_list_free(thread_data->filenames);
-
-    return NULL;
-}
-
-void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write_info)
-{
-    mtd.merge_filename = g_strdup(merge_filename);
-    mtd.filenames = filenames;
-    mtd.write_info = write_info;
-
-    if (write_info->merge_filename != NULL) {
-        g_free(write_info->merge_filename);
-    }
-    write_info->merge_filename = mtd.merge_filename;
-
-    g_thread_unref(g_thread_new("merge files", merge_thread, &mtd));
-}
