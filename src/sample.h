@@ -54,9 +54,8 @@ struct WriteInfo_ {
 	GList *errors;
 };
 
-#define DEFAULT_BUF_SIZE 4096
-
-#define CD_BLOCKS_PER_SEC               (75)
+#define DEFAULT_BUF_SIZE (4096)
+#define CD_BLOCKS_PER_SEC (75)
 
 typedef struct SampleInfo_ SampleInfo;
 
