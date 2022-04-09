@@ -164,7 +164,7 @@ ogg_vorbis_read_sample(OggVorbis_File *vf,
 int
 ogg_vorbis_write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, unsigned long start_pos, unsigned long end_pos)
 {
-    printf("TODO: Write file '%s', start=%lu, end=%lu\n", filename, start_pos, end_pos);
+    fprintf(stderr, "TODO: Write file '%s', start=%lu, end=%lu\n", filename, start_pos, end_pos);
 
     uint32_t start_samples = start_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
     uint32_t end_samples = end_pos / sample_info->blockSize * sample_info->samplesPerSec / CD_BLOCKS_PER_SEC;
@@ -853,13 +853,6 @@ write_thread(gpointer data)
     unsigned long start_pos, end_pos;
     char filename[1024];
 
-    write_info->num_files = 0;
-    write_info->cur_file = 0;
-    write_info->sync = 0;
-    write_info->sync_check_file_overwrite_to_write_progress = 0;
-    write_info->check_file_exists = 0;
-    write_info->skip_file = -1;
-
     i = 1;
     tbl_cur = tbl_head;
     while (tbl_cur != NULL) {
@@ -945,6 +938,7 @@ write_thread(gpointer data)
                 int res = write_file(write_sample_fp, filename, &sampleInfo, write_info, start_pos, end_pos);
                 if (res == -1) {
                     fprintf(stderr, "Could not write file %s\n", filename);
+                    write_info->errors = g_list_append(write_info->errors, g_strdup(filename));
                 }
                 i++;
             }
@@ -988,6 +982,14 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
         writing = 0;
         return;
     }
+
+    write_info->num_files = 0;
+    write_info->cur_file = 0;
+    write_info->sync = 0;
+    write_info->sync_check_file_overwrite_to_write_progress = 0;
+    write_info->check_file_exists = 0;
+    write_info->skip_file = -1;
+    write_info->errors = NULL;
 
     g_thread_unref(g_thread_new("write data", write_thread, &wtd));
 }
