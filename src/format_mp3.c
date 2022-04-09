@@ -216,6 +216,7 @@ mp3_open_file(const FormatModule *self, const char *filename, char **error_messa
     /* This format module supports MP3 files (default extension) and MP2 file */
     if (!format_module_filename_extension_check(self, filename, NULL) &&
             !format_module_filename_extension_check(self, filename, ".mp2")) {
+        format_module_set_error_message(error_message, "File extension is not .mp3/.mp2");
         return NULL;
     }
 

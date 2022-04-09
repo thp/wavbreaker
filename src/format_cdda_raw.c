@@ -52,6 +52,7 @@ static OpenedAudioFile *
 cdda_raw_open_file(const FormatModule *self, const char *filename, char **error_message)
 {
     if (!format_module_filename_extension_check(self, filename, NULL)) {
+        format_module_set_error_message(error_message, "Extension is not %s", self->default_file_extension);
         return NULL;
     }
 
