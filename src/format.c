@@ -22,6 +22,8 @@
 #include "format_mp3.h"
 #include "format_ogg_vorbis.h"
 
+#include <errno.h>
+
 void
 format_module_set_error_message(char **error_message, const char *fmt, ...)
 {
