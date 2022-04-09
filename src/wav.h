@@ -19,7 +19,7 @@
 #ifndef WAV_H
 #define WAV_H
 
-#include "sample.h"
+#include "format.h"
 
 #define RiffID "RIFF"
 #define WaveID "WAVE"
@@ -49,24 +49,15 @@ typedef struct {
 //	unsigned short  extraNonPcm;
 } FormatChunk;
 
-const char *wav_get_error_message();
+const FormatModule *
+format_module_wav(void);
 
 int wav_read_header(char *, SampleInfo *, int);
-int wav_read_sample(FILE *, unsigned char *, int, unsigned long);
 
 int
 wav_write_file_header(FILE *fp,
                       SampleInfo *sample_info,
                       unsigned long num_bytes);
-
-int
-wav_write_file(FILE *fp,
-               const char *filename,
-               int buf_size,
-               SampleInfo *sample_info,
-               unsigned long start_pos,
-               unsigned long end_pos,
-			   double *pct_done);
 
 int
 wav_merge_files(char *filename,

@@ -31,6 +31,7 @@
 #include "wavbreaker.h"
 
 #include "sample.h"
+#include "format.h"
 #include "wav.h"
 #include "cdda.h"
 #include "appconfig.h"
@@ -53,6 +54,9 @@ static int playing = 0;
 static int writing = 0;
 static gboolean kill_play_thread = FALSE;
 static enum AudioType audio_type;
+
+static OpenedAudioFile *
+opened_audio_file = NULL;
 
 static char *sample_file = NULL;
 static FILE *read_sample_fp = NULL;
@@ -337,10 +341,12 @@ mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, u
 static long
 read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 {
+    if (opened_audio_file != NULL) {
+        return format_read_samples(opened_audio_file, buf, buf_size, start_pos);
+    }
+
     if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_read_sample(read_sample_fp, buf, buf_size, start_pos);
-    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV) {
-        return wav_read_sample(read_sample_fp, buf, buf_size, start_pos);
 #if defined(HAVE_MPG123)
     } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
         return mp3_read_sample(mpg123, buf, buf_size, start_pos);
@@ -533,9 +539,17 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
     sample_file = g_strdup(filename);
 
-    audio_type = WAVBREAKER_AUDIO_TYPE_UNKNOWN;
-    if( wav_read_header(sample_file, &sampleInfo, 0) == 0) {
-        audio_type = WAVBREAKER_AUDIO_TYPE_WAV;
+    char *error_message = NULL;
+    opened_audio_file = format_open_file(filename, &error_message);
+    if (opened_audio_file == NULL) {
+        g_message("Could not open %s with format_open_file(): %s", filename, error_message);
+        sample_set_error_message(error_message);
+        g_free(error_message);
+        audio_type = WAVBREAKER_AUDIO_TYPE_UNKNOWN;
+    } else {
+        // TODO: Remove those global variables
+        sampleInfo = opened_audio_file->sample_info;
+        audio_type = opened_audio_file->mod->type;
     }
 
 #if defined(HAVE_MPG123)
@@ -631,8 +645,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
     if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
         ask_result = ask_open_as_raw();
-        if( ask_result == GTK_RESPONSE_CANCEL) {
-            sample_set_error_message(wav_get_error_message());
+        if (ask_result == GTK_RESPONSE_CANCEL) {
             return 1;
         }
         cdda_read_header(sample_file, &sampleInfo);
@@ -643,7 +656,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         }
     }
 
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV || audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         sampleInfo.blockSize = (((sampleInfo.bitsPerSample / 8) *
                                  sampleInfo.channels * sampleInfo.samplesPerSec) /
                                 CD_BLOCKS_PER_SEC);
@@ -668,6 +681,10 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
 void sample_close_file()
 {
+    if (opened_audio_file != NULL) {
+        format_close_file(g_steal_pointer(&opened_audio_file));
+    }
+
 #if defined(HAVE_MPG123)
     if (mpg123 != NULL) {
         mpg123_close(mpg123), mpg123 = NULL;
@@ -804,14 +821,13 @@ static int
 write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, WriteInfo *write_info,
         unsigned long start_pos, unsigned long end_pos)
 {
+    if (opened_audio_file != NULL) {
+        return format_write_file(opened_audio_file, filename, start_pos, end_pos, &write_info->pct_done);
+    }
+
     if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_write_file(input_file, filename,
             sample_info->bufferSize, start_pos, end_pos);
-    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV) {
-        return wav_write_file(input_file, filename,
-                             sample_info->blockSize,
-                             sample_info, start_pos, end_pos,
-                             &write_info->pct_done);
 #if defined(HAVE_MPG123)
     } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
         return mp3_write_file(input_file, filename, sample_info, start_pos, end_pos);
@@ -1038,4 +1054,3 @@ void sample_merge_files(char *merge_filename, GList *filenames, WriteInfo *write
 
     g_thread_unref(g_thread_new("merge files", merge_thread, &mtd));
 }
-

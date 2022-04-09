@@ -20,6 +20,7 @@
 #define SAMPLE_H
 
 #include <glib.h>
+#include <stdio.h>
 
 typedef struct Points_ Points;
 struct Points_ {

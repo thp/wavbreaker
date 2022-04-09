@@ -27,204 +27,144 @@
 #include "wav.h"
 #include "gettext.h"
 
-unsigned long wavDataPtr;
-unsigned long wavDataSize;
 
-static char *error_message;
+typedef struct OpenedWavFile_ OpenedWavFile;
+struct OpenedWavFile_ {
+    OpenedAudioFile hdr;
 
-#define CHUNK_ERROR_MESSAGE (_("Error reading chunk. Maybe the wave file you are trying to load is truncated?"))
+    unsigned long wavDataPtr;
+    unsigned long wavDataSize;
+};
 
-const char *wav_get_error_message()
+static void
+wav_close_file(const FormatModule *self, OpenedAudioFile *file)
 {
-    return error_message ?: "";
+    OpenedWavFile *wav = (OpenedWavFile *)file;
+
+    opened_audio_file_close(&wav->hdr);
+    g_free(wav);
 }
 
-
-static void wav_set_error_message(const char *fmt, ...)
+static OpenedAudioFile *
+wav_open_file(const FormatModule *self, const char *filename, char **error_message)
 {
-    va_list args;
-    va_start(args, fmt);
-    if (error_message) {
-        g_free(error_message);
-    }
-    error_message = g_strdup_vprintf(fmt, args);
-    va_end(args);
-}
+    const char *CHUNK_ERROR_MESSAGE = _("Error reading chunk. Maybe the wave file you are trying to load is truncated?");
 
-int wav_read_header(char *sample_file, SampleInfo *sampleInfo, int debug)
-{
     WaveHeader wavHdr;
     ChunkHeader chunkHdr;
     FormatChunk fmtChunk;
     char str[128];
-    FILE *fp;
     struct stat statBuf;
+
+    OpenedWavFile *wav = g_new0(OpenedWavFile, 1);
+
+    if (!format_module_open_file(self, &wav->hdr, filename, error_message)) {
+        free(wav);
+        return NULL;
+    }
 
     /**
      * This is needed for RAW audio
      * and also lets us check if the file size in the header
-     * is correct (or the wave file is truncated, in which 
+     * is correct (or the wave file is truncated, in which
      * case we are going to use the real file size instead).
      **/
-    wavDataPtr = 0;
-    if (stat(sample_file, &statBuf)) {
-	printf("error stat'ing %s\n", sample_file);
+    wav->wavDataPtr = 0;
+    if (stat(wav->hdr.filename, &statBuf)) {
+        g_warning("Error stat'ing %s\n", wav->hdr.filename);
+        wav->wavDataSize = 0;
     } else {
-        wavDataSize = statBuf.st_size;
-    }
-
-    /* DEBUG CODE START */
-    if (debug) {
-        printf("WaveHeader Size:\t%lu\n", sizeof(WaveHeader));
-        printf("ChunkHeader Size:\t%lu\n", sizeof(ChunkHeader));
-        printf("FormatChunk Size:\t%lu\n", sizeof(FormatChunk));
-    }
-    /* DEBUG CODE END */
-
-    if ((fp = fopen(sample_file, "rb")) == NULL) {
-        wav_set_error_message(_("Cannot open %s: %s"), sample_file, strerror(errno));
-        return 1;
+        wav->wavDataSize = statBuf.st_size;
     }
 
     /* read in file header */
 
-    if (fread(&wavHdr, sizeof(WaveHeader), 1, fp) < 1) {
-        wav_set_error_message("%s", _("Cannot read wave header."));
-        fclose(fp);
-        return 1;
+    if (fread(&wavHdr, sizeof(WaveHeader), 1, wav->hdr.fp) < 1) {
+        format_module_set_error_message(error_message, "%s", _("Cannot read wave header."));
+        goto error;
     }
 
     if (memcmp(wavHdr.riffID, RiffID, 4) && memcmp(wavHdr.wavID, WaveID, 4)) {
-        wav_set_error_message(_("%s is not a wave file."), sample_file);
-        fclose(fp);
-        return 1;
+        format_module_set_error_message(error_message, _("%s is not a wave file."), wav->hdr.filename);
+        goto error;
     }
-
-    /* DEBUG CODE START */
-    if (debug) {
-        memcpy(str, wavHdr.riffID, 4);
-        memcpy(str+4, "\0", 1);
-        printf("RIFF ID:\t%s\n", str);
-    
-        printf("Total Size:\t%u\n", wavHdr.totSize);
-    
-        memcpy(str, wavHdr.wavID, 4);
-        memcpy(str+4, "\0", 1);
-        printf("Wave ID:\t%s\n", str);
-    }
-    /* DEBUG CODE END */
 
     /* read in format chunk header */
 
-    if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-        wav_set_error_message("%s", CHUNK_ERROR_MESSAGE);
-        fclose(fp);
-        return 1;
+    if (fread(&chunkHdr, sizeof(ChunkHeader), 1, wav->hdr.fp) < 1) {
+        format_module_set_error_message(error_message, "%s", CHUNK_ERROR_MESSAGE);
+        goto error;
     }
 
     while (memcmp(chunkHdr.chunkID, FormatID, 4)) {
-        if (debug) {
-            memcpy(str, chunkHdr.chunkID, 4);
-            memcpy(str+4, "\0", 1);
-
-            printf("Chunk ID:\t%s\n", str);
-            printf("Chunk Size:\t%u\n", chunkHdr.chunkSize);
-        }
-
         memcpy(str, chunkHdr.chunkID, 4);
-        memcpy(str+4, "\0", 1);
-        printf("Chunk %s is not a Format Chunk\n", str);
+        str[4] = '\0';
+        g_warning("Chunk %s is not a Format Chunk", str);
 
-        if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-            wav_set_error_message(_("Error seeking to %u in %s: %s"), chunkHdr.chunkSize, sample_file, strerror(errno));
-            fclose(fp);
-            return 1;
+        if (fseek(wav->hdr.fp, chunkHdr.chunkSize, SEEK_CUR)) {
+            format_module_set_error_message(error_message, _("Error seeking to %u in %s: %s"), chunkHdr.chunkSize, wav->hdr.filename, strerror(errno));
+            goto error;
         }
 
-        if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-            wav_set_error_message("%s", CHUNK_ERROR_MESSAGE);
-            fclose(fp);
-            return 1;
+        if (fread(&chunkHdr, sizeof(ChunkHeader), 1, wav->hdr.fp) < 1) {
+            format_module_set_error_message(error_message, "%s", CHUNK_ERROR_MESSAGE);
+            goto error;
         }
-    }
-
-    if (debug) {
-        memcpy(str, chunkHdr.chunkID, 4);
-        memcpy(str+4, "\0", 1);
-
-        printf("Chunk ID:\t%s\n", str);
-        printf("Chunk Size:\t%u\n", chunkHdr.chunkSize);
     }
 
     /* read in format chunk data */
 
-    if (fread(&fmtChunk, sizeof(FormatChunk), 1, fp) < 1) {
-        wav_set_error_message(_("Error reading format chunk: %s"), strerror(errno));
-        fclose(fp);
-        return 1;
+    if (fread(&fmtChunk, sizeof(FormatChunk), 1, wav->hdr.fp) < 1) {
+        format_module_set_error_message(error_message, _("Error reading format chunk: %s"), strerror(errno));
+        goto error;
     }
-
-    if (debug) {
-        printf("Compression format is of type: %d\n", fmtChunk.wFormatTag);
-        printf("Channels:\t%d\n", fmtChunk.wChannels);
-        printf("Sample Rate:\t%u\n", fmtChunk.dwSamplesPerSec);
-        printf("Bytes / Sec:\t%u\n", fmtChunk.dwAvgBytesPerSec);
-        printf("wBlockAlign:\t%u\n", fmtChunk.wBlockAlign);
-        printf("Bits Per Sample Point:\t%u\n", fmtChunk.wBitsPerSample);
-    }
-    /* DEBUG CODE END */
 
     if (fmtChunk.wFormatTag != 1) {
-        wav_set_error_message("%s", _("Loading compressed wave data is not supported."));
-        fclose(fp);
-        return 1;
+        format_module_set_error_message(error_message, "%s", _("Loading compressed wave data is not supported."));
+        goto error;
     }
-    sampleInfo->channels        = fmtChunk.wChannels;
-    sampleInfo->samplesPerSec    = fmtChunk.dwSamplesPerSec;
-    sampleInfo->avgBytesPerSec    = fmtChunk.dwAvgBytesPerSec;
-    sampleInfo->blockAlign        = fmtChunk.wBlockAlign;
-    sampleInfo->bitsPerSample    = fmtChunk.wBitsPerSample;
+
+    wav->hdr.sample_info.channels       = fmtChunk.wChannels;
+    wav->hdr.sample_info.samplesPerSec  = fmtChunk.dwSamplesPerSec;
+    wav->hdr.sample_info.avgBytesPerSec = fmtChunk.dwAvgBytesPerSec;
+    wav->hdr.sample_info.blockAlign     = fmtChunk.wBlockAlign;
+    wav->hdr.sample_info.bitsPerSample  = fmtChunk.wBitsPerSample;
+    wav->hdr.sample_info.blockSize      = ((wav->hdr.sample_info.bitsPerSample / 8) * wav->hdr.sample_info.channels * wav->hdr.sample_info.samplesPerSec) / CD_BLOCKS_PER_SEC;
 
     // if we have a FormatChunk that is larger than standard size, skip over extra data
     if (chunkHdr.chunkSize > sizeof(FormatChunk)) {
-printf("in size compare\n");
-        if (fseek(fp, chunkHdr.chunkSize - sizeof(FormatChunk), SEEK_CUR)) {
-            wav_set_error_message(_("Error seeking to %u in %s: %s"), chunkHdr.chunkSize, sample_file, strerror(errno));
-            fclose(fp);
-            return 1;
+        if (fseek(wav->hdr.fp, chunkHdr.chunkSize - sizeof(FormatChunk), SEEK_CUR)) {
+            format_module_set_error_message(error_message, _("Error seeking to %u in %s: %s"), chunkHdr.chunkSize, wav->hdr.filename, strerror(errno));
+            goto error;
         }
     }
 
-    /* DEBUG CODE START */
     /* read in wav data header */
 
-    if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-        wav_set_error_message("%s", CHUNK_ERROR_MESSAGE);
-        fclose(fp);
-        return 1;
+    if (fread(&chunkHdr, sizeof(ChunkHeader), 1, wav->hdr.fp) < 1) {
+        format_module_set_error_message(error_message, "%s", CHUNK_ERROR_MESSAGE);
+        goto error;
     }
 
     while (memcmp(chunkHdr.chunkID, WaveDataID, 4)) {
         memcpy(str, chunkHdr.chunkID, 4);
-        memcpy(str + 4, "\0", 1);
-        printf("Chunk %s is not a Format Chunk\n", str);
+        str[4] = '\0';
+        g_warning("Chunk %s is not a Format Chunk", str);
 
-        if (fseek(fp, chunkHdr.chunkSize, SEEK_CUR)) {
-            wav_set_error_message(_("Error seeking to %u in %s: %s"), chunkHdr.chunkSize, sample_file, strerror(errno));
-            fclose(fp);
-            return 1;
+        if (fseek(wav->hdr.fp, chunkHdr.chunkSize, SEEK_CUR)) {
+            format_module_set_error_message(error_message, _("Error seeking to %u in %s: %s"), chunkHdr.chunkSize, wav->hdr.filename, strerror(errno));
+            goto error;
         }
 
-        if (fread(&chunkHdr, sizeof(ChunkHeader), 1, fp) < 1) {
-            wav_set_error_message("%s", CHUNK_ERROR_MESSAGE);
-            fclose(fp);
-            return 1;
+        if (fread(&chunkHdr, sizeof(ChunkHeader), 1, wav->hdr.fp) < 1) {
+            format_module_set_error_message(error_message, "%s", CHUNK_ERROR_MESSAGE);
+            goto error;
         }
     }
 
     long x;
-    if ((x = ftell(fp)) >= 0) {
-        wavDataPtr = x;
+    if ((x = ftell(wav->hdr.fp)) >= 0) {
+        wav->wavDataPtr = x;
     }
 
     /**
@@ -232,63 +172,131 @@ printf("in size compare\n");
      * use the header's size info here, but use the 
      * real file size, minus the header's size.
      ***/
-    if( chunkHdr.chunkSize > wavDataSize) {
-        printf( "Warning: Real file size is %lu, but wave header "
-                "says it should be %d. Using real file size instead.\n",
-                wavDataSize, chunkHdr.chunkSize);
-        wavDataSize = wavDataSize - wavDataPtr;
+    if (wav->wavDataSize != 0 && chunkHdr.chunkSize > wav->wavDataSize) {
+        g_warning("Real file size is %lu, but wave header says it should be %d. Using real file size instead.",
+                wav->wavDataSize, chunkHdr.chunkSize);
+        wav->wavDataSize = wav->wavDataSize - wav->wavDataPtr;
     } else {
-        wavDataSize = chunkHdr.chunkSize;
+        wav->wavDataSize = chunkHdr.chunkSize;
     }
-    sampleInfo->numBytes = wavDataSize;
 
-    /* DEBUG CODE START */
-    if (debug) {
-        printf("wavDataPtr: %lu\n", wavDataPtr);
-        printf("wavDataSize: %lu\n", wavDataSize);
+    wav->hdr.sample_info.numBytes = wav->wavDataSize;
+
+    return &wav->hdr;
+
+error:
+    wav_close_file(self, &wav->hdr);
+
+    return NULL;
+}
+
+long
+wav_read_samples(OpenedAudioFile *self, unsigned char *buf, size_t buf_size, unsigned long start_pos)
+{
+    OpenedWavFile *wav = (OpenedWavFile *)self;
+
+    if (fseek(wav->hdr.fp, start_pos + wav->wavDataPtr, SEEK_SET)) {
+        return -1;
     }
-    /* DEBUG CODE END */
 
-    fclose(fp);
-    return 0;
+    if (start_pos > wav->wavDataSize) {
+        return -1;
+    }
+
+    if (start_pos + buf_size > wav->wavDataSize) {
+        buf_size = wav->wavDataSize - start_pos;
+    }
+
+    return fread(buf, 1, buf_size, wav->hdr.fp);
 }
 
 int
-wav_read_sample(FILE *fp,
-                unsigned char *buf,
-                int buf_size,
-                unsigned long start_pos)
+wav_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress)
 {
+    OpenedWavFile *wav = (OpenedWavFile *)self;
+
+    int buf_size = wav->hdr.sample_info.blockSize;
+
     int ret;
+    FILE *new_fp = NULL;
+    unsigned long cur_pos, num_bytes;
+    unsigned char *buf = malloc(buf_size);
 
-    if (fseek(fp, start_pos + wavDataPtr, SEEK_SET)) {
-        return -1;
+    if (start_pos > wav->wavDataSize) {
+        goto error;
     }
 
-    /* DEBUG CODE START */
-    /*
-    printf("start_pos: %lu\t", start_pos);
-    */
-    /* DEBUG CODE END */
+    if ((new_fp = fopen(output_filename, "wb")) == NULL) {
+        g_warning("Error opening %s for writing", output_filename);
+        goto error;
+    }
 
-    if (start_pos > wavDataSize) {
-        return -1;
-    } else if (start_pos + buf_size > wavDataSize) {
-        buf_size = wavDataSize - start_pos;
-        ret = fread(buf, 1, buf_size, fp);
+    start_pos += wav->wavDataPtr;
+    if (end_pos != 0) {
+        end_pos += wav->wavDataPtr;
+        num_bytes = end_pos - start_pos;
     } else {
-        ret = fread(buf, 1, buf_size, fp);
+        num_bytes = wav->wavDataSize + wav->wavDataPtr - start_pos;
+    }
+    cur_pos = start_pos;
+
+    if ((wav_write_file_header(new_fp, &wav->hdr.sample_info, num_bytes)) != 0) {
+        g_message("Could not write WAV header to %s", output_filename);
+        goto error;
     }
 
-    /* DEBUG CODE START */
-    /*
-    printf("start_pos: %lu\t", start_pos);
-    printf("buf_size: %d\n", buf_size);
-    */
-    /* DEBUG CODE END */
+    if (fseek(wav->hdr.fp, cur_pos, SEEK_SET)) {
+        g_message("Could not seek to read position in %s", wav->hdr.filename);
+        goto error;
+    }
+
+    while ((ret = fread(buf, 1, buf_size, wav->hdr.fp)) > 0 &&
+                (cur_pos < end_pos || end_pos == 0)) {
+        if ((fwrite(buf, 1, ret, new_fp)) < ret) {
+            g_message("Error writing to file %s", output_filename);
+            goto error;
+        }
+
+        cur_pos += ret;
+        *progress = (double) (cur_pos - start_pos) / num_bytes;
+    }
+
+    free(buf);
+    fclose(new_fp);
+
+    *progress = 1.0;
 
     return ret;
+
+error:
+    if (new_fp != NULL) {
+        fclose(new_fp);
+    }
+
+    free(buf);
+    return -1;
 }
+
+
+static const FormatModule
+WAV_FORMAT_MODULE = {
+    .name = "WAVE File Format",
+    .type = WAVBREAKER_AUDIO_TYPE_WAV,
+    .default_file_extension = ".wav",
+
+    .open_file = wav_open_file,
+    .close_file = wav_close_file,
+
+    .read_samples = wav_read_samples,
+    .write_file = wav_write_file,
+};
+
+const FormatModule *
+format_module_wav()
+{
+    return &WAV_FORMAT_MODULE;
+}
+
 
 int
 wav_write_file_header(FILE *fp,
@@ -345,104 +353,6 @@ wav_write_file_header(FILE *fp,
 }
 
 int
-wav_write_file(FILE *fp,
-               const char *filename,
-               int buf_size,
-               SampleInfo *sample_info,
-               unsigned long start_pos,
-               unsigned long end_pos,
-               double *pct_done)
-{
-    int ret;
-    FILE *new_fp;
-    unsigned long cur_pos, num_bytes;
-    unsigned char *buf = (unsigned char *)malloc(buf_size);
-
-    if ((new_fp = fopen(filename, "wb")) == NULL) {
-        printf("error opening %s for writing\n", filename);
-        free(buf);
-        return -1;
-    }
-
-    if (start_pos > wavDataSize) {
-        fclose(new_fp);
-        free(buf);
-        return -1;
-    }
-
-    start_pos += wavDataPtr;
-    if (end_pos != 0) {
-        end_pos += wavDataPtr;
-        num_bytes = end_pos - start_pos;
-    } else {
-        num_bytes = wavDataSize + wavDataPtr - start_pos;
-    }
-    cur_pos = start_pos;
-
-    if ((wav_write_file_header(new_fp, sample_info, num_bytes)) != 0) {
-        fclose(new_fp);
-        free(buf);
-        return -1;
-    }
-
-    if (fseek(fp, cur_pos, SEEK_SET)) {
-        fclose(new_fp);
-        free(buf);
-        return -1;
-    }
-
-    /* DEBUG CODE START */
-    /*
-    printf("\nstart_pos: %lu\n", start_pos);
-    printf("end_pos: %lu\n", end_pos);
-    printf("cur_pos: %lu\n", cur_pos);
-    */
-    /* DEBUG CODE END */
-
-    /*
-    if (cur_pos + buf_size > end_pos && end_pos != 0) {
-        buf_size = end_pos - cur_pos;
-    }
-    */
-
-    while ((ret = fread(buf, 1, buf_size, fp)) > 0 &&
-                (cur_pos < end_pos || end_pos == 0)) {
-
-        if ((fwrite(buf, 1, ret, new_fp)) < ret) {
-            printf("error writing to file %s\n", filename);
-            fclose(new_fp);
-            free(buf);
-            return -1;
-        }
-        cur_pos += ret;
-        *pct_done = (double) (cur_pos - start_pos) / num_bytes;
-
-        /*
-        if (cur_pos + buf_size > end_pos && end_pos != 0) {
-            buf_size = end_pos - cur_pos;
-        }
-        */
-    }
-
-    /* DEBUG CODE START */
-    /*
-    printf("cur_pos: %lu\n", cur_pos);
-    printf("buf_size: %d\n", buf_size);
-    printf("ret: %d\n", ret);
-    printf("num_bytes: %lu\n", num_bytes);
-    printf("done writing - %s\n", filename);
-    */
-    /* DEBUG CODE END */
-
-    free(buf);
-    fclose(new_fp);
-
-    *pct_done = 1.0;
-
-    return ret;
-}
-
-int
 wav_merge_files(char *filename,
                 int num_files,
                 char *filenames[],
@@ -466,9 +376,22 @@ wav_merge_files(char *filename,
         write_info->skip_file = -1;
     }
 
+    const FormatModule *mod = format_module_wav();
+
     for (i = 0; i < num_files; i++) {
-        wav_read_header(filenames[i], &sample_info[i], 0);
-        data_ptr[i] = wavDataPtr;
+        char *error_message = NULL;
+
+        OpenedAudioFile *oaf = mod->open_file(mod, filenames[i], &error_message);
+        OpenedWavFile *wav = (OpenedWavFile *)oaf;
+        if (oaf == NULL) {
+            g_warning("Could not read WAV header of %s: %s", filenames[i], error_message);
+            g_free(error_message);
+            return -1;
+        } else {
+            sample_info[i] = oaf->sample_info;
+            data_ptr[i] = wav->wavDataPtr;
+            mod->close_file(mod, oaf);
+        }
     }
 
     num_bytes = sample_info[0].numBytes;
@@ -566,3 +489,23 @@ wav_merge_files(char *filename,
     return ret;
 }
 
+
+int wav_read_header(char *filename, SampleInfo *sample_info_out, int debug)
+{
+    const FormatModule *mod = format_module_wav();
+
+    char *error_message = NULL;
+
+    OpenedAudioFile *oaf = mod->open_file(mod, filename, &error_message);
+    if (oaf == NULL) {
+        g_warning("Could not read WAV header of %s: %s", filename, error_message);
+        g_free(error_message);
+        return 1;
+    }
+
+    *sample_info_out = oaf->sample_info;
+
+    mod->close_file(mod, oaf);
+
+    return 0;
+}

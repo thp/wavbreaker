@@ -56,6 +56,7 @@ wavbreaker_sources = [
   'src/toc.c',
   'src/wav.c',
   'src/wavbreaker.c',
+  'src/format.c',
 ]
 
 if get_option('windows_app')
@@ -107,17 +108,20 @@ executable('wavbreaker',
 executable('wavmerge',
            'src/wavmerge.c',
            'src/wav.c',
+           'src/format.c',
            dependencies : [glib],
            install : true)
 
 executable('wavgen',
            'src/wavgen.c',
            'src/wav.c',
+           'src/format.c',
            dependencies : [glib, libm],
            install : true)
 
 executable('wavinfo',
            'src/wavinfo.c',
            'src/wav.c',
+           'src/format.c',
            dependencies : [glib],
            install : true)

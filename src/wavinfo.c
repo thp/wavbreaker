@@ -20,8 +20,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <libgen.h>
-#include "wav.h"
-#include "sample.h"
+
+#include "format.h"
 
 int main(int argc, char *argv[])
 {
@@ -32,14 +32,31 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    format_init();
+
     for( i = 1; i < argc; i++) {
-        SampleInfo sampleInfo;
+        char *error_message = NULL;
+        OpenedAudioFile *oaf = format_open_file(argv[i], &error_message);
 
-        printf( "Header info for: %s\n", argv[i]);
-
-        if( wav_read_header( argv[i], &sampleInfo, 1) != 0) {
-            printf("%s", wav_get_error_message());
+        if (oaf == NULL) {
+            printf("Error opening %s: %s\n", argv[i], error_message);
+            g_free(error_message);
+            continue;
         }
+
+        printf("Header info for: %s\n", argv[i]);
+
+        printf("File format:    %s\n", oaf->mod->name);
+        printf("channels:       %d\n", oaf->sample_info.channels);
+        printf("samplesPerSec:  %d\n", oaf->sample_info.samplesPerSec);
+        printf("avgBytesPerSec: %d\n", oaf->sample_info.avgBytesPerSec);
+        printf("blockAlign:     %d\n", oaf->sample_info.blockAlign);
+        printf("bitsPerSample:  %d\n", oaf->sample_info.bitsPerSample);
+        printf("blockSize:      %d\n", oaf->sample_info.blockSize);
+
+        // TODO: Maybe dump extra metadata fields
+
+        format_close_file(oaf);
 
         printf("\n");
     }
