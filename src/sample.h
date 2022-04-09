@@ -26,6 +26,14 @@ struct Points_ {
         int min, max;
 };
 
+enum AudioType {
+	WAVBREAKER_AUDIO_TYPE_UNKNOWN = 0,
+	WAVBREAKER_AUDIO_TYPE_CDDA = 1,
+	WAVBREAKER_AUDIO_TYPE_WAV = 2,
+	WAVBREAKER_AUDIO_TYPE_MP3 = 3,
+	WAVBREAKER_AUDIO_TYPE_OGG_VORBIS = 4,
+};
+
 typedef struct GraphData_ GraphData;
 struct GraphData_{
 	unsigned long numSamples;

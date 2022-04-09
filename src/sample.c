@@ -46,18 +46,6 @@
 #include <vorbis/vorbisfile.h>
 #endif
 
-enum AudioType {
-    UNKNOWN = 0,
-    CDDA = 1,
-    WAV = 2,
-#if defined(HAVE_MPG123)
-    MP3 = 3,
-#endif
-#if defined(HAVE_VORBISFILE)
-    OGG_VORBIS = 4,
-#endif
-};
-
 SampleInfo sampleInfo;
 static AudioFunctionPointers *audio_function_pointers;
 static unsigned long sample_start = 0;
@@ -349,16 +337,16 @@ mp3_write_file(FILE *input_file, const char *filename, SampleInfo *sampleInfo, u
 static long
 read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 {
-    if (audio_type == CDDA) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_read_sample(read_sample_fp, buf, buf_size, start_pos);
-    } else if (audio_type == WAV) {
+    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV) {
         return wav_read_sample(read_sample_fp, buf, buf_size, start_pos);
 #if defined(HAVE_MPG123)
-    } else if (audio_type == MP3) {
+    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
         return mp3_read_sample(mpg123, buf, buf_size, start_pos);
 #endif
 #if defined(HAVE_VORBISFILE)
-    } else if (audio_type == OGG_VORBIS) {
+    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
         return ogg_vorbis_read_sample(&ogg_vorbis_file, buf, buf_size, start_pos);
 #endif
     }
@@ -545,13 +533,13 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 
     sample_file = g_strdup(filename);
 
-    audio_type = UNKNOWN;
+    audio_type = WAVBREAKER_AUDIO_TYPE_UNKNOWN;
     if( wav_read_header(sample_file, &sampleInfo, 0) == 0) {
-        audio_type = WAV;
+        audio_type = WAVBREAKER_AUDIO_TYPE_WAV;
     }
 
 #if defined(HAVE_MPG123)
-    if (audio_type == UNKNOWN) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
         fprintf(stderr, "Trying to open as MP3...\n");
 
         if (mpg123 != NULL) {
@@ -601,7 +589,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
                     fprintf(stderr, "Failed to set mpg123 format\n");
                 } else {
                     fprintf(stderr, "MP3 file reading successfully set up\n");
-                    audio_type = MP3;
+                    audio_type = WAVBREAKER_AUDIO_TYPE_MP3;
                 }
             }
         }
@@ -610,7 +598,7 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 #endif
 
 #if defined(HAVE_VORBISFILE)
-    if (audio_type == UNKNOWN) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
         fprintf(stderr, "Trying as Ogg Vorbis...\n");
         int ogg_res = ov_fopen(sample_file, &ogg_vorbis_file);
 
@@ -634,14 +622,14 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
             sampleInfo.blockSize = sampleInfo.avgBytesPerSec / CD_BLOCKS_PER_SEC;
             sampleInfo.numBytes = ov_pcm_total(&ogg_vorbis_file, -1) * sampleInfo.blockAlign;
 
-            audio_type = OGG_VORBIS;
+            audio_type = WAVBREAKER_AUDIO_TYPE_OGG_VORBIS;
         } else {
             fprintf(stderr, "ov_fopen() returned %d, probably not an Ogg file\n", ogg_res);
         }
     }
 #endif
 
-    if (audio_type == UNKNOWN) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
         ask_result = ask_open_as_raw();
         if( ask_result == GTK_RESPONSE_CANCEL) {
             sample_set_error_message(wav_get_error_message());
@@ -649,13 +637,13 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         }
         cdda_read_header(sample_file, &sampleInfo);
         if( ask_result == WB_RESPONSE_BIG_ENDIAN) {
-            audio_type = CDDA;
+            audio_type = WAVBREAKER_AUDIO_TYPE_CDDA;
         } else {
-            audio_type = WAV;
+            audio_type = WAVBREAKER_AUDIO_TYPE_WAV;
         }
     }
 
-    if (audio_type == WAV || audio_type == CDDA) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV || audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         sampleInfo.blockSize = (((sampleInfo.bitsPerSample / 8) *
                                  sampleInfo.channels * sampleInfo.samplesPerSec) /
                                 CD_BLOCKS_PER_SEC);
@@ -816,20 +804,20 @@ static int
 write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, WriteInfo *write_info,
         unsigned long start_pos, unsigned long end_pos)
 {
-    if (audio_type == CDDA) {
+    if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
         return cdda_write_file(input_file, filename,
             sample_info->bufferSize, start_pos, end_pos);
-    } else if (audio_type == WAV) {
+    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV) {
         return wav_write_file(input_file, filename,
                              sample_info->blockSize,
                              sample_info, start_pos, end_pos,
                              &write_info->pct_done);
 #if defined(HAVE_MPG123)
-    } else if (audio_type == MP3) {
+    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
         return mp3_write_file(input_file, filename, sample_info, start_pos, end_pos);
 #endif
 #if defined(HAVE_VORBISFILE)
-    } else if (audio_type == OGG_VORBIS) {
+    } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
         return ogg_vorbis_write_file(input_file, filename, sample_info, start_pos, end_pos);
 #endif
     }
@@ -894,16 +882,16 @@ write_thread(gpointer data)
             const char *source_file_extension = sample_file ? strrchr(sample_file, '.') : NULL;
             if (source_file_extension == NULL) {
                 /* Fallback extensions if not in source filename */
-                if (audio_type == WAV) {
+                if (audio_type == WAVBREAKER_AUDIO_TYPE_WAV) {
                     source_file_extension = ".wav";
-                } else if (audio_type == CDDA) {
+                } else if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
                     source_file_extension = ".dat";
 #if defined(HAVE_MPG123)
-                } else if (audio_type == MP3) {
+                } else if (audio_type == WAVBREAKER_AUDIO_TYPE_MP3) {
                     source_file_extension = ".mp3";
 #endif
 #if defined(HAVE_VORBISFILE)
-                } else if (audio_type == OGG_VORBIS) {
+                } else if (audio_type == WAVBREAKER_AUDIO_TYPE_OGG_VORBIS) {
                     source_file_extension = ".ogg";
 #endif
                 }
