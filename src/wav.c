@@ -27,6 +27,34 @@
 #include "wav.h"
 #include "gettext.h"
 
+#define RiffID "RIFF"
+#define WaveID "WAVE"
+#define FormatID "fmt "
+#define WaveDataID "data"
+
+typedef char ID[4];
+
+typedef struct {
+	ID riffID;
+	unsigned int totSize;
+	ID wavID;
+} WaveHeader;
+
+typedef struct {
+	ID chunkID;
+	int chunkSize;
+} ChunkHeader;
+
+typedef struct {
+	short wFormatTag;
+	unsigned short  wChannels;
+	unsigned int   dwSamplesPerSec;
+	unsigned int   dwAvgBytesPerSec;
+	unsigned short  wBlockAlign;
+	unsigned short  wBitsPerSample;
+//	unsigned short  extraNonPcm;
+} FormatChunk;
+
 
 typedef struct OpenedWavFile_ OpenedWavFile;
 struct OpenedWavFile_ {
