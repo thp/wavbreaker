@@ -1157,12 +1157,30 @@ file_write_progress_idle_func(gpointer data) {
         window = NULL;
 
         gchar *tmp_str;
-        if( write_info.num_files > 1) {
-            tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
+        if (write_info.errors != NULL) {
+            tmp_str = g_strdup_printf("%s:\n", _("There was an error splitting the file"));
+
+            GList *cur = g_list_first(write_info.errors);
+            while (cur != NULL) {
+                gchar *tmp = g_strdup_printf("%s\n%s", tmp_str, (gchar *)cur->data);
+                g_free(tmp_str);
+                tmp_str = tmp;
+
+                g_free(cur->data);
+                cur = g_list_next(cur);
+            }
+
+            g_list_free(g_steal_pointer(&write_info.errors));
+
+            popupmessage_show(NULL, _("Operation failed"), tmp_str);
         } else {
-            tmp_str = g_strdup_printf(_("The file %s has been split into one part."), basename( sample_filename));
+            if( write_info.num_files > 1) {
+                tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
+            } else {
+                tmp_str = g_strdup_printf(_("The file %s has been split into one part."), basename( sample_filename));
+            }
+            popupmessage_show( NULL, _("Operation successful"), tmp_str);
         }
-        popupmessage_show( NULL, _("Operation successful"), tmp_str);
         g_free(tmp_str);
 
         file_write_progress_source_id = 0;
@@ -1451,6 +1469,9 @@ static void open_select_file() {
 #if defined(HAVE_MPG123)
     gtk_file_filter_add_pattern( filter_supported, "*.mp2");
     gtk_file_filter_add_pattern( filter_supported, "*.mp3");
+#endif
+#if defined(HAVE_VORBISFILE)
+    gtk_file_filter_add_pattern( filter_supported, "*.ogg");
 #endif
     gtk_file_filter_add_pattern( filter_supported, "*.dat");
     gtk_file_filter_add_pattern( filter_supported, "*.raw");

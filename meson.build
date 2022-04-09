@@ -29,6 +29,15 @@ if get_option('mp3')
   endif
 endif
 
+have_vorbisfile = false
+if get_option('ogg_vorbis')
+  vorbisfile = dependency('vorbisfile', required : false)
+  if vorbisfile.found()
+    have_vorbisfile = true
+    deps += vorbisfile
+  endif
+endif
+
 wavbreaker_sources = [
   'src/about.c',
   'src/aoaudio.c',
@@ -65,6 +74,7 @@ conf.set_quoted('PACKAGE', meson.project_name())
 conf.set_quoted('LOCALEDIR', join_paths(prefix, localedir))
 conf.set('WANT_MOODBAR', get_option('moodbar'))
 conf.set('HAVE_MPG123', have_mpg123)
+conf.set('HAVE_VORBISFILE', have_vorbisfile)
 configure_file(output : 'config.h',
                configuration : conf)
 

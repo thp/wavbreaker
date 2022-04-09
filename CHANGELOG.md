@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## UNRELEASED
+
+### Added
+
+* Support for reading Ogg Vorbis audio files using `libvorbisfile` (writing is not
+  implemented yet; save track breaks to a .txt file and use `track-break-to-ffmpeg.py`
+  to break up Ogg files until Ogg file writing is implemented)
+
+
 ## [0.15] -- 2022-04-04
 
 ### Added

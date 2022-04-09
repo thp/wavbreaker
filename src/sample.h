@@ -45,11 +45,12 @@ struct WriteInfo_ {
 	guint sync;
 	gint check_file_exists;
 	gint skip_file; /* -1 = waiting for check
-                     * 0 = don't overwrite file
-                     * 1 = file is ok to overwrite
-                     * 2 = overwrite all files
-                     */
-    gint sync_check_file_overwrite_to_write_progress;
+			 * 0 = don't overwrite file
+			 * 1 = file is ok to overwrite
+			 * 2 = overwrite all files
+			 */
+	gint sync_check_file_overwrite_to_write_progress;
+	GList *errors;
 };
 
 #define DEFAULT_BUF_SIZE 4096
