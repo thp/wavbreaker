@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple wave.
  * Copyright (C) 2002 Timothy Robinson
+ * Copyright (C) 2022 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,18 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef CDDA_H
-#define CDDA_H
+#pragma once
 
-#include "sample.h"
+#include "format.h"
 
-int cdda_read_header(const char *, SampleInfo *);
-int cdda_read_sample(FILE *, unsigned char *, int, unsigned long);
-int
-cdda_write_file(FILE *fp,
-                const char *filename,
-                int buf_size,
-                unsigned long start_pos,
-                unsigned long end_pos);
-
-#endif /* CDDA_H */
+const FormatModule *
+format_module_cdda_raw();

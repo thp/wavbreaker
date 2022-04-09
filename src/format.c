@@ -19,6 +19,7 @@
 #include "format.h"
 
 #include "wav.h"
+#include "format_cdda_raw.h"
 #include "format_mp3.h"
 #include "format_ogg_vorbis.h"
 
@@ -38,6 +39,16 @@ format_module_set_error_message(char **error_message, const char *fmt, ...)
     }
     *error_message = g_strdup_vprintf(fmt, args);
     va_end(args);
+}
+
+gboolean
+format_module_filename_extension_check(const FormatModule *self, const char *filename, const char *extension)
+{
+    if (extension == NULL) {
+        extension = self->default_file_extension;
+    }
+
+    return (g_ascii_strcasecmp(filename + strlen(filename) - strlen(extension), extension) == 0);
 }
 
 gboolean
@@ -78,6 +89,7 @@ format_init(void)
     static const format_module_load_func
     CANDIDATES[] = {
         &format_module_wav,
+        &format_module_cdda_raw,
         &format_module_mp3,
         &format_module_ogg_vorbis,
     };

@@ -25,7 +25,6 @@ typedef struct OpenedAudioFile_ OpenedAudioFile;
 
 struct FormatModule_ {
     const char *name;
-    enum AudioType type;
     const char *default_file_extension;
 
     OpenedAudioFile *(*open_file)(const FormatModule *self, const char *filename, char **error_message);
@@ -47,6 +46,9 @@ struct OpenedAudioFile_ {
     FILE *fp;
     SampleInfo sample_info;
 };
+
+gboolean
+format_module_filename_extension_check(const FormatModule *self, const char *filename, const char *extension);
 
 gboolean
 format_module_open_file(const FormatModule *self, OpenedAudioFile *file, const char *filename, char **error_message);

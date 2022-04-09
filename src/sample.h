@@ -27,14 +27,6 @@ struct Points_ {
         int min, max;
 };
 
-enum AudioType {
-	WAVBREAKER_AUDIO_TYPE_UNKNOWN = 0,
-	WAVBREAKER_AUDIO_TYPE_CDDA = 1,
-	WAVBREAKER_AUDIO_TYPE_WAV = 2,
-	WAVBREAKER_AUDIO_TYPE_MP3 = 3,
-	WAVBREAKER_AUDIO_TYPE_OGG_VORBIS = 4,
-};
-
 typedef struct GraphData_ GraphData;
 struct GraphData_{
 	unsigned long numSamples;
@@ -65,10 +57,6 @@ struct WriteInfo_ {
 #define DEFAULT_BUF_SIZE 4096
 
 #define CD_BLOCKS_PER_SEC               (75)
-
-/* Responses for the ask open raw dialog */
-#define WB_RESPONSE_LITTLE_ENDIAN 1
-#define WB_RESPONSE_BIG_ENDIAN 2
 
 typedef struct SampleInfo_ SampleInfo;
 

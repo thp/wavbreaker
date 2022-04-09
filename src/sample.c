@@ -32,7 +32,6 @@
 
 #include "sample.h"
 #include "format.h"
-#include "cdda.h"
 #include "appconfig.h"
 #include "overwritedialog.h"
 #include "gettext.h"
@@ -43,14 +42,9 @@ static unsigned long sample_start = 0;
 static int playing = 0;
 static int writing = 0;
 static gboolean kill_play_thread = FALSE;
-static enum AudioType audio_type;
 
 static OpenedAudioFile *
 opened_audio_file = NULL;
-
-static char *sample_file = NULL;
-static FILE *read_sample_fp = NULL;
-static FILE *write_sample_fp = NULL;
 
 static GThread *thread;
 static GMutex mutex;
@@ -95,10 +89,6 @@ read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 {
     if (opened_audio_file != NULL) {
         return format_read_samples(opened_audio_file, buf, buf_size, start_pos);
-    }
-
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
-        return cdda_read_sample(read_sample_fp, buf, buf_size, start_pos);
     }
 
     return -1;
@@ -201,7 +191,7 @@ int play_sample(gulong startpos, gulong *play_marker)
         return 2;
     }
 
-    if (sample_file == NULL) {
+    if (opened_audio_file == NULL) {
         g_mutex_unlock(&mutex);
         return 3;
     }
@@ -247,37 +237,9 @@ static gpointer open_thread(gpointer data)
     return NULL;
 }
 
-int ask_open_as_raw()
-{
-    GtkMessageDialog *dialog;
-    gint result;
-    const gchar *message = _("Open as RAW audio");
-    const gchar *info_text = _("The file you selected does not contain a wave header. wavbreaker can interpret the file as \"Signed 16 bit, 44100 Hz, Stereo\" audio. Choose the byte order for the RAW audio or cancel to abort.");
-
-    dialog = (GtkMessageDialog*)gtk_message_dialog_new( GTK_WINDOW(wavbreaker_get_main_window()),
-                                     GTK_DIALOG_DESTROY_WITH_PARENT,
-                                     GTK_MESSAGE_QUESTION,
-                                     GTK_BUTTONS_CANCEL,
-                                     "%s", message);
-    
-    gtk_dialog_add_button( GTK_DIALOG(dialog), _("Big endian"), WB_RESPONSE_BIG_ENDIAN);
-    gtk_dialog_add_button( GTK_DIALOG(dialog), _("Little endian"), WB_RESPONSE_LITTLE_ENDIAN);
-
-    gtk_message_dialog_format_secondary_text( dialog, "%s", info_text);
-    gtk_window_set_title( GTK_WINDOW(dialog), message);
-
-    result = gtk_dialog_run( GTK_DIALOG(dialog));
-    gtk_widget_destroy( GTK_WIDGET( dialog));
-
-    return result;
-}
-
 int sample_open_file(const char *filename, GraphData *graphData, double *pct)
 {
-    int ask_result = 0;
     sample_close_file();
-
-    sample_file = g_strdup(filename);
 
     char *error_message = NULL;
     opened_audio_file = format_open_file(filename, &error_message);
@@ -285,44 +247,15 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
         g_message("Could not open %s with format_open_file(): %s", filename, error_message);
         sample_set_error_message(error_message);
         g_free(error_message);
-        audio_type = WAVBREAKER_AUDIO_TYPE_UNKNOWN;
-    } else {
-        // TODO: Remove those global variables
-        sampleInfo = opened_audio_file->sample_info;
-        audio_type = opened_audio_file->mod->type;
+        return 1;
     }
 
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_UNKNOWN) {
-        ask_result = ask_open_as_raw();
-        if (ask_result == GTK_RESPONSE_CANCEL) {
-            return 1;
-        }
-        cdda_read_header(sample_file, &sampleInfo);
-        if( ask_result == WB_RESPONSE_BIG_ENDIAN) {
-            audio_type = WAVBREAKER_AUDIO_TYPE_CDDA;
-        } else {
-            audio_type = WAVBREAKER_AUDIO_TYPE_WAV;
-        }
-    }
-
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
-        sampleInfo.blockSize = (((sampleInfo.bitsPerSample / 8) *
-                                 sampleInfo.channels * sampleInfo.samplesPerSec) /
-                                CD_BLOCKS_PER_SEC);
-
-        if ((read_sample_fp = fopen(sample_file, "rb")) == NULL) {
-            if (error_message) {
-                g_free(error_message);
-            }
-            error_message = g_strdup_printf(_("Error opening %s: %s"), sample_file, strerror(errno));
-            return 2;
-        }
-    }
+    // TODO: Remove those global variables
+    sampleInfo = opened_audio_file->sample_info;
 
     open_thread_data.graphData = graphData;
     open_thread_data.pct = pct;
 
-    fflush(stdout);
     g_thread_unref(g_thread_new("open file", open_thread, &open_thread_data));
 
     return 0;
@@ -332,16 +265,6 @@ void sample_close_file()
 {
     if (opened_audio_file != NULL) {
         format_close_file(g_steal_pointer(&opened_audio_file));
-    }
-
-    if( read_sample_fp != NULL) {
-        fclose( read_sample_fp);
-        read_sample_fp = NULL;
-    }
-
-    if( sample_file != NULL) {
-        g_free(sample_file);
-        sample_file = NULL;
     }
 } 
 
@@ -456,22 +379,6 @@ static void sample_max_min(GraphData *graphData, double *pct)
     /* DEBUG CODE END */
 }
 
-static int
-write_file(FILE *input_file, const char *filename, SampleInfo *sample_info, WriteInfo *write_info,
-        unsigned long start_pos, unsigned long end_pos)
-{
-    if (opened_audio_file != NULL) {
-        return format_write_file(opened_audio_file, filename, start_pos, end_pos, &write_info->pct_done);
-    }
-
-    if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
-        return cdda_write_file(input_file, filename,
-            sample_info->bufferSize, start_pos, end_pos);
-    }
-
-    return -1;
-}
-
 static gpointer
 write_thread(gpointer data)
 {
@@ -526,13 +433,12 @@ write_thread(gpointer data)
 
             strcat(filename, tb_cur->filename);
 
-            const char *source_file_extension = sample_file ? strrchr(sample_file, '.') : NULL;
+            // TODO: CDDA needs .cdda.raw file extension, not .raw
+            const char *source_file_extension = opened_audio_file->filename ? strrchr(opened_audio_file->filename, '.') : NULL;
             if (source_file_extension == NULL) {
                 /* Fallback extensions if not in source filename */
                 if (opened_audio_file != NULL) {
                     source_file_extension = opened_audio_file->mod->default_file_extension;
-                } else if (audio_type == WAVBREAKER_AUDIO_TYPE_CDDA) {
-                    source_file_extension = ".dat";
                 }
             }
 
@@ -562,11 +468,11 @@ write_thread(gpointer data)
             }
 
             if (write_info->skip_file > 0) {
-                int res = write_file(write_sample_fp, filename, &sampleInfo, write_info, start_pos, end_pos);
-                if (res == -1) {
-                    fprintf(stderr, "Could not write file %s\n", filename);
+                if (format_write_file(opened_audio_file, filename, start_pos, end_pos, &write_info->pct_done) == -1) {
+                    g_warning("Could not write file %s", filename);
                     write_info->errors = g_list_append(write_info->errors, g_strdup(filename));
                 }
+
                 i++;
             }
 
@@ -584,8 +490,6 @@ write_thread(gpointer data)
     }
     write_info->cur_filename = NULL;
 
-    fclose(write_sample_fp);
-
     writing = 0;
     return NULL;
 }
@@ -598,14 +502,8 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
 
     writing = 1;
 
-    if (sample_file == NULL) {
+    if (opened_audio_file == NULL) {
         perror("Must open file first\n");
-        writing = 0;
-        return;
-    }
-
-    if ((write_sample_fp = fopen(sample_file, "rb")) == NULL) {
-        printf("error opening %s\n", sample_file);
         writing = 0;
         return;
     }

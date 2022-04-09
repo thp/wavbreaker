@@ -87,7 +87,7 @@ wav_open_file(const FormatModule *self, const char *filename, char **error_messa
     OpenedWavFile *wav = g_new0(OpenedWavFile, 1);
 
     if (!format_module_open_file(self, &wav->hdr, filename, error_message)) {
-        free(wav);
+        g_free(wav);
         return NULL;
     }
 
@@ -157,7 +157,7 @@ wav_open_file(const FormatModule *self, const char *filename, char **error_messa
     wav->hdr.sample_info.avgBytesPerSec = fmtChunk.dwAvgBytesPerSec;
     wav->hdr.sample_info.blockAlign     = fmtChunk.wBlockAlign;
     wav->hdr.sample_info.bitsPerSample  = fmtChunk.wBitsPerSample;
-    wav->hdr.sample_info.blockSize      = ((wav->hdr.sample_info.bitsPerSample / 8) * wav->hdr.sample_info.channels * wav->hdr.sample_info.samplesPerSec) / CD_BLOCKS_PER_SEC;
+    wav->hdr.sample_info.blockSize      = wav->hdr.sample_info.avgBytesPerSec / CD_BLOCKS_PER_SEC;
 
     // if we have a FormatChunk that is larger than standard size, skip over extra data
     if (chunkHdr.chunkSize > sizeof(FormatChunk)) {
@@ -309,7 +309,6 @@ error:
 static const FormatModule
 WAV_FORMAT_MODULE = {
     .name = "RIFF WAVE",
-    .type = WAVBREAKER_AUDIO_TYPE_WAV,
     .default_file_extension = ".wav",
 
     .open_file = wav_open_file,

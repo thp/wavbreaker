@@ -966,6 +966,7 @@ void track_break_rename( gboolean overwrite) {
     overwrite_track_names = overwrite;
 
     /* setup the filename */
+    // TODO: Use extension from format module (e.g. strip .cdda.raw)
     gchar *str_ptr = g_path_get_basename(sample_filename);
     gchar *end = strrchr(str_ptr, '.');
     if (end) {

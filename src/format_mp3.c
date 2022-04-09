@@ -213,10 +213,16 @@ mp3_close_file(const FormatModule *self, OpenedAudioFile *file)
 static OpenedAudioFile *
 mp3_open_file(const FormatModule *self, const char *filename, char **error_message)
 {
+    /* This format module supports MP3 files (default extension) and MP2 file */
+    if (!format_module_filename_extension_check(self, filename, NULL) &&
+            !format_module_filename_extension_check(self, filename, ".mp2")) {
+        return NULL;
+    }
+
     OpenedMP3File *mp3 = g_new0(OpenedMP3File, 1);
 
     if (!format_module_open_file(self, &mp3->hdr, filename, error_message)) {
-        free(mp3);
+        g_free(mp3);
         return NULL;
     }
 
@@ -287,7 +293,6 @@ error:
 static const FormatModule
 MP3_FORMAT_MODULE = {
     .name = "MPEG-1 Audio Layer I/II/III",
-    .type = WAVBREAKER_AUDIO_TYPE_MP3,
     .default_file_extension = ".mp3",
 
     .open_file = mp3_open_file,

@@ -103,7 +103,7 @@ ogg_vorbis_open_file(const FormatModule *self, const char *filename, char **erro
     OpenedOGGVorbisFile *ogg = g_new0(OpenedOGGVorbisFile, 1);
 
     if (!format_module_open_file(self, &ogg->hdr, filename, error_message)) {
-        free(ogg);
+        g_free(ogg);
         return NULL;
     }
 
@@ -147,7 +147,6 @@ error:
 static const FormatModule
 OGG_VORBIS_FORMAT_MODULE = {
     .name = "Ogg Vorbis",
-    .type = WAVBREAKER_AUDIO_TYPE_OGG_VORBIS,
     .default_file_extension = ".ogg",
 
     .open_file = ogg_vorbis_open_file,

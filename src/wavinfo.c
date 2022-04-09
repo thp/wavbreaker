@@ -19,9 +19,20 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <libgen.h>
+#include <math.h>
 
 #include "format.h"
+
+static char *
+format_duration(uint64_t duration)
+{
+    uint64_t seconds = duration / 1000;
+    uint64_t fraction = duration % 1000;
+    return g_strdup_printf("%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ".%03" PRIu64, seconds / 60 / 60, (seconds / 60) % 60, seconds % 60, fraction);
+}
 
 int main(int argc, char *argv[])
 {
@@ -44,18 +55,27 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        printf("Header info for: %s\n", argv[i]);
+        char *duration = format_duration((uint64_t)oaf->sample_info.numBytes * 1000 / (uint64_t)oaf->sample_info.avgBytesPerSec);
 
+        printf("File name:      %s\n", argv[i]);
         printf("File format:    %s\n", oaf->mod->name);
-        printf("channels:       %d\n", oaf->sample_info.channels);
-        printf("samplesPerSec:  %d\n", oaf->sample_info.samplesPerSec);
-        printf("avgBytesPerSec: %d\n", oaf->sample_info.avgBytesPerSec);
-        printf("blockAlign:     %d\n", oaf->sample_info.blockAlign);
-        printf("bitsPerSample:  %d\n", oaf->sample_info.bitsPerSample);
-        printf("blockSize:      %d\n", oaf->sample_info.blockSize);
+        printf("Duration:       %s (%lu samples)\n", duration, oaf->sample_info.numBytes / oaf->sample_info.blockAlign);
+        printf("Format:         %d Hz / %d ch / %d bit",
+                oaf->sample_info.samplesPerSec,
+                oaf->sample_info.channels,
+                oaf->sample_info.bitsPerSample);
+
+        printf("\n");
+
+        //printf("avgBytesPerSec: %d\n", oaf->sample_info.avgBytesPerSec);
+        //printf("blockAlign:     %d\n", oaf->sample_info.blockAlign);
+        //printf("numBytes:       %lu\n", oaf->sample_info.numBytes);
+        //printf("bufferSize:     %d\n", oaf->sample_info.bufferSize);
+        //printf("blockSize:      %d\n", oaf->sample_info.blockSize);
 
         // TODO: Maybe dump extra metadata fields
 
+        g_free(duration);
         format_close_file(oaf);
 
         printf("\n");

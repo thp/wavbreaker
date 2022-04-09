@@ -40,8 +40,9 @@ if get_option('ogg_vorbis')
 endif
 
 format_sources = [
-  'src/wav.c',
   'src/format.c',
+  'src/wav.c',
+  'src/format_cdda_raw.c',
   'src/format_mp3.c',
   'src/format_ogg_vorbis.c',
 ]
@@ -51,7 +52,6 @@ wavbreaker_sources = [
   'src/aoaudio.c',
   'src/appconfig.c',
   'src/autosplit.c',
-  'src/cdda.c',
   'src/cue.c',
   'src/draw.c',
   'src/guimerge.c',
@@ -127,5 +127,5 @@ executable('wavgen',
 executable('wavinfo',
            'src/wavinfo.c',
            format_sources,
-           dependencies : [glib] + format_deps,
+           dependencies : [glib, libm] + format_deps,
            install : true)
