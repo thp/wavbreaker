@@ -65,8 +65,6 @@ int ao_audio_open_device(SampleInfo *sampleInfo)
     format.rate = sampleInfo->samplesPerSec;
     format.byte_format = AO_FMT_LITTLE;
 
-    sampleInfo->bufferSize = DEFAULT_BUF_SIZE;
-
     device = ao_open_live(default_driver, &format, NULL);
 
     if (device == NULL) {

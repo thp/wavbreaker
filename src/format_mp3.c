@@ -262,7 +262,6 @@ mp3_open_file(const FormatModule *self, const char *filename, char **error_messa
 
             si->blockAlign = si->channels * (si->bitsPerSample / 8);
             si->avgBytesPerSec = si->blockAlign * si->samplesPerSec;
-            si->bufferSize = DEFAULT_BUF_SIZE;
             si->blockSize = si->avgBytesPerSec / CD_BLOCKS_PER_SEC;
             si->numBytes = mpg123_length(mp3->mpg123) * si->blockAlign;
             g_debug("Channels: %d, rate: %d, bits: %d, decoded size: %lu",

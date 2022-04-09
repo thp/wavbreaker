@@ -125,7 +125,7 @@ static gpointer play_thread(gpointer thread_data)
 
     i = 0;
 
-    devbuf = malloc(sampleInfo.bufferSize);
+    devbuf = malloc(DEFAULT_BUF_SIZE);
     if (devbuf == NULL) {
         g_mutex_lock(&mutex);
         playing = 0;
@@ -135,9 +135,9 @@ static gpointer play_thread(gpointer thread_data)
         return NULL;
     }
 
-    read_ret = read_sample(devbuf, sampleInfo.bufferSize, sample_start + (sampleInfo.bufferSize * i++));
+    read_ret = read_sample(devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
 
-    while (read_ret > 0 && read_ret <= sampleInfo.bufferSize) {
+    while (read_ret > 0 && read_ret <= DEFAULT_BUF_SIZE) {
         /*
         if (read_ret < 0) {
             printf("read_ret: %d\n", read_ret);
@@ -157,9 +157,9 @@ static gpointer play_thread(gpointer thread_data)
             g_mutex_unlock(&mutex);
         }
 
-        read_ret = read_sample(devbuf, sampleInfo.bufferSize, sample_start + (sampleInfo.bufferSize * i++));
+        read_ret = read_sample(devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
 
-        *play_marker = ((sampleInfo.bufferSize * i) + sample_start) /
+        *play_marker = ((DEFAULT_BUF_SIZE * i) + sample_start) /
 	    sampleInfo.blockSize;
     }
 

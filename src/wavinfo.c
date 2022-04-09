@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
         //printf("avgBytesPerSec: %d\n", oaf->sample_info.avgBytesPerSec);
         //printf("blockAlign:     %d\n", oaf->sample_info.blockAlign);
         //printf("numBytes:       %lu\n", oaf->sample_info.numBytes);
-        //printf("bufferSize:     %d\n", oaf->sample_info.bufferSize);
         //printf("blockSize:      %d\n", oaf->sample_info.blockSize);
 
         // TODO: Maybe dump extra metadata fields

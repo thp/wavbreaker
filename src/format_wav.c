@@ -383,7 +383,6 @@ int
 wav_merge_files(char *filename,
                 int num_files,
                 char *filenames[],
-                int buf_size,
                 WriteInfo *write_info)
 {
     int i;
@@ -392,7 +391,7 @@ wav_merge_files(char *filename,
     unsigned long data_ptr[num_files];
     FILE *new_fp, *read_fp;
     unsigned long cur_pos, end_pos, num_bytes;
-    unsigned char buf[buf_size];
+    unsigned char buf[DEFAULT_BUF_SIZE];
 
     if( write_info != NULL) {
         write_info->num_files = num_files;
@@ -479,7 +478,7 @@ wav_merge_files(char *filename,
             return -1;
         }
 
-        while ((ret = fread(buf, 1, buf_size, read_fp)) > 0 &&
+        while ((ret = fread(buf, 1, sizeof(buf), read_fp)) > 0 &&
                            (cur_pos < end_pos)) {
 
             if ((fwrite(buf, 1, ret, new_fp)) < ret) {

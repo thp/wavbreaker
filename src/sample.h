@@ -67,7 +67,6 @@ struct SampleInfo_ {
     unsigned short  blockAlign;
     unsigned short  bitsPerSample;
     unsigned long   numBytes;
-    unsigned int    bufferSize;
     unsigned int    blockSize;
 };
 

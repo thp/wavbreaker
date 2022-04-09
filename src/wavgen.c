@@ -129,7 +129,6 @@ main(int argc, char *argv[])
 
         si.numBytes = si.avgBytesPerSec * templates[i].seconds;
 
-        si.bufferSize = DEFAULT_BUF_SIZE; // unused here, just for playback
         si.blockSize = si.avgBytesPerSec / CD_BLOCKS_PER_SEC; // unused here, just for playback
 
         char *filename = g_strdup_printf("wav_%s_%dch_%dhz_%dbit.wav", templates[i].name,

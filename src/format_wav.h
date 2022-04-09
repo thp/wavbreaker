@@ -34,5 +34,4 @@ int
 wav_merge_files(char *filename,
                 int num_files,
                 char *filenames[],
-                int buf_size,
                 WriteInfo *write_info);

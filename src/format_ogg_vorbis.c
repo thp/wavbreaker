@@ -128,7 +128,6 @@ ogg_vorbis_open_file(const FormatModule *self, const char *filename, char **erro
 
         si->blockAlign = si->channels * (si->bitsPerSample / 8);
         si->avgBytesPerSec = si->blockAlign * si->samplesPerSec;
-        si->bufferSize = DEFAULT_BUF_SIZE;
         si->blockSize = si->avgBytesPerSec / CD_BLOCKS_PER_SEC;
         si->numBytes = ov_pcm_total(&ogg->ogg_vorbis_file, -1) * si->blockAlign;
     } else {

@@ -105,7 +105,6 @@ merge_thread(gpointer data)
     wav_merge_files(thread_data->merge_filename,
                         g_list_length(thread_data->filenames),
                         filenames,
-                        DEFAULT_BUF_SIZE,
                         thread_data->write_info);
 
     head = thread_data->filenames;
