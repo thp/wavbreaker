@@ -25,8 +25,6 @@
 
 #include "gettext.h"
 
-#include "aoaudio.h"
-
 #include <gtk/gtk.h>
 #include <glib.h>
 
@@ -39,9 +37,6 @@ static GtkWidget *window;
 static gboolean loading_ui = FALSE;
 
 static int config_file_version = 2;
-
-/* Function pointers to the currently selected audio driver. */
-static AudioFunctionPointers audio_function_pointers;
 
 /* Output directory for wave files. */
 static int use_outputdir = 0;
@@ -102,33 +97,6 @@ int appconfig_get_config_file_version()
 void appconfig_set_config_file_version(int x)
 {
     config_file_version = x;
-}
-
-AudioFunctionPointers *get_audio_function_pointers()
-{
-    return &audio_function_pointers;
-}
-
-void set_audio_close_device(void (*f))
-{
-    audio_function_pointers.audio_close_device = f;
-}
-
-void set_audio_open_device(void (*f))
-{
-    audio_function_pointers.audio_open_device = f;
-}
-
-void set_audio_write(void (*f))
-{
-    audio_function_pointers.audio_write = f;
-}
-
-void set_audio_function_pointers()
-{
-    set_audio_close_device(ao_audio_close_device);
-    set_audio_open_device(ao_audio_open_device);
-    set_audio_write(ao_audio_write);
 }
 
 int appconfig_get_main_window_xpos()
@@ -393,7 +361,6 @@ on_appconfig_close(GtkWidget *widget, GdkEvent *event, gpointer user_data)
     appconfig_set_etree_filename_suffix(gtk_entry_get_text(GTK_ENTRY(etree_filename_suffix_entry)));
     appconfig_set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
     appconfig_set_silence_percentage( gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(silence_spin_button)));
-    set_audio_function_pointers();
 
     track_break_rename( FALSE);
     appconfig_hide(GTK_WIDGET(user_data));
@@ -543,7 +510,6 @@ void appconfig_show(GtkWidget *main_window)
     loading_ui = FALSE;
 
     gtk_widget_show_all(window);
-    set_audio_function_pointers();
     radio_buttons_toggled( NULL, NULL);
 }
 
@@ -709,6 +675,4 @@ void default_all_strings() {
     if (appconfig_get_etree_cd_length() == NULL) {
         etree_cd_length = g_strdup("80");
     }
-
-    set_audio_function_pointers();
 }

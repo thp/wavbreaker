@@ -30,14 +30,14 @@
  
 #include "wavbreaker.h"
 
+#include "aoaudio.h"
+
 #include "sample.h"
 #include "format.h"
-#include "appconfig.h"
 #include "overwritedialog.h"
 #include "gettext.h"
 
 SampleInfo sampleInfo;
-static AudioFunctionPointers *audio_function_pointers;
 static unsigned long sample_start = 0;
 static int playing = 0;
 static int writing = 0;
@@ -108,15 +108,13 @@ static gpointer play_thread(gpointer thread_data)
     guint *play_marker = (guint *)thread_data;
     unsigned char *devbuf;
 
-    audio_function_pointers = get_audio_function_pointers();
-
     /*
     printf("play_thread: calling open_audio_device\n");
     */
-    if (audio_function_pointers->audio_open_device(&sampleInfo) != 0) {
+    if (ao_audio_open_device(&sampleInfo) != 0) {
         g_mutex_lock(&mutex);
         playing = 0;
-        audio_function_pointers->audio_close_device();
+        ao_audio_close_device();
         g_mutex_unlock(&mutex);
         //printf("play_thread: return from open_audio_device != 0\n");
         return NULL;
@@ -129,7 +127,7 @@ static gpointer play_thread(gpointer thread_data)
     if (devbuf == NULL) {
         g_mutex_lock(&mutex);
         playing = 0;
-        audio_function_pointers->audio_close_device();
+        ao_audio_close_device();
         g_mutex_unlock(&mutex);
         printf("play_thread: out of memory\n");
         return NULL;
@@ -144,11 +142,11 @@ static gpointer play_thread(gpointer thread_data)
         }
         */
 
-        audio_function_pointers->audio_write(devbuf, read_ret);
+        ao_audio_write(devbuf, read_ret);
 
         if (g_mutex_trylock(&mutex)) {
             if (kill_play_thread == TRUE) {
-                audio_function_pointers->audio_close_device();
+                ao_audio_close_device();
                 playing = 0;
                 kill_play_thread = FALSE;
                 g_mutex_unlock(&mutex);
@@ -165,7 +163,7 @@ static gpointer play_thread(gpointer thread_data)
 
     g_mutex_lock(&mutex);
 
-    audio_function_pointers->audio_close_device();
+    ao_audio_close_device();
     playing = 0;
 
     g_mutex_unlock(&mutex);
