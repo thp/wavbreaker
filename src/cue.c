@@ -17,7 +17,11 @@
  */
 
 #include "cue.h"
+
+#include "track_break.h"
 #include "wavbreaker.h"
+
+#include <stdio.h>
 #include <string.h>
 
 int cue_read_file(const char *cue_filename, GList *breaks)

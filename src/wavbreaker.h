@@ -34,6 +34,4 @@ void wavbreaker_quit();
 void track_break_clear_list();
 void track_break_add_offset(char *filename, gulong offset);
 
-guint msf_time_to_offset( gchar *str );
-
 #endif /* WAVBREAKER_H */

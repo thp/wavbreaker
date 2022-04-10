@@ -3111,28 +3111,5 @@ int track_breaks_load_from_file( gchar const *filename) {
     }
 
     fclose( fp);
-    force_redraw();
     return 0;
-}
-
-/** @param str Time in MM:SS:FF format (where there are CD_BLOCKS_PER_SEC frames per second).
- *  @return offset in frames.
- */
-guint
-msf_time_to_offset( gchar *str )
-{
-    guint   offset;
-    int    mm = 0, ss = 0, ff = 0;
-    int    consumed;
-
-    consumed = sscanf(str, "%d:%d:%d", &mm, &ss, &ff);
-    if (consumed != 3) {
-	return 0;
-    }
-
-    offset  = mm * CD_BLOCKS_PER_SEC * 60;
-    offset += ss * CD_BLOCKS_PER_SEC;
-    offset += ff;
-
-    return offset;
 }

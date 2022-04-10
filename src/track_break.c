@@ -21,6 +21,8 @@
 
 #include "sample_info.h"
 
+#include <stdio.h>
+
 gchar *
 track_break_format_time(TrackBreak *track_break, gboolean toc_format)
 {
@@ -36,4 +38,27 @@ track_break_format_time(TrackBreak *track_break, gboolean toc_format)
     } else {
         return g_strdup_printf("%d:%02d.%02d", min, sec, subsec);
     }
+}
+
+
+/** @param str Time in MM:SS:FF format (where there are CD_BLOCKS_PER_SEC frames per second).
+ *  @return offset in frames.
+ */
+guint
+msf_time_to_offset(const gchar *str)
+{
+    guint   offset;
+    int    mm = 0, ss = 0, ff = 0;
+    int    consumed;
+
+    consumed = sscanf(str, "%d:%d:%d", &mm, &ss, &ff);
+    if (consumed != 3) {
+        return 0;
+    }
+
+    offset  = mm * CD_BLOCKS_PER_SEC * 60;
+    offset += ss * CD_BLOCKS_PER_SEC;
+    offset += ff;
+
+    return offset;
 }

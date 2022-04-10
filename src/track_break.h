@@ -31,3 +31,6 @@ struct TrackBreak_ {
 
 gchar *
 track_break_format_time(TrackBreak *track_break, gboolean toc_format);
+
+guint
+msf_time_to_offset(const gchar *str);
