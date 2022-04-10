@@ -79,40 +79,47 @@ int toc_read_file(const char *toc_filename, GList *breaks)
     return 0;
 }
 
-int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks, gulong total_duration)
-{
+struct WriteTOCForEach {
     FILE *fp;
-    TrackBreak *next_break = NULL;
-    char *tocDuration;
+    const char *wav_filename;
+};
 
-    fp = fopen(toc_filename, "w");
-    if(!fp) return 1;
+static void
+write_toc_entry(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data)
+{
+    struct WriteTOCForEach *wtfe = user_data;
+
+    fprintf(wtfe->fp, "\n// track %02d\n", index);
+    fprintf(wtfe->fp, "TRACK AUDIO\n");
+
+    gchar *tocTime = track_break_format_timestamp(start_offset, TRUE);
+    gchar *tocDuration = track_break_format_timestamp(end_offset - start_offset, TRUE);
+
+    fprintf(wtfe->fp, "FILE \"%s\" %s %s\n", wtfe->wav_filename, tocTime, tocDuration);
+
+    g_free(tocDuration);
+    g_free(tocTime);
+}
+
+gboolean
+toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks, gulong total_duration)
+{
+    FILE *fp = fopen(toc_filename, "w");
+
+    if (!fp) {
+        return FALSE;
+    }
 
     fprintf(fp, "// Generated with wavbreaker\n\nCD_DA\n");
-    int i = 0;
-    int len = g_list_length(breaks);
-    while (i < len) {
-        next_break = (TrackBreak *) g_list_nth_data(breaks, i);
-        TrackBreak *next_next = g_list_nth_data(breaks, i + 1);
-        gulong end_offset = (next_next != NULL) ? next_next->offset : total_duration;
 
-        if (next_break != NULL) {
-            fprintf(fp, "\n// track %02d\n", i);
-            fprintf(fp, "TRACK AUDIO\n");
+    struct WriteTOCForEach wtfe = {
+        .fp = fp,
+        .wav_filename = wav_filename,
+    };
 
-            gchar *tocTime = track_break_format_time(next_break, TRUE);
+    track_break_list_foreach(breaks, total_duration, write_toc_entry, &wtfe);
 
-            if (i != len-1) {
-                tocDuration = track_break_format_duration(next_break, end_offset, TRUE);
-                fprintf(fp, "FILE \"%s\" %s %s\n", wav_filename, tocTime, tocDuration);
-                g_free(tocDuration);
-            } else {
-                fprintf(fp, "FILE \"%s\" %s\n", wav_filename, tocTime);
-            }
-            g_free(tocTime);
-        }
-        i++;
-    }
     fclose(fp);
-    return 0;
+
+    return TRUE;
 }

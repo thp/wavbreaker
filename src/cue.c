@@ -96,7 +96,7 @@ track_break_write_cue(gpointer data, gpointer user_data)
 
     TrackBreak *track_break = data;
 
-    gchar *time = track_break_format_time(track_break, TRUE);
+    gchar *time = track_break_format_offset(track_break, TRUE);
 
     fprintf(ws->fp, "TRACK %02d AUDIO\n", ws->index);
     fprintf(ws->fp, "INDEX 01 %s\n", time);

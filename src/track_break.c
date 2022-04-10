@@ -23,8 +23,8 @@
 
 #include <stdio.h>
 
-static gchar *
-_format_time(gulong time, gboolean toc_format)
+gchar *
+track_break_format_timestamp(gulong time, gboolean toc_format)
 {
     int min = time / (CD_BLOCKS_PER_SEC * 60);
     int sec = time % (CD_BLOCKS_PER_SEC * 60);
@@ -39,15 +39,15 @@ _format_time(gulong time, gboolean toc_format)
 }
 
 gchar *
-track_break_format_time(TrackBreak *track_break, gboolean toc_format)
+track_break_format_offset(TrackBreak *track_break, gboolean toc_format)
 {
-    return _format_time(track_break->offset, toc_format);
+    return track_break_format_timestamp(track_break->offset, toc_format);
 }
 
 gchar *
 track_break_format_duration(TrackBreak *track_break, gulong next_offset, gboolean toc_format)
 {
-    return _format_time(next_offset - track_break->offset, toc_format);
+    return track_break_format_timestamp(next_offset - track_break->offset, toc_format);
 }
 
 /** @param str Time in MM:SS:FF format (where there are CD_BLOCKS_PER_SEC frames per second).
@@ -70,4 +70,27 @@ msf_time_to_offset(const gchar *str)
     offset += ff;
 
     return offset;
+}
+
+typedef void (*track_break_visitor_func)(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data);
+
+void
+track_break_list_foreach(GList *list, gulong total_duration, track_break_visitor_func visitor, void *visitor_user_data)
+{
+    int index = 0;
+
+    GList *cur = g_list_first(list);
+    while (cur != NULL) {
+        TrackBreak *track_break = cur->data;
+
+        GList *next = g_list_next(cur);
+        TrackBreak *next_track_break = (next != NULL) ? next->data : NULL;
+
+        gulong start_offset = track_break->offset;
+        gulong end_offset = (next_track_break != NULL) ? next_track_break->offset : total_duration;
+
+        visitor(index++, track_break->write, start_offset, end_offset, track_break->filename, visitor_user_data);
+
+        cur = next;
+    }
 }

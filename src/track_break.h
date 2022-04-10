@@ -29,10 +29,18 @@ struct TrackBreak_ {
 };
 
 gchar *
-track_break_format_time(TrackBreak *track_break, gboolean toc_format);
+track_break_format_timestamp(gulong time, gboolean toc_format);
+
+gchar *
+track_break_format_offset(TrackBreak *track_break, gboolean toc_format);
 
 gchar *
 track_break_format_duration(TrackBreak *track_break, gulong next_offset, gboolean toc_format);
 
 guint
 msf_time_to_offset(const gchar *str);
+
+typedef void (*track_break_visitor_func)(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data);
+
+void
+track_break_list_foreach(GList *list, gulong total_duration, track_break_visitor_func visitor, void *visitor_user_data);

@@ -734,7 +734,7 @@ track_break_add_to_model(gpointer data, gpointer user_data)
     TrackBreak *next_break = g_list_nth_data(track_break_list, g_list_index(track_break_list, track_break)+ 1);
     gulong next_offset = (next_break != NULL) ? next_break->offset : sample_get_num_sample_blocks(g_sample);
 
-    gchar *time = track_break_format_time(track_break, FALSE);
+    gchar *time = track_break_format_offset(track_break, FALSE);
     gchar *duration = track_break_format_duration(track_break, next_offset, FALSE);
 
     gtk_list_store_insert_with_values(store, NULL, -1,
@@ -2923,7 +2923,6 @@ main(int argc, char *argv[])
 
 int track_breaks_export_to_file( char* filename) {
     FILE *fp = NULL;
-    int write_err = -1;
 
     if( g_str_has_suffix (filename, ".txt")) {
 
@@ -2943,9 +2942,7 @@ int track_breaks_export_to_file( char* filename) {
 
     } else if( g_str_has_suffix (filename, ".toc")) {
 
-        write_err = toc_write_file( filename, sample_get_basename(g_sample), track_break_list, sample_get_num_sample_blocks(g_sample));
-
-        if( write_err) {
+        if (!toc_write_file(filename, sample_get_basename(g_sample), track_break_list, sample_get_num_sample_blocks(g_sample))) {
             popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
 	    return -1;
         }
