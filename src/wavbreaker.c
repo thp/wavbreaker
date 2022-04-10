@@ -331,7 +331,7 @@ void jump_to_track_break(GSimpleAction *action, GVariant *parameter, gpointer us
     guint n = 0;
 
     n = track_break_find_offset();
-    if (n <= sample_get_num_samples()) {
+    if (n <= sample_get_num_samples(g_sample)) {
         reset_sample_display(n);
     }
 
@@ -343,7 +343,7 @@ void wavbreaker_autosplit(long x) {
 
     gulong orig_cursor_marker = cursor_marker;
 
-    while (n <= sample_get_num_samples()) {
+    while (n <= sample_get_num_samples(g_sample)) {
         cursor_marker = n;
         track_break_add_entry();
         n += x;
@@ -610,7 +610,7 @@ void track_break_set_duration(gpointer data, gpointer user_data)
     /*
     printf("index: %d\n", index);
     printf("cursor_marker: %d\n", cursor_marker);
-    printf("numSamples: %d\n", sample_get_num_samples());
+    printf("numSamples: %d\n", sample_get_num_samples(g_sample));
     */
     next_track_break = (TrackBreak *) g_list_nth_data(track_break_list, index);
 
@@ -621,7 +621,7 @@ void track_break_set_duration(gpointer data, gpointer user_data)
     } else {
         // There is no next track.
         // Take the end of the sample as the end of the duration.
-        offset_to_duration(track_break->offset, sample_get_num_samples(),
+        offset_to_duration(track_break->offset, sample_get_num_samples(g_sample),
             track_break->duration);
     }
     //printf("\n");
@@ -908,7 +908,7 @@ void track_break_add_offset( char* filename, gulong offset)
         return;
     }
 
-    if( offset > sample_get_num_samples()) {
+    if( offset > sample_get_num_samples(g_sample)) {
         if( filename != NULL) {
             printf( "Offset for %s is too big, skipping.\n", filename);
         }
@@ -1535,13 +1535,17 @@ static void redraw()
 
 static gboolean redraw_later( gpointer data)
 {
+    if (g_sample == NULL) {
+        return FALSE;
+    }
+
     int *redraw_done = (int*)data;
 
     struct WaveformSurfaceDrawContext ctx = {
         .widget = draw,
         .pixmap_offset = pixmap_offset,
         .track_break_list = track_break_list,
-        .graphData = sample_get_graph_data(),
+        .graphData = sample_get_graph_data(g_sample),
         .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
     };
     waveform_surface_draw(sample_surface, &ctx);
@@ -1560,38 +1564,42 @@ static gboolean redraw_later( gpointer data)
 static gboolean configure_event(GtkWidget *widget,
     GdkEventConfigure *event, gpointer data)
 {
+    if (g_sample == NULL) {
+        return FALSE;
+    }
+
     GtkAllocation allocation;
     gtk_widget_get_allocation(widget, &allocation);
     int width = allocation.width;
 
-    if (sample_get_num_samples() == 0) {
+    if (sample_get_num_samples(g_sample) == 0) {
         pixmap_offset = 0;
         gtk_adjustment_set_page_size(adj, 1);
         gtk_adjustment_set_upper(adj, 1);
         gtk_adjustment_set_page_increment(adj, 1);
-    } else if (width > sample_get_num_samples()) {
+    } else if (width > sample_get_num_samples(g_sample)) {
         pixmap_offset = 0;
-        gtk_adjustment_set_page_size(adj, sample_get_num_samples());
-        gtk_adjustment_set_upper(adj, sample_get_num_samples());
+        gtk_adjustment_set_page_size(adj, sample_get_num_samples(g_sample));
+        gtk_adjustment_set_upper(adj, sample_get_num_samples(g_sample));
         gtk_adjustment_set_page_increment(adj, width / 2);
     } else {
-        if (pixmap_offset + width > sample_get_num_samples()) {
-            pixmap_offset = sample_get_num_samples() - width;
+        if (pixmap_offset + width > sample_get_num_samples(g_sample)) {
+            pixmap_offset = sample_get_num_samples(g_sample) - width;
         }
         gtk_adjustment_set_page_size(adj, width);
-        gtk_adjustment_set_upper(adj, sample_get_num_samples());
+        gtk_adjustment_set_upper(adj, sample_get_num_samples(g_sample));
         gtk_adjustment_set_page_increment(adj, width / 2);
     }
 
     gtk_adjustment_set_step_increment(adj, 10);
     gtk_adjustment_set_value(adj, pixmap_offset);
-    gtk_adjustment_set_upper(cursor_marker_spinner_adj, sample_get_num_samples() - 1);
+    gtk_adjustment_set_upper(cursor_marker_spinner_adj, sample_get_num_samples(g_sample) - 1);
 
     struct WaveformSurfaceDrawContext ctx = {
         .widget = widget,
         .pixmap_offset = pixmap_offset,
         .track_break_list = track_break_list,
-        .graphData = sample_get_graph_data(),
+        .graphData = sample_get_graph_data(g_sample),
         .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
     };
     waveform_surface_draw(sample_surface, &ctx);
@@ -1750,11 +1758,15 @@ draw_summary_configure_event(GtkWidget *widget,
                              GdkEventConfigure *event,
                              gpointer user_data)
 {
+    if (g_sample == NULL) {
+        return FALSE;
+    }
+
     struct WaveformSurfaceDrawContext ctx = {
         .widget = widget,
         .pixmap_offset = pixmap_offset,
         .track_break_list = track_break_list,
-        .graphData = sample_get_graph_data(),
+        .graphData = sample_get_graph_data(g_sample),
         .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
     };
     waveform_surface_draw(summary_surface, &ctx);
@@ -1772,7 +1784,7 @@ draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
     gfloat summary_scale;
 
-    summary_scale = (float)(sample_get_num_samples()) / (float)(width);
+    summary_scale = (float)(sample_get_num_samples(g_sample)) / (float)(width);
 
     /**
      * Draw shadow in summary pixmap to show current view
@@ -1808,15 +1820,15 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
         return TRUE;
     }
 
-    if (sample_get_num_samples() == 0) {
+    if (sample_get_num_samples(g_sample) == 0) {
         return TRUE;
     }
 
     GtkAllocation allocation;
     gtk_widget_get_allocation(widget, &allocation);
     width = allocation.width;
-    x_scale = sample_get_num_samples() / width;
-    x_scale_leftover = sample_get_num_samples() % width;
+    x_scale = sample_get_num_samples(g_sample) / width;
+    x_scale_leftover = sample_get_num_samples(g_sample) % width;
     if (x_scale_leftover > 0) {
         x_scale_mod =  width / x_scale_leftover;
         leftover_count = event->x / x_scale_mod;
@@ -1843,12 +1855,12 @@ void reset_sample_display(guint midpoint)
     int width = allocation.width;
     int start = midpoint - width / 2;
 
-    if (sample_get_num_samples() == 0) {
+    if (sample_get_num_samples(g_sample) == 0) {
         pixmap_offset = 0;
-    } else if (width > sample_get_num_samples()) {
+    } else if (width > sample_get_num_samples(g_sample)) {
         pixmap_offset = 0;
-    } else if (start + width > sample_get_num_samples()) {
-        pixmap_offset = sample_get_num_samples() - width;
+    } else if (start + width > sample_get_num_samples(g_sample)) {
+        pixmap_offset = sample_get_num_samples(g_sample) - width;
     } else {
         pixmap_offset = start;
     }
@@ -1961,7 +1973,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
 {
     gtk_widget_grab_focus(play_button);
 
-    if (event->x + pixmap_offset > sample_get_num_samples()) {
+    if (event->x + pixmap_offset > sample_get_num_samples(g_sample)) {
         return TRUE;
     }
 
@@ -2135,7 +2147,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
     }
 
     play_marker = cursor_marker;
-    switch (play_sample(cursor_marker, &play_marker)) {
+    switch (sample_play(g_sample, cursor_marker, &play_marker)) {
         case 0:
             if (play_progress_source_id) {
                 g_source_remove(play_progress_source_id);
@@ -2150,12 +2162,6 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
             menu_stop( NULL, NULL);
             update_status(FALSE);
             set_play_icon();
-//            printf("already playing\n");
-//            menu_stop(NULL, NULL);
-//            play_sample(cursor_marker, &play_marker);
-            break;
-        case 3:
-//            printf("must open sample file to play\n");
             break;
     }
 }
@@ -2183,11 +2189,15 @@ menu_jump_to(GtkWidget *widget, gpointer user_data)
 
 static void menu_next_silence( GtkWidget* widget, gpointer user_data)
 {
+    if (g_sample == NULL) {
+        return;
+    }
+
     int i, c = SILENCE_MIN_LENGTH+1, v;
-    GraphData *graphData = sample_get_graph_data();
+    GraphData *graphData = sample_get_graph_data(g_sample);
     int amp = graphData->minSampleAmp + (graphData->maxSampleAmp-graphData->minSampleAmp)*appconfig_get_silence_percentage()/100;
 
-    for( i=cursor_marker+1; i<sample_get_num_samples(); i++) {
+    for( i=cursor_marker+1; i<sample_get_num_samples(g_sample); i++) {
         v = graphData->data[i].max - graphData->data[i].min;
         if( v < amp) {
             c++;
@@ -2206,8 +2216,12 @@ static void menu_next_silence( GtkWidget* widget, gpointer user_data)
 
 static void menu_prev_silence( GtkWidget* widget, gpointer user_data)
 {
+    if (g_sample == NULL) {
+        return;
+    }
+
     int i, c = SILENCE_MIN_LENGTH+1, v;
-    GraphData *graphData = sample_get_graph_data();
+    GraphData *graphData = sample_get_graph_data(g_sample);
     int amp = graphData->minSampleAmp + (graphData->maxSampleAmp-graphData->minSampleAmp)*appconfig_get_silence_percentage()/100;
 
     for( i=cursor_marker-1; i>0; i--) {
@@ -2251,7 +2265,7 @@ static void menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void wavbreaker_write_files(char *dirname) {
     if (!sample_is_writing()) {
-        sample_write_files(track_break_list, &write_info, dirname);
+        sample_write_files(g_sample, track_break_list, &write_info, dirname);
 
         file_write_progress_source_id = g_timeout_add(50, file_write_progress_idle_func, NULL);
     }

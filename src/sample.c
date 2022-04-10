@@ -37,51 +37,62 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-static SampleInfo sampleInfo;
-static GraphData g_graphData;
 static unsigned long sample_start = 0;
 static int playing = 0;
 static int writing = 0;
 static gboolean kill_play_thread = FALSE;
 
-static OpenedAudioFile *
-opened_audio_file = NULL;
-
 static GThread *thread;
 static GMutex mutex;
 
-struct Sample_ {
-    OpenedAudioFile *opened_audio_file;
-    gchar *filename_dirname;
-    gchar *filename_basename;
-    gchar *basename_without_extension;
-    double percentage;
-};
+typedef struct PlayThreadData_ PlayThreadData;
+struct PlayThreadData_ {
+    Sample *sample;
 
-/* typedef and struct stuff for new thread open junk */
+    gulong *play_marker;
+};
 
 typedef struct WriteThreadData_ WriteThreadData;
 struct WriteThreadData_ {
+    Sample *sample;
+
     GList *tbl;
     WriteInfo *write_info;
     char *outputdir;
 };
-WriteThreadData wtd;
 
 typedef struct OpenThreadData_ OpenThreadData;
 struct OpenThreadData_ {
+    Sample *sample;
+
     GraphData *graphData;
     double *pct;
 };
-OpenThreadData open_thread_data;
 
-static void sample_max_min(GraphData *graphData, double *pct);
+struct Sample_ {
+    OpenedAudioFile *opened_audio_file;
+
+    gchar *filename_dirname;
+    gchar *filename_basename;
+    gchar *basename_without_extension;
+
+    GraphData graph_data;
+    double percentage; // for loading
+
+    OpenThreadData open_thread_data;
+    PlayThreadData play_thread_data;
+    WriteThreadData write_thread_data;
+};
+
+
+static void
+sample_max_min(Sample *sample, GraphData *graphData, double *pct);
 
 static long
-read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
+read_sample(OpenedAudioFile *oaf, unsigned char *buf, int buf_size, unsigned long start_pos)
 {
-    if (opened_audio_file != NULL) {
-        return format_read_samples(opened_audio_file, buf, buf_size, start_pos);
+    if (oaf != NULL) {
+        return format_read_samples(oaf, buf, buf_size, start_pos);
     }
 
     return -1;
@@ -94,17 +105,20 @@ void sample_init()
     format_init();
 }
 
-static gpointer play_thread(gpointer thread_data)
+static gpointer
+play_thread(gpointer thread_data)
 {
+    PlayThreadData *self = thread_data;
+
     int read_ret = 0;
     int i;
-    guint *play_marker = (guint *)thread_data;
+
     unsigned char *devbuf;
 
     /*
     printf("play_thread: calling open_audio_device\n");
     */
-    if (ao_audio_open_device(&sampleInfo) != 0) {
+    if (ao_audio_open_device(&self->sample->opened_audio_file->sample_info) != 0) {
         g_mutex_lock(&mutex);
         playing = 0;
         ao_audio_close_device();
@@ -126,7 +140,7 @@ static gpointer play_thread(gpointer thread_data)
         return NULL;
     }
 
-    read_ret = read_sample(devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
+    read_ret = read_sample(self->sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
 
     while (read_ret > 0 && read_ret <= DEFAULT_BUF_SIZE) {
         /*
@@ -148,10 +162,9 @@ static gpointer play_thread(gpointer thread_data)
             g_mutex_unlock(&mutex);
         }
 
-        read_ret = read_sample(devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
+        read_ret = read_sample(self->sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
 
-        *play_marker = ((DEFAULT_BUF_SIZE * i) + sample_start) /
-	    sampleInfo.blockSize;
+        *self->play_marker = ((DEFAULT_BUF_SIZE * i) + sample_start) / self->sample->opened_audio_file->sample_info.blockSize;
     }
 
     g_mutex_lock(&mutex);
@@ -174,27 +187,31 @@ int sample_is_writing()
     return writing;
 }
 
-int play_sample(gulong startpos, gulong *play_marker)
-{       
+int
+sample_play(Sample *sample, gulong startpos, gulong *play_marker)
+{
     g_mutex_lock(&mutex);
     if (playing) {
         g_mutex_unlock(&mutex);
         return 2;
     }
 
-    if (opened_audio_file == NULL) {
+    if (sample->opened_audio_file == NULL) {
         g_mutex_unlock(&mutex);
         return 3;
     }
 
     playing = 1;
-    sample_start = startpos * sampleInfo.blockSize;
+    sample_start = startpos * sample->opened_audio_file->sample_info.blockSize;
 
     /* setup thread */
 
+    sample->play_thread_data.sample = sample;
+    sample->play_thread_data.play_marker = play_marker;
+
     //printf("creating the thread\n");
     fflush(stdout);
-    thread = g_thread_new("play_sample", play_thread, play_marker);
+    thread = g_thread_new("play_sample", play_thread, &sample->play_thread_data);
 
     g_mutex_unlock(&mutex);
     //printf("finished creating the thread\n");
@@ -218,11 +235,12 @@ void stop_sample()
     thread = NULL;
 }
 
-static gpointer open_thread(gpointer data)
+static gpointer
+open_thread(gpointer data)
 {
     OpenThreadData *thread_data = data;
 
-    sample_max_min(thread_data->graphData,
+    sample_max_min(thread_data->sample, thread_data->graphData,
                    thread_data->pct);
 
     return NULL;
@@ -254,29 +272,27 @@ sample_open(const char *filename, char **error_message)
     }
     result->basename_without_extension = tmp;
 
-    // TODO: Remove those global variables
-    opened_audio_file = result->opened_audio_file;
-    sampleInfo = opened_audio_file->sample_info;
+    result->open_thread_data = (OpenThreadData) {
+        .sample = result,
+        .graphData = &result->graph_data,
+        .pct = &result->percentage,
+    };
 
-    GraphData *graphData = &g_graphData;
-    open_thread_data.graphData = graphData;
-    open_thread_data.pct = &result->percentage;
-
-    g_thread_unref(g_thread_new("open file", open_thread, &open_thread_data));
+    g_thread_unref(g_thread_new("open file", open_thread, &result->open_thread_data));
 
     return result;
 }
 
 GraphData *
-sample_get_graph_data(void)
+sample_get_graph_data(Sample *sample)
 {
-    return &g_graphData;
+    return &sample->graph_data;
 }
 
 unsigned long
-sample_get_num_samples(void)
+sample_get_num_samples(Sample *sample)
 {
-    return g_graphData.numSamples;
+    return sample->graph_data.numSamples;
 }
 
 void
@@ -286,8 +302,8 @@ sample_close(Sample *sample)
     g_free(sample->filename_basename);
     g_free(sample->filename_dirname);
 
-    if (opened_audio_file != NULL) {
-        format_close_file(g_steal_pointer(&opened_audio_file));
+    if (sample->opened_audio_file != NULL) {
+        format_close_file(g_steal_pointer(&sample->opened_audio_file));
     }
 
     g_free(sample);
@@ -329,8 +345,10 @@ sample_get_basename_without_extension(Sample *sample)
     return sample->basename_without_extension;
 }
 
-static void sample_max_min(GraphData *graphData, double *pct)
+static void
+sample_max_min(Sample *sample, GraphData *graphData, double *pct)
 {
+    SampleInfo *sample_info = &sample->opened_audio_file->sample_info;
     int tmp = 0;
     long int ret = 0;
     int min, max, xtmp;
@@ -338,19 +356,19 @@ static void sample_max_min(GraphData *graphData, double *pct)
     long int i, k;
     long int numSampleBlocks;
     long int tmp_sample_calc;
-    unsigned char devbuf[sampleInfo.blockSize];
+    unsigned char devbuf[sample->opened_audio_file->sample_info.blockSize];
     Points *graph_data;
 
-    tmp_sample_calc = sampleInfo.numBytes;
-    tmp_sample_calc = tmp_sample_calc / sampleInfo.blockSize;
+    tmp_sample_calc = sample_info->numBytes;
+    tmp_sample_calc = tmp_sample_calc / sample_info->blockSize;
     numSampleBlocks = (tmp_sample_calc + 1);
 
     /* DEBUG CODE START */
     /*
-    printf("\nsampleInfo.numBytes: %lu\n", sampleInfo.numBytes);
-    printf("sampleInfo.bitsPerSample: %d\n", sampleInfo.bitsPerSample);
-    printf("sampleInfo.blockSize: %d\n", sampleInfo.blockSize);
-    printf("sampleInfo.channels: %d\n", sampleInfo.channels);
+    printf("\nsample_info->numBytes: %lu\n", sample_info->numBytes);
+    printf("sample_info->bitsPerSample: %d\n", sample_info->bitsPerSample);
+    printf("sample_info->blockSize: %d\n", sample_info->blockSize);
+    printf("sample_info->channels: %d\n", sample_info->channels);
     printf("numSampleBlocks: %d\n\n", numSampleBlocks);
     */
     /* DEBUG CODE END */
@@ -364,21 +382,21 @@ static void sample_max_min(GraphData *graphData, double *pct)
 
     i = 0;
 
-    ret = read_sample(devbuf, sampleInfo.blockSize, sampleInfo.blockSize * i);
+    ret = read_sample(sample->opened_audio_file, devbuf, sample_info->blockSize, sample_info->blockSize * i);
 
     min_sample = SHRT_MAX; /* highest value for 16-bit samples */
     max_sample = 0;
 
-    while (ret == sampleInfo.blockSize && i < numSampleBlocks) {
+    while (ret == sample_info->blockSize && i < numSampleBlocks) {
         min = max = 0;
         for (k = 0; k < ret; k++) {
-            if (sampleInfo.bitsPerSample == 8) {
+            if (sample_info->bitsPerSample == 8) {
                 tmp = devbuf[k];
                 tmp -= 128;
-            } else if (sampleInfo.bitsPerSample == 16) {
+            } else if (sample_info->bitsPerSample == 16) {
                 tmp = (char)devbuf[k+1] << 8 | (char)devbuf[k];
                 k++;
-	    } else if (sampleInfo.bitsPerSample == 24) {
+	    } else if (sample_info->bitsPerSample == 24) {
 		tmp   = ((char)devbuf[k]) | ((char)devbuf[k+1] << 8);
 		tmp  &= 0x0000ffff;
 		xtmp  =  (char)devbuf[k+2] << 16;
@@ -393,7 +411,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
             }
 
             // skip over any extra channels
-            k += (sampleInfo.channels - 1) * (sampleInfo.bitsPerSample / 8);
+            k += (sample_info->channels - 1) * (sample_info->bitsPerSample / 8);
         }
 
         graph_data[i].min = min;
@@ -406,7 +424,7 @@ static void sample_max_min(GraphData *graphData, double *pct)
             max_sample = (max-min);
         }
 
-        ret = read_sample(devbuf, sampleInfo.blockSize, sampleInfo.blockSize * i);
+        ret = read_sample(sample->opened_audio_file, devbuf, sample_info->blockSize, sample_info->blockSize * i);
 
         *pct = (double) i / numSampleBlocks;
         i++;
@@ -424,11 +442,11 @@ static void sample_max_min(GraphData *graphData, double *pct)
     graphData->minSampleAmp = min_sample;
     graphData->maxSampleAmp = max_sample;
 
-    if (sampleInfo.bitsPerSample == 8) {
+    if (sample_info->bitsPerSample == 8) {
         graphData->maxSampleValue = UCHAR_MAX;
-    } else if (sampleInfo.bitsPerSample == 16) {
+    } else if (sample_info->bitsPerSample == 16) {
         graphData->maxSampleValue = SHRT_MAX;
-    } else if (sampleInfo.bitsPerSample == 24) {
+    } else if (sample_info->bitsPerSample == 24) {
 	graphData->maxSampleValue = 0x7fffff;
     }
     /* DEBUG CODE START */
@@ -450,6 +468,8 @@ write_thread(gpointer data)
     char *outputdir = thread_data->outputdir;
     TrackBreak *tb_cur, *tb_next;
     WriteInfo *write_info = thread_data->write_info;
+
+    Sample *sample = thread_data->sample;
 
     int i;
     int index;
@@ -477,7 +497,7 @@ write_thread(gpointer data)
         index = g_list_position(tbl_head, tbl_cur);
         tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
         if (tb_cur->write == TRUE) {
-            start_pos = tb_cur->offset * sampleInfo.blockSize;
+            start_pos = tb_cur->offset * sample->opened_audio_file->sample_info.blockSize;
 
             if (tbl_next == NULL) {
                 end_pos = 0;
@@ -485,7 +505,7 @@ write_thread(gpointer data)
             } else {
                 index = g_list_position(tbl_head, tbl_next);
                 tb_next = (TrackBreak *)g_list_nth_data(tbl_head, index);
-                end_pos = tb_next->offset * sampleInfo.blockSize;
+                end_pos = tb_next->offset * sample->opened_audio_file->sample_info.blockSize;
             }
 
             /* add output directory to filename */
@@ -495,11 +515,11 @@ write_thread(gpointer data)
             strcat(filename, tb_cur->filename);
 
             // TODO: CDDA needs .cdda.raw file extension, not .raw
-            const char *source_file_extension = opened_audio_file->filename ? strrchr(opened_audio_file->filename, '.') : NULL;
+            const char *source_file_extension = sample->opened_audio_file->filename ? strrchr(sample->opened_audio_file->filename, '.') : NULL;
             if (source_file_extension == NULL) {
                 /* Fallback extensions if not in source filename */
-                if (opened_audio_file != NULL) {
-                    source_file_extension = opened_audio_file->mod->default_file_extension;
+                if (sample->opened_audio_file != NULL) {
+                    source_file_extension = sample->opened_audio_file->mod->default_file_extension;
                 }
             }
 
@@ -529,7 +549,7 @@ write_thread(gpointer data)
             }
 
             if (write_info->skip_file > 0) {
-                if (format_write_file(opened_audio_file, filename, start_pos, end_pos, &write_info->pct_done) == -1) {
+                if (format_write_file(sample->opened_audio_file, filename, start_pos, end_pos, &write_info->pct_done) == -1) {
                     g_warning("Could not write file %s", filename);
                     write_info->errors = g_list_append(write_info->errors, g_strdup(filename));
                 }
@@ -555,19 +575,17 @@ write_thread(gpointer data)
     return NULL;
 }
 
-void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
+void
+sample_write_files(Sample *sample, GList *tbl, WriteInfo *write_info, char *outputdir)
 {
-    wtd.tbl = tbl;
-    wtd.write_info = write_info;
-    wtd.outputdir = outputdir;
+    sample->write_thread_data = (WriteThreadData){
+        .sample = sample,
+        .tbl = tbl,
+        .write_info = write_info,
+        .outputdir = outputdir,
+    };
 
     writing = 1;
-
-    if (opened_audio_file == NULL) {
-        perror("Must open file first\n");
-        writing = 0;
-        return;
-    }
 
     write_info->num_files = 0;
     write_info->cur_file = 0;
@@ -577,6 +595,5 @@ void sample_write_files(GList *tbl, WriteInfo *write_info, char *outputdir)
     write_info->skip_file = -1;
     write_info->errors = NULL;
 
-    g_thread_unref(g_thread_new("write data", write_thread, &wtd));
+    g_thread_unref(g_thread_new("write data", write_thread, &sample->write_thread_data));
 }
-

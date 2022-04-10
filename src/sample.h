@@ -84,12 +84,20 @@ sample_get_basename(Sample *sample);
 const char *
 sample_get_basename_without_extension(Sample *sample);
 
+int
+sample_play(Sample *sample, gulong startpos, gulong *play_marker);
+
+void
+sample_write_files(Sample *sample, GList *, WriteInfo *, char *);
+
+GraphData *
+sample_get_graph_data(Sample *sample);
+
+unsigned long
+sample_get_num_samples(Sample *sample);
+
 int sample_is_playing();
 int sample_is_writing();
-int play_sample(gulong startpos, gulong *play_marker);
 void stop_sample();
-GraphData *sample_get_graph_data(void);
-unsigned long sample_get_num_samples(void);
-void sample_write_files(GList *, WriteInfo *, char *);
 
 #endif /* SAMPLE_H*/
