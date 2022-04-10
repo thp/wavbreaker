@@ -69,22 +69,6 @@ OpenThreadData open_thread_data;
 
 static void sample_max_min(GraphData *graphData, double *pct);
 
-static char *error_message;
-
-char *sample_get_error_message()
-{
-    return g_strdup(error_message ?: "");
-}
-
-void sample_set_error_message(const char *val)
-{
-    if (error_message) {
-        g_free(error_message);
-    }
-
-    error_message = g_strdup(val);
-}
-
 static long
 read_sample(unsigned char *buf, int buf_size, unsigned long start_pos)
 {
@@ -236,18 +220,15 @@ static gpointer open_thread(gpointer data)
     return NULL;
 }
 
-int sample_open_file(const char *filename, double *pct)
+int sample_open_file(const char *filename, double *pct, char **error_message)
 {
     sample_close_file();
 
     GraphData *graphData = &g_graphData;
 
-    char *error_message = NULL;
-    opened_audio_file = format_open_file(filename, &error_message);
+    opened_audio_file = format_open_file(filename, error_message);
     if (opened_audio_file == NULL) {
-        g_message("Could not open %s with format_open_file(): %s", filename, error_message);
-        sample_set_error_message(error_message);
-        g_free(error_message);
+        g_message("Could not open %s with format_open_file(): %s", filename, *error_message);
         return 1;
     }
 

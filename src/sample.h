@@ -56,15 +56,13 @@ struct WriteInfo_ {
 	GList *errors;
 };
 
-char *sample_get_error_message();
-
 void sample_init();
 
 int sample_is_playing();
 int sample_is_writing();
 int play_sample(gulong startpos, gulong *play_marker);
 void stop_sample();
-int sample_open_file(const char *, double *);
+int sample_open_file(const char *, double *, char **error_message);
 GraphData *sample_get_graph_data(void);
 unsigned long sample_get_num_samples(void);
 void sample_close_file();

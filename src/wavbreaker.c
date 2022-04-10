@@ -1369,11 +1369,11 @@ file_open_progress_idle_func(gpointer data) {
 }
 
 static void open_file() {
-    if (sample_open_file(sample_filename, &progress_pct) != 0) {
-        char *message = sample_get_error_message();
-        popupmessage_show(main_window, _("Error opening file"), message);
+    char *error_message = NULL;
+    if (sample_open_file(sample_filename, &progress_pct, &error_message) != 0) {
+        popupmessage_show(main_window, _("Error opening file"), error_message);
         sample_filename = NULL;
-        g_free(message);
+        g_free(error_message);
         return;
     }
 
