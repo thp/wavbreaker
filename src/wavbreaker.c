@@ -28,7 +28,6 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <libgen.h>
-#include <errno.h>
 #include <time.h>
 #include <signal.h>
 

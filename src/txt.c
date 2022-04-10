@@ -23,6 +23,7 @@
 #include "track_break.h"
 
 #include <stdio.h>
+#include <errno.h>
 
 static void
 track_break_write_text(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data)
