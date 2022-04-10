@@ -21,6 +21,7 @@
 #include "sample_info.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stddef.h>
 #include <glib.h>
 
@@ -50,6 +51,7 @@ struct OpenedAudioFile_ {
     FILE *fp;
     SampleInfo sample_info;
     char *details;
+    uint64_t file_size;
 };
 
 gboolean

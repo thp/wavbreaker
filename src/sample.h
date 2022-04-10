@@ -69,6 +69,21 @@ sample_close(Sample *sample);
 double
 sample_get_percentage(Sample *sample);
 
+uint64_t
+sample_get_file_size(Sample *sample);
+
+const char *
+sample_get_dirname(Sample *sample);
+
+const char *
+sample_get_filename(Sample *sample);
+
+const char *
+sample_get_basename(Sample *sample);
+
+const char *
+sample_get_basename_without_extension(Sample *sample);
+
 int sample_is_playing();
 int sample_is_writing();
 int play_sample(gulong startpos, gulong *play_marker);

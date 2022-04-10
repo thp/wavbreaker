@@ -43,8 +43,6 @@ void wavbreaker_quit();
 
 guint msf_time_to_offset( gchar *str );
 
-extern char *sample_filename;
-
 enum {
     CHECK_ALL = 0,
     CHECK_NONE,

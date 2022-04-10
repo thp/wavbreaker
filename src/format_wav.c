@@ -18,7 +18,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -82,7 +81,6 @@ wav_open_file(const FormatModule *self, const char *filename, char **error_messa
     ChunkHeader chunkHdr;
     FormatChunk fmtChunk;
     char str[128];
-    struct stat statBuf;
 
     OpenedWavFile *wav = g_new0(OpenedWavFile, 1);
 
@@ -98,12 +96,7 @@ wav_open_file(const FormatModule *self, const char *filename, char **error_messa
      * case we are going to use the real file size instead).
      **/
     wav->wavDataPtr = 0;
-    if (stat(wav->hdr.filename, &statBuf)) {
-        g_warning("Error stat'ing %s\n", wav->hdr.filename);
-        wav->wavDataSize = 0;
-    } else {
-        wav->wavDataSize = statBuf.st_size;
-    }
+    wav->wavDataSize = wav->hdr.file_size;
 
     /* read in file header */
 

@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <limits.h>
-#include <sys/stat.h>
 #include <gtk/gtk.h>
 #include <string.h>
 #include <libgen.h>
@@ -94,8 +93,6 @@ static MoodbarData *moodbarData;
 static gulong cursor_marker;
 static gulong play_marker;
 static int pixmap_offset;
-char *sample_filename = NULL;
-struct stat sample_stat;
 static gboolean overwrite_track_names = FALSE;
 
 // one-shot idle_add-style event sources
@@ -160,9 +157,8 @@ void track_break_write_text( gpointer data, gpointer user_data);
 void track_break_write_cue( gpointer data, gpointer user_data);
 
 /* File Functions */
-void set_sample_filename(const char *f);
-static void open_file();
-static void set_title( char* title);
+static void open_file(const char *filename);
+static void set_title(const char *title);
 
 /* Sample and Summary Display Functions */
 static void force_redraw();
@@ -680,7 +676,7 @@ track_break_delete_entry()
     GtkTreeModel *model;
     GList *list;
 
-    if (sample_filename == NULL) {
+    if (g_sample == NULL) {
         return;
     }
 
@@ -826,7 +822,7 @@ guint track_break_find_offset()
     gchar *duration;
     gchar *filename;
 
-    if (sample_filename == NULL) {
+    if (g_sample == NULL) {
         return 0;
     }
 
@@ -869,7 +865,7 @@ void track_break_add_entry()
     TrackBreak *track_break = NULL;
     CursorData cursor_data;
 
-    if (sample_filename == NULL) {
+    if (g_sample == NULL) {
         return;
     }
 
@@ -908,7 +904,7 @@ void track_break_add_offset( char* filename, gulong offset)
 {
     TrackBreak *track_break = NULL;
 
-    if (sample_filename == NULL) {
+    if (g_sample == NULL) {
         return;
     }
 
@@ -957,7 +953,7 @@ void track_break_set_durations() {
 }
 
 void track_break_rename( gboolean overwrite) {
-    if (sample_filename == NULL) {
+    if (g_sample == NULL) {
         return;
     }
 
@@ -965,17 +961,9 @@ void track_break_rename( gboolean overwrite) {
     overwrite_track_names = overwrite;
 
     /* setup the filename */
-    // TODO: Use extension from format module (e.g. strip .cdda.raw)
-    gchar *str_ptr = g_path_get_basename(sample_filename);
-    gchar *end = strrchr(str_ptr, '.');
-    if (end) {
-        *end = '\0';
-    }
-
-    g_list_foreach(track_break_list, track_break_setup_filename, str_ptr);
+    g_list_foreach(track_break_list, track_break_setup_filename, (char *)sample_get_basename_without_extension(g_sample));
     gtk_list_store_clear(store);
     g_list_foreach(track_break_list, track_break_add_to_model, NULL);
-    g_free(str_ptr);
 
     redraw();
 
@@ -1175,9 +1163,9 @@ file_write_progress_idle_func(gpointer data) {
             popupmessage_show(NULL, _("Operation failed"), tmp_str);
         } else {
             if( write_info.num_files > 1) {
-                tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), basename( sample_filename), write_info.num_files);
+                tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), sample_get_basename(g_sample), write_info.num_files);
             } else {
-                tmp_str = g_strdup_printf(_("The file %s has been split into one part."), basename( sample_filename));
+                tmp_str = g_strdup_printf(_("The file %s has been split into one part."), sample_get_basename(g_sample));
             }
             popupmessage_show( NULL, _("Operation successful"), tmp_str);
         }
@@ -1307,7 +1295,7 @@ file_open_progress_idle_func(gpointer data) {
         pbar = gtk_progress_bar_new();
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
 
-        sprintf( tmp_str, _("Analyzing %s"), basename( sample_filename));
+        sprintf( tmp_str, _("Analyzing %s"), sample_get_basename(g_sample));
         gchar *str = g_markup_escape_text(tmp_str, -1);
         sprintf( tmp_str2, "<i>%s</i>", str);
         g_free(str);
@@ -1344,7 +1332,7 @@ file_open_progress_idle_func(gpointer data) {
         if (moodbarData) {
             moodbar_free(moodbarData);
         }
-        moodbarData = moodbar_open(sample_filename);
+        moodbarData = moodbar_open(sample_get_filename(g_sample));
         set_action_enabled("display_moodbar", moodbarData != NULL);
         set_action_enabled("generate_moodbar", moodbarData == NULL);
 #endif
@@ -1357,7 +1345,7 @@ file_open_progress_idle_func(gpointer data) {
         return FALSE;
 
     } else {
-        size = sample_stat.st_size/(1024*1024);
+        size = sample_get_file_size(g_sample) / (1024*1024);
         current = size*sample_get_percentage(g_sample);
         sprintf( tmp_str, _("%d of %d MB analyzed"), current, size);
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), sample_get_percentage(g_sample));
@@ -1367,15 +1355,14 @@ file_open_progress_idle_func(gpointer data) {
     }
 }
 
-static void open_file() {
+static void open_file(const char *filename) {
     if (g_sample != NULL) {
-        sample_close(g_sample);
+        sample_close(g_steal_pointer(&g_sample));
     }
 
     char *error_message = NULL;
-    if ((g_sample = sample_open(sample_filename, &error_message)) == NULL) {
+    if ((g_sample = sample_open(filename, &error_message)) == NULL) {
         popupmessage_show(main_window, _("Error opening file"), error_message);
-        sample_filename = NULL;
         g_free(error_message);
         return;
     }
@@ -1423,16 +1410,15 @@ static void open_file() {
         g_source_remove(file_open_progress_source_id);
     }
     file_open_progress_source_id = g_timeout_add(100, file_open_progress_idle_func, NULL);
-    set_title( basename( sample_filename));
+    set_title(sample_get_basename(g_sample));
 }
 
 static gboolean
 open_file_arg(gpointer data)
 {
     if (data) {
-        set_sample_filename((char *)data);
+        open_file((char *)data);
         g_free(data);
-        open_file();
     }
 
     /* do not call this function again = return FALSE */
@@ -1440,7 +1426,7 @@ open_file_arg(gpointer data)
     return FALSE;
 }
 
-static void set_title( char* title)
+static void set_title(const char *title)
 {
   char buf[1024];
 
@@ -1488,41 +1474,24 @@ static void open_select_file() {
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
 
-    if (sample_filename != NULL) {
-        char* filename = g_strdup(sample_filename);
-        char* dir = dirname(filename);
-
-        if (dir != NULL && dir[0] != '.') {
-            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
-        }
-
-        g_free(filename);
+    if (g_sample != NULL) {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), sample_get_dirname(g_sample));
     }
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *filename;
-        char *dirname;
+        char *dirname = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
+        char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
-        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        set_sample_filename(filename);
-        g_free(filename);
-        dirname = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
+        gtk_widget_destroy(dialog);
+
         saveas_set_dirname(dirname);
         g_free(dirname);
-        gtk_widget_destroy(dialog);
-        open_file();
+
+        open_file(filename);
+        g_free(filename);
     } else {
         gtk_widget_destroy(dialog);
     }
-}
-
-void set_sample_filename(const char *f) {
-    if (sample_filename != NULL) {
-        g_free(sample_filename);
-        sample_close(g_steal_pointer(&g_sample));
-    }
-    sample_filename = g_strdup(f);
-    stat( sample_filename, &sample_stat);
 }
 
 /*
@@ -2260,7 +2229,7 @@ static void menu_prev_silence( GtkWidget* widget, gpointer user_data)
 
 static void menu_save(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    if( sample_filename == NULL) {
+    if (g_sample == NULL) {
         return;
     }
 
@@ -2273,7 +2242,7 @@ static void menu_save(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 static void menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    if( sample_filename == NULL) {
+    if (g_sample == NULL) {
         return;
     }
 
@@ -2333,10 +2302,6 @@ static void menu_export(GSimpleAction *action, GVariant *parameter, gpointer use
     GtkFileFilter *filter_text;
     GtkFileFilter *filter_toc;
     GtkFileFilter *filter_cue;
-    gchar* filename = NULL;
-
-    filename = g_strdup( sample_filename);
-    strcpy( filename + strlen( filename) - 3, "txt");
 
     filter_text = gtk_file_filter_new();
     gtk_file_filter_set_name( filter_text, _("Text files"));
@@ -2361,16 +2326,17 @@ static void menu_export(GSimpleAction *action, GVariant *parameter, gpointer use
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_cue);
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_text);
 
-    gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(dialog), basename( filename));
-    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(dialog), dirname( filename));
+    gchar *filename = g_strdup_printf("%s.txt", sample_get_basename_without_extension(g_sample));
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), filename);
+    g_free(filename);
+
+    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), sample_get_dirname(g_sample));
 
     g_signal_connect ( GTK_FILE_CHOOSER(dialog), "notify::filter", G_CALLBACK( filter_changed), NULL);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         track_breaks_export_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
     }
-
-    g_free( filename);
 
     gtk_widget_destroy(dialog);
 }
@@ -2385,11 +2351,7 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
     GtkFileFilter *filter_supported;
-    gchar* filename = NULL;
     int rc;
-
-    filename = g_strdup( sample_filename);
-    strcpy( filename + strlen( filename) - 3, "txt");
 
     filter_all = gtk_file_filter_new();
     gtk_file_filter_set_name( filter_all, _("All files"));
@@ -2411,7 +2373,9 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
     gtk_file_chooser_add_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
     gtk_file_chooser_set_filter( GTK_FILE_CHOOSER(dialog), filter_supported);
 
-    gtk_file_chooser_set_filename( GTK_FILE_CHOOSER(dialog), filename);
+    gchar *filename = g_strdup_printf("%s%s%s.txt", sample_get_dirname(g_sample), G_DIR_SEPARATOR_S, sample_get_basename_without_extension(g_sample));
+    gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), filename);
+    g_free(filename);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 	gchar const *selected = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
@@ -2429,8 +2393,6 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 	    track_breaks_load_from_file( selected);
 	}
     }
-
-    g_free( filename);
 
     gtk_widget_destroy(dialog);
 
@@ -2461,7 +2423,7 @@ wavbreaker_update_moodbar_state()
     if (moodbarData) {
         moodbar_free(moodbarData);
     }
-    moodbarData = moodbar_open(sample_filename);
+    moodbarData = moodbar_open(sample_get_filename(g_sample));
     set_action_enabled("display_moodbar", moodbarData != NULL);
     set_action_enabled("generate_moodbar", moodbarData == NULL);
 
@@ -2484,7 +2446,7 @@ menu_view_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data
 static void
 menu_moodbar(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-    moodbar_generate(main_window, sample_filename);
+    moodbar_generate(main_window, sample_get_filename(g_sample));
 }
 #endif
 
@@ -2571,7 +2533,7 @@ void wavbreaker_quit() {
 
 static void check_really_quit()
 {
-    if( sample_filename != NULL && g_list_length(track_break_list) != 1) {
+    if (g_sample != NULL && g_list_length(track_break_list) != 1) {
         reallyquit_show(main_window);
     } else {
         wavbreaker_quit();
@@ -3045,9 +3007,6 @@ struct WriteStatus {
 int track_breaks_export_to_file( char* filename) {
     FILE *fp = NULL;
     int write_err = -1;
-    char *data_filename = NULL;
-
-    data_filename = basename(sample_filename);
 
     if( g_str_has_suffix (filename, ".txt")) {
 
@@ -3061,13 +3020,13 @@ int track_breaks_export_to_file( char* filename) {
 
 	g_list_foreach( track_break_list, track_break_write_text, fp);
 
-	fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_filename);
+	fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_get_filename(g_sample));
 
 	fclose( fp);
 
     } else if( g_str_has_suffix (filename, ".toc")) {
 
-        write_err = toc_write_file( filename, data_filename, track_break_list);
+        write_err = toc_write_file( filename, sample_get_basename(g_sample), track_break_list);
 
         if( write_err) {
             popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
@@ -3082,7 +3041,7 @@ int track_breaks_export_to_file( char* filename) {
 	    return -1;
 	}
 
-	fprintf( fp, "FILE \"%s\" WAVE\n", data_filename);
+	fprintf( fp, "FILE \"%s\" WAVE\n", sample_get_basename(g_sample));
 
 	struct WriteStatus ws;
 	ws.fp = fp;

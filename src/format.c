@@ -23,6 +23,7 @@
 #include "format_mp3.h"
 #include "format_ogg_vorbis.h"
 
+#include <sys/stat.h>
 #include <errno.h>
 
 void
@@ -54,6 +55,12 @@ format_module_filename_extension_check(const FormatModule *self, const char *fil
 gboolean
 format_module_open_file(const FormatModule *self, OpenedAudioFile *file, const char *filename, char **error_message)
 {
+    struct stat st;
+    if (stat(filename, &st) != 0) {
+        format_module_set_error_message(error_message, "Could not stat %s: %s", filename, strerror(errno));
+        return FALSE;
+    }
+
     FILE *fp = fopen(filename, "rb");
     if (!fp) {
         format_module_set_error_message(error_message, "Could not open file %s: %s", filename, strerror(errno));
@@ -63,6 +70,7 @@ format_module_open_file(const FormatModule *self, OpenedAudioFile *file, const c
     file->mod = self;
     file->filename = g_strdup(filename);
     file->fp = fp;
+    file->file_size = st.st_size;
 
     return TRUE;
 }

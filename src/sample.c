@@ -52,6 +52,9 @@ static GMutex mutex;
 
 struct Sample_ {
     OpenedAudioFile *opened_audio_file;
+    gchar *filename_dirname;
+    gchar *filename_basename;
+    gchar *basename_without_extension;
     double percentage;
 };
 
@@ -237,6 +240,20 @@ sample_open(const char *filename, char **error_message)
         return NULL;
     }
 
+    result->filename_dirname = g_path_get_dirname(filename);
+    result->filename_basename = g_path_get_basename(filename);
+
+    gchar *tmp = g_strdup(result->filename_basename);
+    if (format_module_filename_extension_check(result->opened_audio_file->mod, tmp, NULL)) {
+        tmp[strlen(tmp)-strlen(result->opened_audio_file->mod->default_file_extension)] = '\0';
+    } else {
+        gchar *end = strrchr(tmp, '.');
+        if (end) {
+            *end = '\0';
+        }
+    }
+    result->basename_without_extension = tmp;
+
     // TODO: Remove those global variables
     opened_audio_file = result->opened_audio_file;
     sampleInfo = opened_audio_file->sample_info;
@@ -265,6 +282,10 @@ sample_get_num_samples(void)
 void
 sample_close(Sample *sample)
 {
+    g_free(sample->basename_without_extension);
+    g_free(sample->filename_basename);
+    g_free(sample->filename_dirname);
+
     if (opened_audio_file != NULL) {
         format_close_file(g_steal_pointer(&opened_audio_file));
     }
@@ -276,6 +297,36 @@ double
 sample_get_percentage(Sample *sample)
 {
     return sample->percentage;
+}
+
+uint64_t
+sample_get_file_size(Sample *sample)
+{
+    return sample->opened_audio_file->file_size;
+}
+
+const char *
+sample_get_filename(Sample *sample)
+{
+    return sample->opened_audio_file->filename;
+}
+
+const char *
+sample_get_dirname(Sample *sample)
+{
+    return sample->filename_dirname;
+}
+
+const char *
+sample_get_basename(Sample *sample)
+{
+    return sample->filename_basename;
+}
+
+const char *
+sample_get_basename_without_extension(Sample *sample)
+{
+    return sample->basename_without_extension;
 }
 
 static void sample_max_min(GraphData *graphData, double *pct)
