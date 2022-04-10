@@ -1,5 +1,5 @@
-/* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2006 Timothy Robinson
+/* wavbreaker - A tool to split a wave file up into multiple wave.
+ * Copyright (C) 2022 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,23 +16,44 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <config.h>
-
-#include <gtk/gtk.h>
-
 #include "appinfo.h"
 
-void
-about_show(GtkWidget *main_window)
+#include <config.h>
+
+#include "gettext.h"
+
+const char *
+appinfo_copyright()
 {
-    gtk_show_about_dialog(GTK_WINDOW(main_window),
-            "name", PACKAGE,
-            "version", appinfo_version(),
-            "copyright", appinfo_copyright(),
-            "comments", appinfo_description(),
-            "website", appinfo_url(),
-            "website-label", appinfo_url(),
-            "authors", appinfo_authors(),
-            "logo-icon-name", "net.sourceforge.wavbreaker",
-            NULL);
+    return "Copyright (C) 2002-2007 Timothy Robinson\n"
+           "Copyright (C) 2006-2008, 2012, 2015-2016, 2018-2019, 2022 Thomas Perl";
+}
+
+const char *
+appinfo_description()
+{
+    return _("Split a wave file into multiple chunks");
+}
+
+const char *
+appinfo_url()
+{
+    return "https://wavbreaker.sourceforge.io/";
+}
+
+const char **
+appinfo_authors()
+{
+    static const char *AUTHORS[] = {
+        "Timothy Robinson <tdrobinson@huli.org>",
+        "Thomas Perl <m@thp.io>",
+    };
+
+    return AUTHORS;
+}
+
+const char *
+appinfo_version()
+{
+    return VERSION;
 }

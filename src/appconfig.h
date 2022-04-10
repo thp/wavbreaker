@@ -20,18 +20,28 @@
 #ifndef APPCONFIG_H
 #define APPCONFIG_H
 
-#include <gtk/gtk.h>
+#include <glib.h>
 
-void appconfig_show(GtkWidget *);
 void appconfig_write_file();
 void appconfig_init();
 
 int appconfig_get_use_outputdir();
+void appconfig_set_use_outputdir(int x);
+
 char *appconfig_get_outputdir();
+void appconfig_set_outputdir(const char *val);
+
 int appconfig_get_use_etree_filename_suffix();
+void appconfig_set_use_etree_filename_suffix(int x);
+
 int appconfig_get_prepend_file_number();
+void appconfig_set_prepend_file_number(int x);
+
 char *appconfig_get_etree_filename_suffix();
+void appconfig_set_etree_filename_suffix(const char *val);
+
 char *appconfig_get_etree_cd_length();
+void appconfig_set_etree_cd_length(const char *val);
 
 int appconfig_get_main_window_xpos();
 void appconfig_set_main_window_xpos(int x);

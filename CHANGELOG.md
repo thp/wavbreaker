@@ -11,6 +11,8 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 * Support for reading Ogg Vorbis audio files using `libvorbisfile` (writing is not
   implemented yet; save track breaks to a .txt file and use `track-break-to-ffmpeg.py`
   to break up Ogg files until Ogg file writing is implemented)
+* `wavcli`: New command-line interface to some features of wavbreaker
+* `wavcli list` to list wavbreaker's parsing of track break files (TXT/CUE/TOC)
 
 ### Changed
 
@@ -21,6 +23,9 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 * `wavinfo` uses the new format modules for MP2/MP3 and Ogg Vorbis support; the
   output format is slightly changed to show duration, number of samples and the
   uncompressed audio format
+* The command-line utilities `wavinfo`, `wavmerge` and `wavgen` have been merged
+  into the `wavcli` command-line utility. Instead of `wavinfo`, use `wavcli info`,
+  instead of `wavmerge`, use `wavcli merge`, instead of `wavgen` use `wavcli gen`.
 
 ### Removed
 

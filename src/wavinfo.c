@@ -34,7 +34,7 @@ format_duration(uint64_t duration)
     return g_strdup_printf("%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ".%03" PRIu64, seconds / 60 / 60, (seconds / 60) % 60, seconds % 60, fraction);
 }
 
-int main(int argc, char *argv[])
+int cmd_wavinfo(int argc, char *argv[])
 {
     int i;
 

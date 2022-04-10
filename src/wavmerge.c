@@ -25,12 +25,15 @@
 #include "sample_info.h"
 #include "format_wav.h"
 
-void usage() {
+static void
+usage()
+{
     printf("Must pass filenames of wave files to merge.\n");
     printf("Usage: wavmerge [-o outfile] mergefiles...\n");
 }
 
-int main(int argc, char *argv[])
+int
+cmd_wavmerge(int argc, char *argv[])
 {
     int ret;
     char *merge_filename;
@@ -76,4 +79,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-

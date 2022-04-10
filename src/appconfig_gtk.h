@@ -1,5 +1,6 @@
 /* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2003 Timothy Robinson
+ * Copyright (C) 2002-2005 Timothy Robinson
+ * Copyright (C) 2007 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +17,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef POPUPMESSAGE_H
-#define POPUPMESSAGE_H
+#pragma once
+
+#include "appconfig.h"
 
 #include <gtk/gtk.h>
 
-void popupmessage_show(GtkWidget *, const char *, const char *);
-
-#endif /* POPUPMESSAGE_H */
+void appconfig_show(GtkWidget *);

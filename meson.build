@@ -47,16 +47,23 @@ format_sources = [
   'src/format_ogg_vorbis.c',
 ]
 
-txt_sources = [
+list_sources = [
+  'src/list.c',
+  'src/track_break.c',
+  'src/appconfig.c',
   'src/cue.c',
   'src/toc.c',
   'src/txt.c',
 ]
 
+common_sources = [
+  'src/appinfo.c',
+]
+
 wavbreaker_sources = [
   'src/about.c',
   'src/aoaudio.c',
-  'src/appconfig.c',
+  'src/appconfig_gtk.c',
   'src/autosplit.c',
   'src/draw.c',
   'src/guimerge.c',
@@ -67,7 +74,13 @@ wavbreaker_sources = [
   'src/sample.c',
   'src/saveas.c',
   'src/wavbreaker.c',
-  'src/track_break.c',
+]
+
+wavcli_sources = [
+  'src/cli.c',
+  'src/wavmerge.c',
+  'src/wavgen.c',
+  'src/wavinfo.c',
 ]
 
 if get_option('windows_app')
@@ -107,31 +120,21 @@ else
 endif
 
 install_man('man/wavbreaker.1')
-install_man('man/wavinfo.1')
-install_man('man/wavmerge.1')
+install_man('man/wavcli.1')
 
 executable('wavbreaker',
            wavbreaker_sources,
+           common_sources,
            format_sources,
-           txt_sources,
+           list_sources,
            dependencies : deps + format_deps,
            gui_app : true,
            install : true)
 
-executable('wavmerge',
-           'src/wavmerge.c',
+executable('wavcli',
+           wavcli_sources,
+           common_sources,
            format_sources,
-           dependencies : [glib] + format_deps,
-           install : true)
-
-executable('wavgen',
-           'src/wavgen.c',
-           format_sources,
-           dependencies : [glib, libm] + format_deps,
-           install : true)
-
-executable('wavinfo',
-           'src/wavinfo.c',
-           format_sources,
+           list_sources,
            dependencies : [glib, libm] + format_deps,
            install : true)

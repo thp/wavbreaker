@@ -93,7 +93,7 @@ generate_oneliner(FILE *fp, SampleInfo *si, void *user_data)
 }
 
 int
-main(int argc, char *argv[])
+cmd_wavgen(int argc, char *argv[])
 {
     struct {
         char *name;

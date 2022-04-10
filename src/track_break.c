@@ -247,10 +247,10 @@ track_break_get_filename(TrackBreak *track_break, TrackBreakList *list)
 
         return g_strdup_printf("%sd%dt%02d", list->basename, gdn.disc_num, gdn.track_num);
     } else if (appconfig_get_prepend_file_number()) {
-        return g_strdup_printf("%02d%s%s", index, appconfig_get_etree_filename_suffix(), list->basename);
+        return g_strdup_printf("%02d%s%s", index + 1, appconfig_get_etree_filename_suffix(), list->basename);
     }
 
-    return g_strdup_printf("%s%s%02d", list->basename, appconfig_get_etree_filename_suffix(), index);
+    return g_strdup_printf("%s%s%02d", list->basename, appconfig_get_etree_filename_suffix(), index + 1);
 }
 
 void

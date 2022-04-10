@@ -48,9 +48,7 @@
 
   <provides>
     <binary>wavbreaker</binary>
-    <binary>wavgen</binary>
-    <binary>wavinfo</binary>
-    <binary>wavmerge</binary>
+    <binary>wavcli</binary>
   </provides>
 
   <releases>

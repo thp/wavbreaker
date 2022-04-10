@@ -36,6 +36,7 @@
 #include "sample.h"
 #include "about.h"
 #include "appconfig.h"
+#include "appconfig_gtk.h"
 #include "autosplit.h"
 #include "saveas.h"
 #include "popupmessage.h"
@@ -44,10 +45,7 @@
 #include "guimerge.h"
 #include "moodbar.h"
 #include "draw.h"
-
-#include "toc.h"
-#include "txt.h"
-#include "cue.h"
+#include "list.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -154,10 +152,6 @@ void track_break_delete_entry();
 void track_break_add_entry();
 static void track_break_update_gui_model();
 void track_break_set_duration(gpointer data, gpointer user_data);
-
-gboolean track_breaks_export_to_file(const char *filename);
-void track_break_write_text( gpointer data, gpointer user_data);
-void track_break_write_cue( gpointer data, gpointer user_data);
 
 /* File Functions */
 static void open_file(const char *filename);
@@ -2050,7 +2044,7 @@ static void menu_export(GSimpleAction *action, GVariant *parameter, gpointer use
     g_signal_connect ( GTK_FILE_CHOOSER(dialog), "notify::filter", G_CALLBACK( filter_changed), NULL);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        if (!track_breaks_export_to_file(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog)))) {
+        if (!list_write_file(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog)), sample_get_basename(g_sample), track_breaks)) {
             popupmessage_show(main_window, _("Export failed"), _("There has been an error exporting track breaks."));
         }
     }
@@ -2094,20 +2088,12 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
     g_free(filename);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-	gchar const *selected = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
-	if (g_str_has_suffix( selected, ".toc") || g_str_has_suffix( selected, ".TOC")) {
-	    if (!toc_read_file(selected, track_breaks)) {
-		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the TOC file."));
-	    }
-	} else if (g_str_has_suffix( selected, ".cue") || g_str_has_suffix( selected, ".CUE")) {
-	    if (!cue_read_file(selected, track_breaks)) {
-		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the CUE file."));
-	    }
-	} else {
-	    if (!txt_read_file(selected, track_breaks)) {
-		popupmessage_show(main_window, _("Import failed"), _("There has been an error importing track breaks from the TXT file."));
-            }
-	}
+        const gchar *list_filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+        if (!list_read_file(list_filename, track_breaks)) {
+            popupmessage_show(main_window, _("Import failed"), _("There has been an error importing track breaks."));
+        }
+
     }
 
     gtk_widget_destroy(dialog);
@@ -2726,18 +2712,4 @@ main(int argc, char *argv[])
     g_object_unref(app);
 
     return status;
-}
-
-gboolean
-track_breaks_export_to_file(const char *filename)
-{
-    if (g_str_has_suffix(filename, ".txt")) {
-        return txt_write_file(filename, sample_get_basename(g_sample), track_breaks);
-    } else if (g_str_has_suffix(filename, ".toc")) {
-        return toc_write_file(filename, sample_get_basename(g_sample), track_breaks);
-    } else if( g_str_has_suffix (filename, ".cue")) {
-        return cue_write_file(filename, sample_get_basename(g_sample), track_breaks);
-    }
-
-    return FALSE;
 }
