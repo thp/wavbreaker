@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
 
         printf("File name:      %s\n", argv[i]);
         printf("File format:    %s\n", oaf->mod->name);
+        if (oaf->details) {
+            printf("Format details: %s\n", oaf->details);
+        }
         printf("Duration:       %s (%lu samples)\n", duration, oaf->sample_info.numBytes / oaf->sample_info.blockAlign);
         printf("Format:         %d Hz / %d ch / %d bit",
                 oaf->sample_info.samplesPerSec,

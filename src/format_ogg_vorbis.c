@@ -122,6 +122,20 @@ ogg_vorbis_open_file(const FormatModule *self, const char *filename, char **erro
         g_debug("Ogg Vorbis info: version=%d, channels=%d, rate=%ld, samples=%ld",
                 info->version, info->channels, info->rate, (long int)ov_pcm_total(&ogg->ogg_vorbis_file, -1));
 
+        vorbis_comment *comment = ov_comment(&ogg->ogg_vorbis_file, -1);
+
+        long bitrate = ov_bitrate(&ogg->ogg_vorbis_file, -1);
+
+        if (bitrate == OV_EINVAL || bitrate == OV_FALSE) {
+            bitrate = -1;
+        } else {
+            bitrate /= 1000;
+        }
+
+        uint32_t serial = ov_serialnumber(&ogg->ogg_vorbis_file, -1) & 0xFFFFFFFF;
+
+        ogg->hdr.details = g_strdup_printf("%s, serial %08"PRIx32", %ld kbps", comment->vendor, serial, bitrate);
+
         si->channels = info->channels;
         si->samplesPerSec = info->rate;
         si->bitsPerSample = 16;

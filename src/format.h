@@ -45,6 +45,7 @@ struct OpenedAudioFile_ {
     char *filename;
     FILE *fp;
     SampleInfo sample_info;
+    char *details;
 };
 
 gboolean

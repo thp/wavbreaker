@@ -70,6 +70,10 @@ format_module_open_file(const FormatModule *self, OpenedAudioFile *file, const c
 void
 opened_audio_file_close(OpenedAudioFile *file)
 {
+    if (file->details) {
+        g_free(g_steal_pointer(&file->details));
+    }
+
     if (file->fp) {
         fclose(g_steal_pointer(&file->fp));
     }

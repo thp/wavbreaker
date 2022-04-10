@@ -269,6 +269,31 @@ mp3_open_file(const FormatModule *self, const char *filename, char **error_messa
                     si->channels, si->samplesPerSec,
                     si->bitsPerSample, si->numBytes);
 
+            const char *mpeg_version = "?";
+            switch (fi.version) {
+                case MPG123_1_0: mpeg_version = "1"; break;
+                case MPG123_2_0: mpeg_version = "2"; break;
+                case MPG123_2_5: mpeg_version = "2.5"; break;
+                default: break;
+            }
+
+            const char *mode = "?";
+            switch (fi.mode) {
+                case MPG123_M_STEREO: mode = "Stereo"; break;
+                case MPG123_M_JOINT: mode = "Joint Stereo"; break;
+                case MPG123_M_DUAL: mode = "Dual Channel"; break;
+                case MPG123_M_MONO: mode = "Mono"; break;
+            }
+
+            const char *layer = "?";
+            switch (fi.layer) {
+                case 1: layer = "I"; break;
+                case 2: layer = "II"; break;
+                case 3: layer = "III"; break;
+            }
+
+            mp3->hdr.details = g_strdup_printf("MPEG-%s Layer %s, %s, %d kbps", mpeg_version, layer, mode, fi.bitrate);
+
             mpg123_format_none(mp3->mpg123);
             if (mpg123_format(mp3->mpg123, si->samplesPerSec,
                               (si->channels == 1) ? MPG123_STEREO : MPG123_MONO,
@@ -292,7 +317,7 @@ error:
 
 static const FormatModule
 MP3_FORMAT_MODULE = {
-    .name = "MPEG-1 Audio Layer I/II/III",
+    .name = "MPEG Audio Layer I/II/III",
     .default_file_extension = ".mp3",
 
     .open_file = mp3_open_file,
