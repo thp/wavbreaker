@@ -25,13 +25,10 @@
 #include <gtk/gtk.h>
 
 void wavbreaker_autosplit(long x);
-void track_break_rename();
 void wavbreaker_write_files(char *dirname);
 GtkWidget *wavbreaker_get_main_window();
 void wavbreaker_update_moodbar_state();
+void wavbreaker_update_listmodel();
 void wavbreaker_quit();
-
-void track_break_clear_list();
-void track_break_add_offset(char *filename, gulong offset);
 
 #endif /* WAVBREAKER_H */

@@ -21,8 +21,13 @@
 
 #include <glib.h>
 
-int toc_read_file(const char *toc_filename, GList *breaks);
-gboolean toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks, gulong total_duration);
+#include "track_break.h"
+
+gboolean
+toc_read_file(const char *toc_filename, TrackBreakList *list);
+
+gboolean
+toc_write_file(const char *toc_filename, const char *wav_filename, TrackBreakList *list);
 
 #endif /* TOC_H */
 

@@ -24,59 +24,57 @@
 #include "sample_info.h"
 #include "toc.h"
 
-#include "wavbreaker.h"
 
-char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime);
-guint time_to_offset( gchar * );
-
-int toc_read_file(const char *toc_filename, GList *breaks)
+gboolean
+toc_read_file(const char *toc_filename, TrackBreakList *list)
 {
-    FILE   *fp;
     char    buf[1024];
     gchar  *ptr, *eptr;
     guint   offset;
 
-    fp = fopen( toc_filename, "r" );
-    if( !fp ) return 1;
+    FILE *fp = fopen(toc_filename, "r");
+    if (!fp) {
+        return FALSE;
+    }
 
-    track_break_clear_list();
+    track_break_list_clear(list);
 
     do {
-	do {
-	    ptr = fgets( buf, 1024, fp );
-	    if( !ptr ) {
-		if( feof(fp) ) {
-		    fclose( fp );
-		    return 0;
-		}
-		else {
-		    fclose( fp );
-		    return 1;
-		}
-	    }
-	} while( memcmp(buf, "FILE", 4) );
+        do {
+            ptr = fgets(buf, sizeof(buf), fp);
+            if (!ptr) {
+                if (feof(fp)) {
+                    fclose(fp);
+                    return TRUE;
+                } else {
+                    goto error;
+                }
+            }
+        } while(memcmp(buf, "FILE", 4));
 
-	ptr = strrchr( buf, '"' );
-	if( !ptr ) {
-	    fclose( fp );
-	    return 1;
-	}
+        ptr = strrchr(buf, '"');
+        if (!ptr) {
+            goto error;
+        }
 
-	ptr += 2;
-	eptr = strchr( ptr, ':' );
-	if( !eptr ) {
-	    fclose( fp );
-	    return 1;
-	}
-	eptr += 6;
-	*eptr = '\0';
+        ptr += 2;
+        eptr = strchr(ptr, ':');
+        if (!eptr) {
+            goto error;
+        }
+        eptr += 6;
+        *eptr = '\0';
 
-	offset = msf_time_to_offset( ptr );
-	track_break_add_offset( (char *)-1, offset );
-    } while( !feof( fp ) );
+        offset = msf_time_to_offset(ptr);
+        track_break_list_add_offset(list, TRUE, offset, NULL);
+    } while (!feof(fp));
 
+    fclose(fp);
+    return TRUE;
+
+error:
     fclose( fp );
-    return 0;
+    return FALSE;
 }
 
 struct WriteTOCForEach {
@@ -102,7 +100,7 @@ write_toc_entry(int index, gboolean write, gulong start_offset, gulong end_offse
 }
 
 gboolean
-toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks, gulong total_duration)
+toc_write_file(const char *toc_filename, const char *wav_filename, TrackBreakList *list)
 {
     FILE *fp = fopen(toc_filename, "w");
 
@@ -117,7 +115,7 @@ toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks
         .wav_filename = wav_filename,
     };
 
-    track_break_list_foreach(breaks, total_duration, write_toc_entry, &wtfe);
+    track_break_list_foreach(list, write_toc_entry, &wtfe);
 
     fclose(fp);
 

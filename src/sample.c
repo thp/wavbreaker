@@ -41,7 +41,7 @@ typedef struct WriteThreadData_ WriteThreadData;
 struct WriteThreadData_ {
     Sample *sample;
 
-    GList *tbl;
+    TrackBreakList *list;
     WriteInfo *write_info;
     char *outputdir;
 };
@@ -468,7 +468,9 @@ write_thread(gpointer data)
 {
     WriteThreadData *thread_data = data;
 
-    GList *tbl_head = thread_data->tbl;
+    TrackBreakList *list = thread_data->list;
+
+    GList *tbl_head = list->breaks;
     GList *tbl_cur, *tbl_next;
     char *outputdir = thread_data->outputdir;
     TrackBreak *tb_cur, *tb_next;
@@ -476,16 +478,12 @@ write_thread(gpointer data)
 
     Sample *sample = thread_data->sample;
 
-    int i;
-    int index;
     unsigned long start_pos, end_pos;
     char filename[1024];
 
-    i = 1;
     tbl_cur = tbl_head;
     while (tbl_cur != NULL) {
-        index = g_list_position(tbl_head, tbl_cur);
-        tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
+        tb_cur = tbl_cur->data;
 
         if (tb_cur->write == TRUE) {
             write_info->num_files++;
@@ -494,13 +492,13 @@ write_thread(gpointer data)
         tbl_cur = g_list_next(tbl_cur);
     }
 
-    i = 1;
+    int i = 1;
     tbl_cur = tbl_head;
     tbl_next = g_list_next(tbl_cur);
 
     while (tbl_cur != NULL) {
-        index = g_list_position(tbl_head, tbl_cur);
-        tb_cur = (TrackBreak *)g_list_nth_data(tbl_head, index);
+        tb_cur = tbl_cur->data;
+
         if (tb_cur->write == TRUE) {
             start_pos = tb_cur->offset * sample->opened_audio_file->sample_info.blockSize;
 
@@ -508,8 +506,7 @@ write_thread(gpointer data)
                 end_pos = 0;
                 tb_next = NULL;
             } else {
-                index = g_list_position(tbl_head, tbl_next);
-                tb_next = (TrackBreak *)g_list_nth_data(tbl_head, index);
+                tb_next = tbl_next->data;
                 end_pos = tb_next->offset * sample->opened_audio_file->sample_info.blockSize;
             }
 
@@ -517,7 +514,9 @@ write_thread(gpointer data)
             strcpy(filename, outputdir);
             strcat(filename, "/");
 
-            strcat(filename, tb_cur->filename);
+            gchar *tmp = track_break_get_filename(tb_cur, list);
+            strcat(filename, tmp);
+            g_free(tmp);
 
             // TODO: CDDA needs .cdda.raw file extension, not .raw
             const char *source_file_extension = sample->opened_audio_file->filename ? strrchr(sample->opened_audio_file->filename, '.') : NULL;
@@ -584,11 +583,11 @@ write_thread(gpointer data)
 }
 
 void
-sample_write_files(Sample *sample, GList *tbl, WriteInfo *write_info, char *outputdir)
+sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *write_info, char *outputdir)
 {
     sample->write_thread_data = (WriteThreadData) {
         .sample = sample,
-        .tbl = tbl,
+        .list = list,
         .write_info = write_info,
         .outputdir = outputdir,
     };

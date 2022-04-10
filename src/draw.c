@@ -221,7 +221,7 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
 
     /* draw sample graph */
     int tb_index = 0;
-    GList *tbl = ctx->track_break_list;
+    GList *tbl = ctx->list->breaks;
     for (i = 0; i < width && i < ctx->graphData->numSamples; i++) {
         y_min = ctx->graphData->data[i + ctx->pixmap_offset].min;
         y_max = ctx->graphData->data[i + ctx->pixmap_offset].max;
@@ -333,7 +333,7 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
     }
 
     int tb_index = 0;
-    GList *tbl = ctx->track_break_list;
+    GList *tbl = ctx->list->breaks;
     for (i = 0; i < width && i < ctx->graphData->numSamples; i++) {
         min = max = 0;
         array_offset = (int)(i * x_scale);

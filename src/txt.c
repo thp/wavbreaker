@@ -21,25 +21,23 @@
 #include "config.h"
 
 #include "track_break.h"
-#include "wavbreaker.h"
 
 #include <stdio.h>
 
 static void
-track_break_write_text(gpointer data, gpointer user_data)
+track_break_write_text(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data)
 {
     FILE *fp = user_data;
-    TrackBreak *track_break = data;
 
-    if (track_break->write) {
-        fprintf(fp, "%lu=%s\n", track_break->offset, track_break->filename);
+    if (write) {
+        fprintf(fp, "%lu=%s\n", start_offset, filename);
     } else {
-        fprintf(fp, "%lu\n", track_break->offset);
+        fprintf(fp, "%lu\n", start_offset);
     }
 }
 
 gboolean
-txt_write_file(const char *txt_filename, const char *wav_filename, GList *track_break_list)
+txt_write_file(const char *txt_filename, const char *wav_filename, TrackBreakList *list)
 {
     FILE *fp = fopen(txt_filename, "w");
 
@@ -50,15 +48,15 @@ txt_write_file(const char *txt_filename, const char *wav_filename, GList *track_
 
     fprintf(fp, "\n; Created by " PACKAGE " " VERSION "\n; http://thpinfo.com/2006/wavbreaker/tb-file-format.txt\n\n");
 
-    g_list_foreach(track_break_list, track_break_write_text, fp);
+    track_break_list_foreach(list, track_break_write_text, fp);
 
-    fprintf(fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length(track_break_list), wav_filename);
+    fprintf(fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length(list->breaks), wav_filename);
     fclose(fp);
     return TRUE;
 }
 
 gboolean
-txt_read_file(const char *filename)
+txt_read_file(const char *filename, TrackBreakList *list)
 {
     char tmp[1024];
     char *fname;
@@ -69,7 +67,7 @@ txt_read_file(const char *filename)
         return FALSE;
     }
 
-    track_break_clear_list();
+    track_break_list_clear(list);
 
     char *ptr = tmp;
     while(!feof(fp)) {
@@ -83,13 +81,13 @@ txt_read_file(const char *filename)
             if (ptr != tmp && tmp[0] != ';') {
                 fname = strchr(tmp, '=');
                 if (fname == NULL) {
-                    track_break_add_offset(NULL, atol(tmp));
+                    track_break_list_add_offset(list, FALSE, atol(tmp), NULL);
                 } else {
                     *(fname++) = '\0';
                     while (*fname == ' ') {
                         fname++;
                     }
-                    track_break_add_offset(fname, atol(tmp));
+                    track_break_list_add_offset(list, TRUE, atol(tmp), fname);
                 }
             }
             ptr = tmp;

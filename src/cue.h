@@ -21,9 +21,12 @@
 
 #include <glib.h>
 
-int cue_read_file(const char *cue_filename, GList *breaks);
+#include "track_break.h"
 
 gboolean
-cue_write_file(const char *cue_filename, const char *audio_filename, GList *track_break_list);
+cue_read_file(const char *cue_filename, TrackBreakList *list);
+
+gboolean
+cue_write_file(const char *cue_filename, const char *audio_filename, TrackBreakList *list);
 
 #endif /* CUE_H */

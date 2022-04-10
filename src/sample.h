@@ -20,6 +20,7 @@
 #define SAMPLE_H
 
 #include "sample_info.h"
+#include "track_break.h"
 
 #include <glib.h>
 #include <stdio.h>
@@ -94,7 +95,7 @@ void
 sample_stop(Sample *sample);
 
 void
-sample_write_files(Sample *sample, GList *, WriteInfo *, char *);
+sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *, char *);
 
 GraphData *
 sample_get_graph_data(Sample *sample);

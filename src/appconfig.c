@@ -363,7 +363,8 @@ on_appconfig_close(GtkWidget *widget, GdkEvent *event, gpointer user_data)
     appconfig_set_etree_cd_length(gtk_entry_get_text(GTK_ENTRY(etree_cd_length_entry)));
     appconfig_set_silence_percentage( gtk_spin_button_get_value_as_int( GTK_SPIN_BUTTON(silence_spin_button)));
 
-    track_break_rename( FALSE);
+    wavbreaker_update_listmodel();
+
     appconfig_hide(GTK_WIDGET(user_data));
     appconfig_write_file();
 }

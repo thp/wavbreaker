@@ -20,8 +20,10 @@
 
 #include <glib.h>
 
-gboolean
-txt_read_file(const char *filename);
+#include "track_break.h"
 
 gboolean
-txt_write_file(const char *txt_filename, const char *wav_filename, GList *track_break_list);
+txt_read_file(const char *filename, TrackBreakList *list);
+
+gboolean
+txt_write_file(const char *txt_filename, const char *wav_filename, TrackBreakList *list);

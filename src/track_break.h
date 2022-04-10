@@ -28,19 +28,48 @@ struct TrackBreak_ {
     gchar     *filename;
 };
 
+void
+track_break_rename(TrackBreak *track_break, const char *new_name);
+
 gchar *
 track_break_format_timestamp(gulong time, gboolean toc_format);
-
-gchar *
-track_break_format_offset(TrackBreak *track_break, gboolean toc_format);
-
-gchar *
-track_break_format_duration(TrackBreak *track_break, gulong next_offset, gboolean toc_format);
 
 guint
 msf_time_to_offset(const gchar *str);
 
+
+typedef struct TrackBreakList {
+    gchar *basename;
+    GList *breaks;
+    gulong total_duration;
+} TrackBreakList;
+
+gchar *
+track_break_get_filename(TrackBreak *track_break, TrackBreakList *list);
+
+
+TrackBreakList *
+track_break_list_new(const char *basename);
+
+void
+track_break_list_clear(TrackBreakList *list);
+
+TrackBreak *
+track_break_list_add_offset(TrackBreakList *list, gboolean write, gulong offset, const char *filename);
+
+void
+track_break_list_set_total_duration(TrackBreakList *list, gulong total_duration);
+
 typedef void (*track_break_visitor_func)(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data);
 
 void
-track_break_list_foreach(GList *list, gulong total_duration, track_break_visitor_func visitor, void *visitor_user_data);
+track_break_list_foreach(TrackBreakList *list, track_break_visitor_func visitor, void *visitor_user_data);
+
+void
+track_break_list_remove_nth_element(TrackBreakList *list, int index);
+
+void
+track_break_list_reset_filenames(TrackBreakList *list);
+
+void
+track_break_list_free(TrackBreakList *list);

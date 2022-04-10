@@ -109,7 +109,6 @@ static MoodbarData *moodbarData;
 
 static gulong cursor_marker;
 static int pixmap_offset;
-static gboolean overwrite_track_names = FALSE;
 
 // one-shot idle_add-style event sources
 static guint open_file_source_id;
@@ -122,13 +121,6 @@ static guint file_write_progress_source_id;
 
 static WriteInfo write_info;
 
-typedef struct CursorData_ CursorData;
-
-struct CursorData_ {
-    gulong marker;
-    gboolean is_equal;
-};
-
 enum {
     COLUMN_WRITE,
     COLUMN_FILENAME,
@@ -138,7 +130,9 @@ enum {
     NUM_COLUMNS
 };
 
-static GList *track_break_list = NULL;
+static TrackBreakList *
+track_breaks = NULL;
+
 static GtkListStore *store = NULL;
 GtkWidget *treeview;
 
@@ -157,9 +151,6 @@ void track_break_filename_edited(GtkCellRendererText *cell,
     const gchar *path_str, const gchar *new_text, gpointer user_data);
 guint track_break_find_offset();
 void track_break_delete_entry();
-void track_break_setup_filename(gpointer data, gpointer user_data);
-void track_break_rename( gboolean overwrite);
-void track_break_add_to_model(gpointer data, gpointer user_data);
 void track_break_add_entry();
 static void track_break_update_gui_model();
 void track_break_set_duration(gpointer data, gpointer user_data);
@@ -308,7 +299,7 @@ void parts_check_cb(GtkWidget *widget, gpointer data) {
     while (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, i++)) {
 
         list_pos = i - 1;
-        list_data = g_list_nth_data(track_break_list, list_pos);
+        list_data = g_list_nth_data(track_breaks->breaks, list_pos);
         track_break = (TrackBreak *)list_data;
 
         switch ((glong)data) {
@@ -513,21 +504,6 @@ track_break_create_list_gui()
     return sw;
 }
 
-gint
-track_break_sort(gconstpointer a, gconstpointer b)
-{
-    TrackBreak *x = (TrackBreak *)a;
-    TrackBreak *y = (TrackBreak *)b;
-
-    if (x->offset < y->offset) {
-        return -1;
-    } else if (x->offset > y->offset) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 static gboolean
 track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
@@ -566,57 +542,20 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
     return FALSE;
 }
 
-void
-track_break_free_element(gpointer data, gpointer user_data)
-{
-    TrackBreak *track_break;
-
-    track_break = (TrackBreak *)data;
-
-    g_free(track_break->filename);
-    g_free(track_break);
-}
-
-void track_break_compare_cursor_marker(gpointer data, gpointer user_data)
-{
-    TrackBreak *track_break = (TrackBreak *) data;
-    CursorData *cd = (CursorData *) user_data;
-
-    if (cd->marker == track_break->offset) {
-        cd->is_equal = TRUE;
-    }
-}
-
-
-void track_break_clear_list()
-{
-    gtk_list_store_clear(store);
-    g_list_foreach(track_break_list, track_break_free_element, NULL);
-    g_list_free(track_break_list);
-    track_break_list = NULL;
-}
-
-void track_break_selection(gpointer data, gpointer user_data)
+void track_break_delete_selected(gpointer data, gpointer user_data)
 {
     GtkTreePath *path = (GtkTreePath*)data;
-    TrackBreak *track_break;
-    guint list_pos;
-    gpointer list_data;
-    GtkTreeModel *model;
     GtkTreeIter iter;
 
-    list_pos = gtk_tree_path_get_indices(path)[0];
+    guint list_pos = gtk_tree_path_get_indices(path)[0];
     if (list_pos == 0) {
         // Do not allow first break to be deleted
         return;
     }
 
-    list_data = g_list_nth_data(track_break_list, list_pos);
-    track_break = (TrackBreak *)list_data;
-    track_break_list = g_list_remove(track_break_list, track_break);
-    track_break_free_element(track_break, NULL);
+    track_break_list_remove_nth_element(track_breaks, list_pos);
 
-    model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
+    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
     gtk_tree_model_get_iter(model, &iter, path);
     gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
 
@@ -637,117 +576,12 @@ track_break_delete_entry()
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 
     list = gtk_tree_selection_get_selected_rows(selection, &model);
-    g_list_foreach(list, track_break_selection, NULL);
+    g_list_foreach(list, track_break_delete_selected, NULL);
     g_list_free(list);
 
     track_break_update_gui_model();
-    track_break_rename( FALSE);
 
     force_redraw();
-}
-
-void
-track_break_setup_filename(gpointer data, gpointer user_data)
-{
-    TrackBreak *track_break = (TrackBreak *)data;
-    gchar *orig_filename = (gchar *)user_data;
-
-    gchar fn[128];
-    gchar buf[128];
-    int index;
-    int disc_num;
-    static int prev_disc_num;
-    static int track_num = 1;
-
-    /* when not overwriting track names, only update not-yet-set names */
-    if( overwrite_track_names == FALSE) {
-
-        // try and determine if the user has modified the filename
-
-        if (track_break->filename != NULL) {
-            size_t cut = 0;
-            gboolean remove_from_start = FALSE;
-            if (appconfig_get_use_etree_filename_suffix()) {
-                // remove the dXtXX from the end
-                cut = 5;
-            } else {
-                // remove the XX- from the beginning or -XX from the end
-                cut = 3;
-                remove_from_start = appconfig_get_prepend_file_number();
-            }
-
-            int length = strlen(track_break->filename);
-            int orig_length = strlen(orig_filename);
-
-            if (length != orig_length + cut) {
-                return;
-            }
-
-            if (memcmp(orig_filename, track_break->filename + (remove_from_start ? cut : 0), orig_length) != 0) {
-                return;
-            }
-        }
-    }
-
-    index = g_list_index(track_break_list, track_break);
-    index++;
-    if (appconfig_get_use_etree_filename_suffix()) {
-        int cd_length = atoi(appconfig_get_etree_cd_length());
-        disc_num = (track_break->offset / CD_BLOCKS_PER_SEC / 60) / cd_length;
-        disc_num++;
-        if (index == 1) {
-            prev_disc_num = 0;
-        }
-        if (prev_disc_num != disc_num) {
-            track_num = 1;
-        } else {
-            track_num++;
-        }
-        prev_disc_num = disc_num;
-        sprintf(buf, "d%dt%02d", disc_num, track_num);
-    } else {
-        if (appconfig_get_prepend_file_number()) {
-            sprintf(buf, "%02d%s", index, appconfig_get_etree_filename_suffix());
-        } else {
-            sprintf(buf, "%s%02d", appconfig_get_etree_filename_suffix(), index);
-        }
-    }
-
-    fn[0] = '\0';
-
-    if (!appconfig_get_use_etree_filename_suffix() && appconfig_get_prepend_file_number()) {
-        strcat(fn, buf);
-        strcat(fn, orig_filename);
-    } else {
-        strcat(fn, orig_filename);
-        strcat(fn, buf);
-    }
-
-    g_free(track_break->filename);
-    track_break->filename = g_strdup(fn);
-}
-
-void
-track_break_add_to_model(gpointer data, gpointer user_data)
-{
-    TrackBreak *track_break = data;
-
-    TrackBreak *next_break = g_list_nth_data(track_break_list, g_list_index(track_break_list, track_break)+ 1);
-    gulong next_offset = (next_break != NULL) ? next_break->offset : sample_get_num_sample_blocks(g_sample);
-
-    gchar *time = track_break_format_offset(track_break, FALSE);
-    gchar *duration = track_break_format_duration(track_break, next_offset, FALSE);
-
-    gtk_list_store_insert_with_values(store, NULL, -1,
-            COLUMN_WRITE, track_break->write,
-            COLUMN_FILENAME, track_break->filename,
-            COLUMN_TIME, time,
-            COLUMN_DURATION, duration,
-            COLUMN_OFFSET, track_break->offset,
-            -1);
-
-    g_free(duration);
-    g_free(time);
 }
 
 guint track_break_find_offset()
@@ -800,108 +634,49 @@ select_and_show_track_break(int index)
 
 void track_break_add_entry()
 {
-    TrackBreak *track_break = NULL;
-    CursorData cursor_data;
-
-    if (g_sample == NULL) {
-        return;
-    }
-
-    // check for duplicate track breaks
-    cursor_data.is_equal = FALSE;
-    cursor_data.marker = cursor_marker;
-    g_list_foreach(track_break_list, track_break_compare_cursor_marker,
-                   &cursor_data);
-    if (cursor_data.is_equal == TRUE) {
-        return;
-    }
-
-    if (! (track_break = (TrackBreak *)g_malloc(sizeof(TrackBreak)))) {
-        printf("couldn't malloc enough memory for track_break\n");
-        exit(1);
-    }
-
-    track_break->write = 1;
-    track_break->offset = cursor_marker;
-
-    track_break->filename = NULL;
-
-    track_break_list = g_list_insert_sorted(track_break_list, track_break,
-                                            track_break_sort);
+    TrackBreak *track_break = track_break_list_add_offset(track_breaks, TRUE, cursor_marker, NULL);
 
     track_break_update_gui_model();
-    track_break_rename( FALSE);
 
-    select_and_show_track_break(g_list_index(track_break_list, track_break));
+    select_and_show_track_break(g_list_index(track_breaks->breaks, track_break));
 
     force_redraw();
 }
 
-void track_break_add_offset( char* filename, gulong offset)
+static void
+track_break_add_to_model(int index, gboolean write, gulong start_offset, gulong end_offset, const gchar *filename, void *user_data)
 {
-    TrackBreak *track_break = NULL;
+    gchar *time = track_break_format_timestamp(start_offset, FALSE);
+    gchar *duration = track_break_format_timestamp(end_offset - start_offset, FALSE);
 
-    if (g_sample == NULL) {
-        return;
-    }
+    gtk_list_store_insert_with_values(store, NULL, -1,
+            COLUMN_WRITE, write,
+            COLUMN_FILENAME, filename,
+            COLUMN_TIME, time,
+            COLUMN_DURATION, duration,
+            COLUMN_OFFSET, start_offset,
+            -1);
 
-    if( offset > sample_get_num_sample_blocks(g_sample)) {
-        if( filename != NULL) {
-            printf( "Offset for %s is too big, skipping.\n", filename);
-        }
-        return;
-    }
-
-    if( !(track_break = (TrackBreak *)g_malloc(sizeof(TrackBreak)))) {
-        printf("couldn't malloc enough memory for track_break\n");
-        return;
-    }
-
-    track_break->offset = offset;
-
-    if( filename == NULL) {
-        track_break->write = 0;
-        track_break->filename = NULL;
-    }
-    else {
-	if( filename == (void *)-1 ) {
-	    track_break->write = 1;
-	    track_break->filename = NULL;
-	}
-	else {
-	    track_break->write = 1;
-	    track_break->filename = g_strdup( filename);
-	}
-    }
-
-    track_break_list = g_list_insert_sorted( track_break_list, track_break,
-                                             track_break_sort);
-
-    track_break_update_gui_model();
-    track_break_rename( FALSE);
+    g_free(duration);
+    g_free(time);
 }
 
 void
 track_break_update_gui_model()
 {
     gtk_list_store_clear(store);
-    g_list_foreach(track_break_list, track_break_add_to_model, NULL);
-}
 
-void track_break_rename( gboolean overwrite) {
-    if (g_sample == NULL) {
-        return;
+    if (track_breaks != NULL) {
+        track_break_list_foreach(track_breaks, track_break_add_to_model, NULL);
     }
 
-    /* do we have to overwrite already-set names or just NULL names? */
-    overwrite_track_names = overwrite;
-
-    /* setup the filename */
-    g_list_foreach(track_break_list, track_break_setup_filename, (char *)sample_get_basename_without_extension(g_sample));
-
-    track_break_update_gui_model();
-
     redraw();
+}
+
+void
+wavbreaker_update_listmodel()
+{
+    track_break_update_gui_model();
 }
 
 void track_break_write_toggled(GtkWidget *widget,
@@ -916,7 +691,7 @@ void track_break_write_toggled(GtkWidget *widget,
     gpointer list_data;
 
     list_pos = atoi(path_str);
-    list_data = g_list_nth_data(track_break_list, list_pos);
+    list_data = g_list_nth_data(track_breaks->breaks, list_pos);
     track_break = (TrackBreak *)list_data;
     track_break->write = !track_break->write;
 
@@ -945,18 +720,23 @@ void track_break_filename_edited(GtkCellRendererText *cell,
     GtkTreeModel *model = GTK_TREE_MODEL(user_data);
     GtkTreeIter iter;
     GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
-    TrackBreak *track_break;
     guint list_pos;
     gpointer list_data;
 
     list_pos = atoi(path_str);
-    list_data = g_list_nth_data(track_break_list, list_pos);
-    track_break = (TrackBreak *)list_data;
-    track_break->filename = g_strdup(new_text);
+    list_data = g_list_nth_data(track_breaks->breaks, list_pos);
+    TrackBreak *track_break = list_data;
+
+    track_break_rename(track_break, new_text);
+
+    gchar *resulting_filename = track_break_get_filename(track_break, track_breaks);
 
     gtk_tree_model_get_iter(model, &iter, path);
-    gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
-                       track_break->filename, -1);
+    gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+            COLUMN_FILENAME, resulting_filename,
+            -1);
+
+    g_free(resulting_filename);
 
     gtk_tree_path_free(path);
 
@@ -1240,6 +1020,11 @@ file_open_progress_idle_func(gpointer data) {
         set_action_enabled("generate_moodbar", moodbarData == NULL);
 #endif
 
+        if (!track_breaks) {
+            track_breaks = track_break_list_new(sample_get_basename_without_extension(g_sample));
+        }
+        track_break_list_set_total_duration(track_breaks, sample_get_num_sample_blocks(g_sample));
+
         // Now that the file is fully loaded, update the duration
         track_break_update_gui_model();
         redraw();
@@ -1308,7 +1093,12 @@ static void open_file(const char *filename) {
     menu_stop(NULL, NULL);
 
     cursor_marker = 0;
-    track_break_clear_list();
+    gtk_list_store_clear(store);
+
+    if (track_breaks != NULL) {
+        track_break_list_free(g_steal_pointer(&track_breaks));
+    }
+    track_breaks = track_break_list_new(sample_get_basename_without_extension(g_sample));
     track_break_add_entry();
 
     if (file_open_progress_source_id) {
@@ -1449,7 +1239,7 @@ static gboolean redraw_later( gpointer data)
     struct WaveformSurfaceDrawContext ctx = {
         .widget = draw,
         .pixmap_offset = pixmap_offset,
-        .track_break_list = track_break_list,
+        .list = track_breaks,
         .graphData = sample_get_graph_data(g_sample),
         .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
     };
@@ -1503,7 +1293,7 @@ static gboolean configure_event(GtkWidget *widget,
     struct WaveformSurfaceDrawContext ctx = {
         .widget = widget,
         .pixmap_offset = pixmap_offset,
-        .track_break_list = track_break_list,
+        .list = track_breaks,
         .graphData = sample_get_graph_data(g_sample),
         .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
     };
@@ -1589,10 +1379,12 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
 
     tb_cur = NULL;
     tbs = NULL;;
-    for( tbl = track_break_list; tbl != NULL; tbl = g_list_next( tbl)) {
-        tb_cur = g_list_nth_data( track_break_list, g_list_position( track_break_list, tbl));
+    for( tbl = track_breaks->breaks; tbl != NULL; tbl = g_list_next( tbl)) {
+        tb_cur = tbl->data;
         if (tb_cur != NULL) {
-            cairo_text_extents( cr, tb_cur->filename, &te);
+            gchar *filename = track_break_get_filename(tb_cur, track_breaks);
+            cairo_text_extents(cr, filename, &te);
+            g_free(filename);
 
             if( pixmap_offset <= tb_cur->offset) {
                 if( tbs == NULL && tb_first != NULL) {
@@ -1630,7 +1422,11 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
         }
         border_left = (tbs[i]->offset > pixmap_offset)?(tbs[i]->offset - pixmap_offset):(0);
         border_right = (i+1 == tbc)?(width+100):(tbs[i+1]->offset - pixmap_offset);
-        strcpy( tmp, tbs[i]->filename);
+
+        gchar *filename = track_break_get_filename(tbs[i], track_breaks);
+        strcpy(tmp, filename);
+        g_free(filename);
+
         cairo_text_extents( cr, tmp, &te);
         label_truncated = FALSE;
         while( border_left + te.width + ellipsis_width + border*2 > border_right - border*2 && strlen( tmp) > 1) {
@@ -1674,7 +1470,7 @@ draw_summary_configure_event(GtkWidget *widget,
     struct WaveformSurfaceDrawContext ctx = {
         .widget = widget,
         .pixmap_offset = pixmap_offset,
-        .track_break_list = track_break_list,
+        .list = track_breaks,
         .graphData = sample_get_graph_data(g_sample),
         .moodbarData = appconfig_get_show_moodbar() ? moodbarData : NULL,
     };
@@ -1948,7 +1744,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     int nearest_track_break_index = 0;
     int containing_track_break_index = 0;
     {
-        GList *cur = track_break_list;
+        GList *cur = track_breaks->breaks;
         int idx = 0;
 
         nearest_track_break = cur ? cur->data : NULL;
@@ -2170,7 +1966,7 @@ static void menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void wavbreaker_write_files(char *dirname) {
     if (!sample_is_writing(g_sample)) {
-        sample_write_files(g_sample, track_break_list, &write_info, dirname);
+        sample_write_files(g_sample, track_breaks, &write_info, dirname);
 
         file_write_progress_source_id = g_timeout_add(50, file_write_progress_idle_func, NULL);
     }
@@ -2272,7 +2068,6 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
     GtkWidget *dialog;
     GtkFileFilter *filter_all;
     GtkFileFilter *filter_supported;
-    int rc;
 
     filter_all = gtk_file_filter_new();
     gtk_file_filter_set_name( filter_all, _("All files"));
@@ -2301,17 +2096,15 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 	gchar const *selected = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog));
 	if (g_str_has_suffix( selected, ".toc") || g_str_has_suffix( selected, ".TOC")) {
-	    rc = toc_read_file( selected, track_break_list);
-	    if( rc ) {
+	    if (!toc_read_file(selected, track_breaks)) {
 		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the TOC file."));
 	    }
 	} else if (g_str_has_suffix( selected, ".cue") || g_str_has_suffix( selected, ".CUE")) {
-	    rc = cue_read_file( selected, track_break_list);
-	    if( rc ) {
+	    if (!cue_read_file(selected, track_breaks)) {
 		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the CUE file."));
 	    }
 	} else {
-	    if (!txt_read_file(selected)) {
+	    if (!txt_read_file(selected, track_breaks)) {
 		popupmessage_show(main_window, _("Import failed"), _("There has been an error importing track breaks from the TXT file."));
             }
 	}
@@ -2319,6 +2112,7 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 
     gtk_widget_destroy(dialog);
 
+    track_break_update_gui_model();
     force_redraw();
 }
 
@@ -2401,7 +2195,10 @@ static void
 menu_rename(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
     /* rename (AND overwrite) track breaks */
-    track_break_rename( TRUE);
+    if (track_breaks != NULL) {
+        track_break_list_reset_filenames(track_breaks);
+        wavbreaker_update_listmodel();
+    }
 }
 
 static void save_window_sizes()
@@ -2425,6 +2222,11 @@ static void save_window_sizes()
 void wavbreaker_quit() {
     if (g_sample != NULL) {
         sample_stop(g_sample);
+        sample_close(g_steal_pointer(&g_sample));
+    }
+
+    if (track_breaks != NULL) {
+        track_break_list_free(g_steal_pointer(&track_breaks));
     }
 
     if (file_write_progress_source_id) {
@@ -2458,7 +2260,7 @@ void wavbreaker_quit() {
 
 static void check_really_quit()
 {
-    if (g_sample != NULL && g_list_length(track_break_list) != 1) {
+    if (g_sample != NULL && g_list_length(track_breaks->breaks) != 1) {
         if (reallyquit_show(main_window)) {
             wavbreaker_quit();
         }
@@ -2930,11 +2732,11 @@ gboolean
 track_breaks_export_to_file(const char *filename)
 {
     if (g_str_has_suffix(filename, ".txt")) {
-        return txt_write_file(filename, sample_get_basename(g_sample), track_break_list);
+        return txt_write_file(filename, sample_get_basename(g_sample), track_breaks);
     } else if (g_str_has_suffix(filename, ".toc")) {
-        return toc_write_file(filename, sample_get_basename(g_sample), track_break_list, sample_get_num_sample_blocks(g_sample));
+        return toc_write_file(filename, sample_get_basename(g_sample), track_breaks);
     } else if( g_str_has_suffix (filename, ".cue")) {
-        return cue_write_file(filename, sample_get_basename(g_sample), track_break_list);
+        return cue_write_file(filename, sample_get_basename(g_sample), track_breaks);
     }
 
     return FALSE;

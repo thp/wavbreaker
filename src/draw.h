@@ -29,7 +29,7 @@ struct WaveformSurfaceDrawContext {
     // sample offset of sample view
     long pixmap_offset;
     // list of track breaks
-    GList *track_break_list;
+    TrackBreakList *list;
     // sample information
     GraphData *graphData;
     // moodbar information
