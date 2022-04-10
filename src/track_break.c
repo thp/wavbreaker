@@ -23,11 +23,9 @@
 
 #include <stdio.h>
 
-gchar *
-track_break_format_time(TrackBreak *track_break, gboolean toc_format)
+static gchar *
+_format_time(gulong time, gboolean toc_format)
 {
-    guint time = track_break->offset;
-
     int min = time / (CD_BLOCKS_PER_SEC * 60);
     int sec = time % (CD_BLOCKS_PER_SEC * 60);
     int subsec = sec % CD_BLOCKS_PER_SEC;
@@ -40,6 +38,17 @@ track_break_format_time(TrackBreak *track_break, gboolean toc_format)
     }
 }
 
+gchar *
+track_break_format_time(TrackBreak *track_break, gboolean toc_format)
+{
+    return _format_time(track_break->offset, toc_format);
+}
+
+gchar *
+track_break_format_duration(TrackBreak *track_break, gulong next_offset, gboolean toc_format)
+{
+    return _format_time(next_offset - track_break->offset, toc_format);
+}
 
 /** @param str Time in MM:SS:FF format (where there are CD_BLOCKS_PER_SEC frames per second).
  *  @return offset in frames.

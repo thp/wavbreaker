@@ -159,7 +159,7 @@ void track_break_setup_filename(gpointer data, gpointer user_data);
 void track_break_rename( gboolean overwrite);
 void track_break_add_to_model(gpointer data, gpointer user_data);
 void track_break_add_entry();
-void track_break_set_durations();
+static void track_break_update_gui_model();
 void track_break_set_duration(gpointer data, gpointer user_data);
 
 int track_breaks_export_to_file( char* filename);
@@ -275,9 +275,6 @@ static guint
 time_to_offset(gint min, gint sec, gint subsec);
 
 static void
-offset_to_duration(guint, guint, gchar *);
-
-static void
 update_status(gboolean);
 
 /*
@@ -342,7 +339,7 @@ void jump_to_track_break(GSimpleAction *action, GVariant *parameter, gpointer us
     guint n = 0;
 
     n = track_break_find_offset();
-    if (n <= sample_get_num_samples(g_sample)) {
+    if (n <= sample_get_num_sample_blocks(g_sample)) {
         reset_sample_display(n);
     }
 
@@ -354,7 +351,7 @@ void wavbreaker_autosplit(long x) {
 
     gulong orig_cursor_marker = cursor_marker;
 
-    while (n <= sample_get_num_samples(g_sample)) {
+    while (n <= sample_get_num_sample_blocks(g_sample)) {
         cursor_marker = n;
         track_break_add_entry();
         n += x;
@@ -568,22 +565,6 @@ track_break_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user
     return FALSE;
 }
 
-/* DEBUG FUNCTION START */
-void track_break_print_element(gpointer data, gpointer user_data)
-{
-    TrackBreak *breakup;
-
-    breakup = (TrackBreak *)data;
-
-    printf("filename: %s", breakup->filename);
-    gchar *time = track_break_format_time(breakup, FALSE);
-    printf("\ttime: %s", time);
-    g_free(time);
-    printf("\tduration: %s", breakup->duration);
-    printf("\toffset: %lu\n", breakup->offset);
-}
-/* DEBUG FUNCTION END */
-
 void
 track_break_free_element(gpointer data, gpointer user_data)
 {
@@ -605,33 +586,6 @@ void track_break_compare_cursor_marker(gpointer data, gpointer user_data)
     }
 }
 
-void track_break_set_duration(gpointer data, gpointer user_data)
-{
-    TrackBreak *track_break = (TrackBreak *) data;
-    TrackBreak *next_track_break;
-    guint index;
-
-    index = g_list_index(track_break_list, track_break);
-    index++;
-    /*
-    printf("index: %d\n", index);
-    printf("cursor_marker: %d\n", cursor_marker);
-    printf("numSamples: %d\n", sample_get_num_samples(g_sample));
-    */
-    next_track_break = (TrackBreak *) g_list_nth_data(track_break_list, index);
-
-    if (next_track_break != NULL) {
-        // Take the offset of the next track as the end of the duration.
-        offset_to_duration(track_break->offset, next_track_break->offset,
-            track_break->duration);
-    } else {
-        // There is no next track.
-        // Take the end of the sample as the end of the duration.
-        offset_to_duration(track_break->offset, sample_get_num_samples(g_sample),
-            track_break->duration);
-    }
-    //printf("\n");
-}
 
 void track_break_clear_list()
 {
@@ -665,13 +619,6 @@ void track_break_selection(gpointer data, gpointer user_data)
     gtk_tree_model_get_iter(model, &iter, path);
     gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
 
-/* DEBUG CODE START */
-/*
-    g_list_foreach(track_break_list, track_break_print_element, NULL);
-    g_print("\n");
-*/
-/* DEBUG CODE END */
-
     gtk_tree_path_free(path);
 }
 
@@ -692,7 +639,7 @@ track_break_delete_entry()
     g_list_foreach(list, track_break_selection, NULL);
     g_list_free(list);
 
-    track_break_set_durations();
+    track_break_update_gui_model();
     track_break_rename( FALSE);
 
     force_redraw();
@@ -782,44 +729,24 @@ track_break_setup_filename(gpointer data, gpointer user_data)
 void
 track_break_add_to_model(gpointer data, gpointer user_data)
 {
-    GtkTreeIter iter;
-    GtkTreePath *path;
-    gchar path_str[8];
-    TrackBreak *track_break = (TrackBreak *)data;
-    int index = g_list_index(track_break_list, track_break);
+    TrackBreak *track_break = data;
 
-    sprintf(path_str, "%d", index);
-    path = gtk_tree_path_new_from_string(path_str);
-
-/* DEBUG CODE START */
-/*
-    g_print("gtktreepath: %s\n", path_str);
-    printf("list contents:\n");
-    g_list_foreach(track_break_list, print_element, NULL);
-*/
-/* DEBUG CODE END */
-
-    gtk_list_store_append(store, &iter);
-/*
-    if (gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &sibling, path)) {
-        gtk_list_store_insert_before(store, &iter, &sibling);
-    } else {
-        gtk_list_store_append(store, &iter);
-    }
-*/
+    TrackBreak *next_break = g_list_nth_data(track_break_list, g_list_index(track_break_list, track_break)+ 1);
+    gulong next_offset = (next_break != NULL) ? next_break->offset : sample_get_num_sample_blocks(g_sample);
 
     gchar *time = track_break_format_time(track_break, FALSE);
+    gchar *duration = track_break_format_duration(track_break, next_offset, FALSE);
 
-    gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
-                                     COLUMN_FILENAME, track_break->filename,
-                                     COLUMN_TIME, time,
-                                     COLUMN_DURATION, track_break->duration,
-                                     COLUMN_OFFSET, track_break->offset,
-                                     -1);
+    gtk_list_store_insert_with_values(store, NULL, -1,
+            COLUMN_WRITE, track_break->write,
+            COLUMN_FILENAME, track_break->filename,
+            COLUMN_TIME, time,
+            COLUMN_DURATION, duration,
+            COLUMN_OFFSET, track_break->offset,
+            -1);
 
+    g_free(duration);
     g_free(time);
-
-    gtk_tree_path_free(path);
 }
 
 guint track_break_find_offset()
@@ -901,7 +828,7 @@ void track_break_add_entry()
     track_break_list = g_list_insert_sorted(track_break_list, track_break,
                                             track_break_sort);
 
-    track_break_set_durations();
+    track_break_update_gui_model();
     track_break_rename( FALSE);
 
     select_and_show_track_break(g_list_index(track_break_list, track_break));
@@ -917,7 +844,7 @@ void track_break_add_offset( char* filename, gulong offset)
         return;
     }
 
-    if( offset > sample_get_num_samples(g_sample)) {
+    if( offset > sample_get_num_sample_blocks(g_sample)) {
         if( filename != NULL) {
             printf( "Offset for %s is too big, skipping.\n", filename);
         }
@@ -949,12 +876,13 @@ void track_break_add_offset( char* filename, gulong offset)
     track_break_list = g_list_insert_sorted( track_break_list, track_break,
                                              track_break_sort);
 
-    track_break_set_durations();
+    track_break_update_gui_model();
     track_break_rename( FALSE);
 }
 
-void track_break_set_durations() {
-    g_list_foreach(track_break_list, track_break_set_duration, NULL);
+void
+track_break_update_gui_model()
+{
     gtk_list_store_clear(store);
     g_list_foreach(track_break_list, track_break_add_to_model, NULL);
 }
@@ -969,17 +897,10 @@ void track_break_rename( gboolean overwrite) {
 
     /* setup the filename */
     g_list_foreach(track_break_list, track_break_setup_filename, (char *)sample_get_basename_without_extension(g_sample));
-    gtk_list_store_clear(store);
-    g_list_foreach(track_break_list, track_break_add_to_model, NULL);
+
+    track_break_update_gui_model();
 
     redraw();
-
-/* DEBUG CODE START */
-/*
-    g_list_foreach(track_break_list, track_break_print_element, NULL);
-    g_print("\n");
-*/
-/* DEBUG CODE END */
 }
 
 void track_break_write_toggled(GtkWidget *widget,
@@ -1318,6 +1239,8 @@ file_open_progress_idle_func(gpointer data) {
         set_action_enabled("generate_moodbar", moodbarData == NULL);
 #endif
 
+        // Now that the file is fully loaded, update the duration
+        track_break_update_gui_model();
         redraw();
 
         /* --------------------------------------------------- */
@@ -1553,28 +1476,28 @@ static gboolean configure_event(GtkWidget *widget,
     gtk_widget_get_allocation(widget, &allocation);
     int width = allocation.width;
 
-    if (sample_get_num_samples(g_sample) == 0) {
+    if (sample_get_num_sample_blocks(g_sample) == 0) {
         pixmap_offset = 0;
         gtk_adjustment_set_page_size(adj, 1);
         gtk_adjustment_set_upper(adj, 1);
         gtk_adjustment_set_page_increment(adj, 1);
-    } else if (width > sample_get_num_samples(g_sample)) {
+    } else if (width > sample_get_num_sample_blocks(g_sample)) {
         pixmap_offset = 0;
-        gtk_adjustment_set_page_size(adj, sample_get_num_samples(g_sample));
-        gtk_adjustment_set_upper(adj, sample_get_num_samples(g_sample));
+        gtk_adjustment_set_page_size(adj, sample_get_num_sample_blocks(g_sample));
+        gtk_adjustment_set_upper(adj, sample_get_num_sample_blocks(g_sample));
         gtk_adjustment_set_page_increment(adj, width / 2);
     } else {
-        if (pixmap_offset + width > sample_get_num_samples(g_sample)) {
-            pixmap_offset = sample_get_num_samples(g_sample) - width;
+        if (pixmap_offset + width > sample_get_num_sample_blocks(g_sample)) {
+            pixmap_offset = sample_get_num_sample_blocks(g_sample) - width;
         }
         gtk_adjustment_set_page_size(adj, width);
-        gtk_adjustment_set_upper(adj, sample_get_num_samples(g_sample));
+        gtk_adjustment_set_upper(adj, sample_get_num_sample_blocks(g_sample));
         gtk_adjustment_set_page_increment(adj, width / 2);
     }
 
     gtk_adjustment_set_step_increment(adj, 10);
     gtk_adjustment_set_value(adj, pixmap_offset);
-    gtk_adjustment_set_upper(cursor_marker_spinner_adj, sample_get_num_samples(g_sample) - 1);
+    gtk_adjustment_set_upper(cursor_marker_spinner_adj, sample_get_num_sample_blocks(g_sample) - 1);
 
     struct WaveformSurfaceDrawContext ctx = {
         .widget = widget,
@@ -1773,7 +1696,7 @@ draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
     gfloat summary_scale;
 
-    summary_scale = (float)(sample_get_num_samples(g_sample)) / (float)(width);
+    summary_scale = (float)(sample_get_num_sample_blocks(g_sample)) / (float)(width);
 
     /**
      * Draw shadow in summary pixmap to show current view
@@ -1809,15 +1732,15 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
         return TRUE;
     }
 
-    if (sample_get_num_samples(g_sample) == 0) {
+    if (sample_get_num_sample_blocks(g_sample) == 0) {
         return TRUE;
     }
 
     GtkAllocation allocation;
     gtk_widget_get_allocation(widget, &allocation);
     width = allocation.width;
-    x_scale = sample_get_num_samples(g_sample) / width;
-    x_scale_leftover = sample_get_num_samples(g_sample) % width;
+    x_scale = sample_get_num_sample_blocks(g_sample) / width;
+    x_scale_leftover = sample_get_num_sample_blocks(g_sample) % width;
     if (x_scale_leftover > 0) {
         x_scale_mod =  width / x_scale_leftover;
         leftover_count = event->x / x_scale_mod;
@@ -1844,12 +1767,12 @@ void reset_sample_display(guint midpoint)
     int width = allocation.width;
     int start = midpoint - width / 2;
 
-    if (sample_get_num_samples(g_sample) == 0) {
+    if (sample_get_num_sample_blocks(g_sample) == 0) {
         pixmap_offset = 0;
-    } else if (width > sample_get_num_samples(g_sample)) {
+    } else if (width > sample_get_num_sample_blocks(g_sample)) {
         pixmap_offset = 0;
-    } else if (start + width > sample_get_num_samples(g_sample)) {
-        pixmap_offset = sample_get_num_samples(g_sample) - width;
+    } else if (start + width > sample_get_num_sample_blocks(g_sample)) {
+        pixmap_offset = sample_get_num_sample_blocks(g_sample) - width;
     } else {
         pixmap_offset = start;
     }
@@ -1962,7 +1885,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
 {
     gtk_widget_grab_focus(play_button);
 
-    if (event->x + pixmap_offset > sample_get_num_samples(g_sample)) {
+    if (event->x + pixmap_offset > sample_get_num_sample_blocks(g_sample)) {
         return TRUE;
     }
 
@@ -2065,15 +1988,6 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     redraw();
 
     return TRUE;
-}
-
-static void offset_to_duration(guint start_time, guint end_time, gchar *str) {
-    guint duration = end_time - start_time;
-/*
-printf("start time: %d\n", start_time);
-printf("end time: %d\n", end_time);
-*/
-    offset_to_time(duration, str, FALSE);
 }
 
 static guint time_to_offset(gint min, gint sec, gint subsec) {
@@ -2187,7 +2101,7 @@ static void menu_next_silence( GtkWidget* widget, gpointer user_data)
     GraphData *graphData = sample_get_graph_data(g_sample);
     int amp = graphData->minSampleAmp + (graphData->maxSampleAmp-graphData->minSampleAmp)*appconfig_get_silence_percentage()/100;
 
-    for( i=cursor_marker+1; i<sample_get_num_samples(g_sample); i++) {
+    for( i=cursor_marker+1; i<sample_get_num_sample_blocks(g_sample); i++) {
         v = graphData->data[i].max - graphData->data[i].min;
         if( v < amp) {
             c++;
@@ -3029,7 +2943,7 @@ int track_breaks_export_to_file( char* filename) {
 
     } else if( g_str_has_suffix (filename, ".toc")) {
 
-        write_err = toc_write_file( filename, sample_get_basename(g_sample), track_break_list);
+        write_err = toc_write_file( filename, sample_get_basename(g_sample), track_break_list, sample_get_num_sample_blocks(g_sample));
 
         if( write_err) {
             popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));

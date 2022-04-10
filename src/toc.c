@@ -79,7 +79,7 @@ int toc_read_file(const char *toc_filename, GList *breaks)
     return 0;
 }
 
-int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks)
+int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks, gulong total_duration)
 {
     FILE *fp;
     TrackBreak *next_break = NULL;
@@ -93,6 +93,9 @@ int toc_write_file(const char *toc_filename, const char *wav_filename, GList *br
     int len = g_list_length(breaks);
     while (i < len) {
         next_break = (TrackBreak *) g_list_nth_data(breaks, i);
+        TrackBreak *next_next = g_list_nth_data(breaks, i + 1);
+        gulong end_offset = (next_next != NULL) ? next_next->offset : total_duration;
+
         if (next_break != NULL) {
             fprintf(fp, "\n// track %02d\n", i);
             fprintf(fp, "TRACK AUDIO\n");
@@ -100,9 +103,8 @@ int toc_write_file(const char *toc_filename, const char *wav_filename, GList *br
             gchar *tocTime = track_break_format_time(next_break, TRUE);
 
             if (i != len-1) {
-                tocDuration = convert_wavbreaker_time_to_toc_time(next_break->duration);
-                fprintf(fp, "FILE \"%s\" %s %s\n",
-                        wav_filename, tocTime, tocDuration);
+                tocDuration = track_break_format_duration(next_break, end_offset, TRUE);
+                fprintf(fp, "FILE \"%s\" %s %s\n", wav_filename, tocTime, tocDuration);
                 g_free(tocDuration);
             } else {
                 fprintf(fp, "FILE \"%s\" %s\n", wav_filename, tocTime);
@@ -114,44 +116,3 @@ int toc_write_file(const char *toc_filename, const char *wav_filename, GList *br
     fclose(fp);
     return 0;
 }
-
-char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime) {
-    char *tocTime;
-    int i;
-
-    #ifdef DEBUG
-    printf("start of convert_wavbreaker_time_to_toc_time\n");
-    printf("called convert_wavbreaker_time_to_toc_time with: %s\n", wavbreakerTime);
-    #endif
-
-    tocTime = g_strdup(wavbreakerTime);
-
-    #ifdef DEBUG
-    printf("got to: %d\n", p++);
-    #endif
-
-    i = 0;
-    while (tocTime[i] != '\0') {
-
-        #ifdef DEBUG
-	printf("got to: %d\n", p++);
-        printf("looping with: %d", tocTime[i]);
-        #endif
-
-        if (tocTime[i] == '.') {
-            tocTime[i] = ':';
-        }
-        i++;
-    }
-
-    #ifdef DEBUG
-    printf("end of convert_wavbreaker_time_to_toc_time\n");
-    #endif
-
-    return tocTime;
-}
-
-/* min = time / (CD_BLOCKS_PER_SEC * 60); */
-/* sec = time % (CD_BLOCKS_PER_SEC * 60); */
-/* subsec = sec % CD_BLOCKS_PER_SEC; */
-/* sec = sec / CD_BLOCKS_PER_SEC; */

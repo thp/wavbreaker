@@ -28,6 +28,10 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
   convert the raw audio to a file with WAV header and load that instead
 * Removed interactive query for opening as RAW CDDA audio (use `.cdda.raw` instead)
 
+### Fixed
+
+* Duration of initial break point is shown properly when the file is first loaded
+
 ## [0.15] -- 2022-04-04
 
 ### Added

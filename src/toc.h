@@ -19,10 +19,10 @@
 #ifndef TOC_H
 #define TOC_H
 
-#include <gtk/gtk.h>
+#include <glib.h>
 
 int toc_read_file(const char *toc_filename, GList *breaks);
-int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks);
+int toc_write_file(const char *toc_filename, const char *wav_filename, GList *breaks, gulong total_duration);
 
 #endif /* TOC_H */
 

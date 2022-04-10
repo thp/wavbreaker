@@ -100,7 +100,7 @@ GraphData *
 sample_get_graph_data(Sample *sample);
 
 unsigned long
-sample_get_num_samples(Sample *sample);
+sample_get_num_sample_blocks(Sample *sample);
 
 gboolean
 sample_is_playing(Sample *sample);

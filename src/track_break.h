@@ -26,11 +26,13 @@ struct TrackBreak_ {
     gboolean  write;
     gulong    offset;
     gchar     *filename;
-    gchar     duration[128];
 };
 
 gchar *
 track_break_format_time(TrackBreak *track_break, gboolean toc_format);
+
+gchar *
+track_break_format_duration(TrackBreak *track_break, gulong next_offset, gboolean toc_format);
 
 guint
 msf_time_to_offset(const gchar *str);
