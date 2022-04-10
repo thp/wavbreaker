@@ -16,40 +16,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <gtk/gtk.h>
-#include "wavbreaker.h"
+#include "reallyquit.h"
 
 #include "gettext.h"
 
-void reallyquit_show(GtkWidget *main_window)
+gboolean
+reallyquit_show(GtkWidget *main_window)
 {
-    GtkMessageDialog *dialog;
-    gint result;
+    gboolean result = FALSE;
+
     const gchar *message = _("Quit wavbreaker?");
     const gchar *info_text = _("If you quit wavbreaker now, any unsaved chunks will be lost.");
 
-    if( main_window == NULL) {
-        main_window = wavbreaker_get_main_window();
-    }
-
-    dialog = (GtkMessageDialog*)gtk_message_dialog_new( GTK_WINDOW(main_window),
+    GtkMessageDialog *dialog = (GtkMessageDialog*)gtk_message_dialog_new( GTK_WINDOW(main_window),
                                      GTK_DIALOG_DESTROY_WITH_PARENT,
                                      GTK_MESSAGE_QUESTION,
                                      GTK_BUTTONS_YES_NO,
                                      "%s", message);
 
+    gtk_window_set_title(GTK_WINDOW(dialog), message);
+    gtk_message_dialog_format_secondary_text(dialog, "%s", info_text);
 
-    gtk_window_set_title( GTK_WINDOW(dialog), message);
-    gtk_message_dialog_format_secondary_text( dialog, "%s", info_text);
-
-    result = gtk_dialog_run( GTK_DIALOG(dialog));
-    switch( result) {
-        case GTK_RESPONSE_YES:
-            wavbreaker_quit();
-            break;
-        default:
-            gtk_widget_destroy( GTK_WIDGET( dialog));
-            break;
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES) {
+        result = TRUE;
     }
-}
 
+    gtk_widget_destroy(GTK_WIDGET(dialog));
+
+    return result;
+}

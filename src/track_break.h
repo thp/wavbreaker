@@ -1,5 +1,6 @@
-/* wavbreaker - A tool to split a wave file up into multiple waves.
- * Copyright (C) 2002-2006 Timothy Robinson
+/* wavbreaker - A tool to split a wave file up into multiple wave.
+ * Copyright (C) 2002-2005 Timothy Robinson
+ * Copyright (C) 2007, 2022 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,13 +17,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef OVERWRITEDIALOG_H
-#define OVERWRITEDIALOG_H
+#pragma once
 
-#include <gtk/gtk.h>
+#include <glib.h>
 
-#include "sample.h"
-
-void overwritedialog_show(GtkWidget *, WriteInfo *);
-
-#endif /* OVERWRITEDIALOG_H */
+typedef struct TrackBreak_ TrackBreak;
+struct TrackBreak_ {
+    gboolean  write;
+    gulong    offset;
+    gchar     *filename;
+    gchar     time[128];
+    gchar     duration[128];
+    gboolean  editable;
+};

@@ -27,12 +27,12 @@
 #include <limits.h>
 #include <gtk/gtk.h>
 #include <stdint.h>
- 
-#include "wavbreaker.h"
 
 #include "aoaudio.h"
 
 #include "sample_info.h"
+#include "track_break.h"
+
 #include "format.h"
 #include "overwritedialog.h"
 #include "gettext.h"

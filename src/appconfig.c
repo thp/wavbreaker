@@ -22,6 +22,7 @@
 #include "appconfig.h"
 #include "sample_info.h"
 #include "popupmessage.h"
+#include "wavbreaker.h"
 
 #include "gettext.h"
 

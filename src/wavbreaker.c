@@ -2575,7 +2575,9 @@ void wavbreaker_quit() {
 static void check_really_quit()
 {
     if (g_sample != NULL && g_list_length(track_break_list) != 1) {
-        reallyquit_show(main_window);
+        if (reallyquit_show(main_window)) {
+            wavbreaker_quit();
+        }
     } else {
         wavbreaker_quit();
     }

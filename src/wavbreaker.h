@@ -20,26 +20,19 @@
 #ifndef WAVBREAKER_H
 #define WAVBREAKER_H
 
-#include <gtk/gtk.h>
+#include "track_break.h"
 
-typedef struct TrackBreak_ TrackBreak;
-struct TrackBreak_ {
-	gboolean  write;
-	gulong    offset;
-	gchar     *filename;
-	gchar     time[128];
-	gchar     duration[128];
-	gboolean  editable;
-};
+#include <gtk/gtk.h>
 
 void wavbreaker_autosplit(long x);
 void track_break_rename();
 void wavbreaker_write_files(char *dirname);
 GtkWidget *wavbreaker_get_main_window();
-void track_break_add_offset(char *filename, gulong offset);
-void track_break_clear_list();
 void wavbreaker_update_moodbar_state();
 void wavbreaker_quit();
+
+void track_break_clear_list();
+void track_break_add_offset(char *filename, gulong offset);
 
 guint msf_time_to_offset( gchar *str );
 

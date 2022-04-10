@@ -20,9 +20,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "wavbreaker.h"
+#include "track_break.h"
 #include "sample_info.h"
 #include "toc.h"
+
+#include "wavbreaker.h"
 
 char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime);
 guint time_to_offset( gchar * );

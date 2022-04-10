@@ -20,7 +20,7 @@
 #ifndef APPCONFIG_H
 #define APPCONFIG_H
 
-#include "wavbreaker.h"
+#include <gtk/gtk.h>
 
 void appconfig_show(GtkWidget *);
 void appconfig_write_file();

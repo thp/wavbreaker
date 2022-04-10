@@ -19,6 +19,8 @@
 #ifndef REALLYQUIT_H
 #define REALLYQUIT_H
 
-void reallyquit_show(GtkWidget *);
+#include <gtk/gtk.h>
+
+gboolean reallyquit_show(GtkWidget *);
 
 #endif /* REALLYQUIT_H */
