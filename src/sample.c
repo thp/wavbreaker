@@ -179,12 +179,10 @@ sample_is_playing(Sample *sample)
 gulong
 sample_get_play_marker(Sample *sample)
 {
-    gulong result = 0;
+    gulong result;
 
     g_mutex_lock(&sample->play_mutex);
-    if (sample->playing) {
-        result = sample->play_position;
-    }
+    result = sample->play_position;
     g_mutex_unlock(&sample->play_mutex);
 
     return result;
