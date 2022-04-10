@@ -2266,7 +2266,7 @@ static void menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void wavbreaker_write_files(char *dirname) {
-    if (!sample_is_writing()) {
+    if (!sample_is_writing(g_sample)) {
         sample_write_files(g_sample, track_break_list, &write_info, dirname);
 
         file_write_progress_source_id = g_timeout_add(50, file_write_progress_idle_func, NULL);

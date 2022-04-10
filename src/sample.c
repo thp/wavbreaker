@@ -37,8 +37,6 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-static int writing = 0;
-
 typedef struct WriteThreadData_ WriteThreadData;
 struct WriteThreadData_ {
     Sample *sample;
@@ -72,6 +70,9 @@ struct Sample_ {
     gboolean kill_play_thread;
     gulong play_position;
     unsigned long play_start_position;
+
+    GMutex write_mutex;
+    gboolean writing;
 
     OpenThreadData open_thread_data;
     WriteThreadData write_thread_data;
@@ -198,9 +199,16 @@ sample_get_play_marker(Sample *sample)
     return result;
 }
 
-int sample_is_writing()
+gboolean
+sample_is_writing(Sample *sample)
 {
-    return writing;
+    gboolean result;
+
+    g_mutex_lock(&sample->write_mutex);
+    result = sample->writing;
+    g_mutex_unlock(&sample->write_mutex);
+
+    return result;
 }
 
 int
@@ -291,6 +299,7 @@ sample_open(const char *filename, char **error_message)
     };
 
     g_mutex_init(&result->play_mutex);
+    g_mutex_init(&result->write_mutex);
 
     g_thread_unref(g_thread_new("open file", open_thread, &result->open_thread_data));
 
@@ -585,21 +594,26 @@ write_thread(gpointer data)
     }
     write_info->cur_filename = NULL;
 
-    writing = 0;
+    g_mutex_lock(&sample->write_mutex);
+    sample->writing = FALSE;
+    g_mutex_unlock(&sample->write_mutex);
+
     return NULL;
 }
 
 void
 sample_write_files(Sample *sample, GList *tbl, WriteInfo *write_info, char *outputdir)
 {
-    sample->write_thread_data = (WriteThreadData){
+    sample->write_thread_data = (WriteThreadData) {
         .sample = sample,
         .tbl = tbl,
         .write_info = write_info,
         .outputdir = outputdir,
     };
 
-    writing = 1;
+    g_mutex_lock(&sample->write_mutex);
+    sample->writing = TRUE;
+    g_mutex_unlock(&sample->write_mutex);
 
     write_info->num_files = 0;
     write_info->cur_file = 0;

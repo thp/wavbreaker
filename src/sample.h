@@ -105,6 +105,7 @@ sample_get_num_samples(Sample *sample);
 gboolean
 sample_is_playing(Sample *sample);
 
-int sample_is_writing();
+gboolean
+sample_is_writing(Sample *sample);
 
 #endif /* SAMPLE_H*/
