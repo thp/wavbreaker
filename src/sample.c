@@ -46,14 +46,6 @@ struct WriteThreadData_ {
     char *outputdir;
 };
 
-typedef struct OpenThreadData_ OpenThreadData;
-struct OpenThreadData_ {
-    Sample *sample;
-
-    GraphData *graphData;
-    double *pct;
-};
-
 struct Sample_ {
     OpenedAudioFile *opened_audio_file;
 
@@ -74,7 +66,6 @@ struct Sample_ {
     GMutex write_mutex;
     gboolean writing;
 
-    OpenThreadData open_thread_data;
     WriteThreadData write_thread_data;
 };
 
@@ -258,10 +249,9 @@ sample_stop(Sample *sample)
 static gpointer
 open_thread(gpointer data)
 {
-    OpenThreadData *thread_data = data;
+    Sample *sample = data;
 
-    sample_max_min(thread_data->sample, thread_data->graphData,
-                   thread_data->pct);
+    sample_max_min(sample, &sample->graph_data, &sample->percentage);
 
     return NULL;
 }
@@ -269,41 +259,35 @@ open_thread(gpointer data)
 Sample *
 sample_open(const char *filename, char **error_message)
 {
-    Sample *result = g_new0(Sample, 1);
+    Sample *sample = g_new0(Sample, 1);
 
-    result->opened_audio_file = format_open_file(filename, error_message);
-    if (result->opened_audio_file == NULL) {
-        g_free(result);
+    sample->opened_audio_file = format_open_file(filename, error_message);
+    if (sample->opened_audio_file == NULL) {
+        g_free(sample);
         g_message("Could not open %s with format_open_file(): %s", filename, *error_message);
         return NULL;
     }
 
-    result->filename_dirname = g_path_get_dirname(filename);
-    result->filename_basename = g_path_get_basename(filename);
+    sample->filename_dirname = g_path_get_dirname(filename);
+    sample->filename_basename = g_path_get_basename(filename);
 
-    gchar *tmp = g_strdup(result->filename_basename);
-    if (format_module_filename_extension_check(result->opened_audio_file->mod, tmp, NULL)) {
-        tmp[strlen(tmp)-strlen(result->opened_audio_file->mod->default_file_extension)] = '\0';
+    gchar *tmp = g_strdup(sample->filename_basename);
+    if (format_module_filename_extension_check(sample->opened_audio_file->mod, tmp, NULL)) {
+        tmp[strlen(tmp)-strlen(sample->opened_audio_file->mod->default_file_extension)] = '\0';
     } else {
         gchar *end = strrchr(tmp, '.');
         if (end) {
             *end = '\0';
         }
     }
-    result->basename_without_extension = tmp;
+    sample->basename_without_extension = tmp;
 
-    result->open_thread_data = (OpenThreadData) {
-        .sample = result,
-        .graphData = &result->graph_data,
-        .pct = &result->percentage,
-    };
+    g_mutex_init(&sample->play_mutex);
+    g_mutex_init(&sample->write_mutex);
 
-    g_mutex_init(&result->play_mutex);
-    g_mutex_init(&result->write_mutex);
+    g_thread_unref(g_thread_new("open file", open_thread, sample));
 
-    g_thread_unref(g_thread_new("open file", open_thread, &result->open_thread_data));
-
-    return result;
+    return sample;
 }
 
 GraphData *
