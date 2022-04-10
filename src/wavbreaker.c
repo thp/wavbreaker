@@ -1233,7 +1233,7 @@ file_play_progress_idle_func(gpointer data) {
     redraw();
     update_status(FALSE);
 
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         return TRUE;
     } else {
         set_play_icon();
@@ -1652,7 +1652,7 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
         cairo_fill(cr);
     }
 
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         /**
          * Draw GREEN play marker
          **/
@@ -1816,7 +1816,7 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
     int x_scale, x_scale_leftover, x_scale_mod;
     int leftover_count;
 
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         return TRUE;
     }
 
@@ -1881,7 +1881,7 @@ void reset_sample_display(guint midpoint)
 
 static gboolean adj_value_changed(GtkAdjustment *adj, gpointer data)
 {
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         return FALSE;
     }
 
@@ -1896,7 +1896,7 @@ static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer dat
 {
     gint min, sec, subsec;
 
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         return;
     }
 
@@ -1917,7 +1917,7 @@ static void cursor_marker_time_spinners_changed(GtkAdjustment *adj, gpointer dat
 
 static void cursor_marker_spinner_changed(GtkAdjustment *adj, gpointer data)
 {
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         return;
     }
     cursor_marker = gtk_adjustment_get_value(adj);
@@ -1977,7 +1977,7 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
         return TRUE;
     }
 
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         return TRUE;
     }
 
@@ -2126,7 +2126,7 @@ static void update_status(gboolean update_time_offset) {
     offset_to_time(cursor_marker, strbuf, update_time_offset);
     strcat(str, strbuf);
 
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         strcat( str, "\t");
         strcat( str, _("Playing"));
         strcat( str, ": ");
@@ -2139,7 +2139,7 @@ static void update_status(gboolean update_time_offset) {
 
 static void menu_play(GtkWidget *widget, gpointer user_data)
 {
-    if (sample_is_playing()) {
+    if (sample_is_playing(g_sample)) {
         menu_stop( NULL, NULL);
         update_status(FALSE);
         set_play_icon();
@@ -2178,7 +2178,9 @@ static void set_play_icon() {
 
 static void menu_stop(GtkWidget *widget, gpointer user_data)
 {
-    stop_sample();
+    if (g_sample != NULL) {
+        sample_stop(g_sample);
+    }
 }
 
 static void
@@ -2514,7 +2516,9 @@ static void save_window_sizes()
 }
 
 void wavbreaker_quit() {
-    stop_sample();
+    if (g_sample != NULL) {
+        sample_stop(g_sample);
+    }
 
     if (file_write_progress_source_id) {
         g_source_remove(file_write_progress_source_id);

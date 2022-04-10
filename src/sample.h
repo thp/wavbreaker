@@ -88,6 +88,9 @@ int
 sample_play(Sample *sample, gulong startpos, gulong *play_marker);
 
 void
+sample_stop(Sample *sample);
+
+void
 sample_write_files(Sample *sample, GList *, WriteInfo *, char *);
 
 GraphData *
@@ -96,8 +99,9 @@ sample_get_graph_data(Sample *sample);
 unsigned long
 sample_get_num_samples(Sample *sample);
 
-int sample_is_playing();
+gboolean
+sample_is_playing(Sample *sample);
+
 int sample_is_writing();
-void stop_sample();
 
 #endif /* SAMPLE_H*/

@@ -37,13 +37,7 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-static unsigned long sample_start = 0;
-static int playing = 0;
 static int writing = 0;
-static gboolean kill_play_thread = FALSE;
-
-static GThread *thread;
-static GMutex mutex;
 
 typedef struct PlayThreadData_ PlayThreadData;
 struct PlayThreadData_ {
@@ -79,6 +73,12 @@ struct Sample_ {
     GraphData graph_data;
     double percentage; // for loading
 
+    GThread *play_thread;
+    GMutex play_mutex;
+    gboolean playing;
+    gboolean kill_play_thread;
+    unsigned long play_start_position;
+
     OpenThreadData open_thread_data;
     PlayThreadData play_thread_data;
     WriteThreadData write_thread_data;
@@ -100,8 +100,6 @@ read_sample(OpenedAudioFile *oaf, unsigned char *buf, int buf_size, unsigned lon
 
 void sample_init()
 {
-    g_mutex_init(&mutex);
-
     format_init();
 }
 
@@ -109,6 +107,8 @@ static gpointer
 play_thread(gpointer thread_data)
 {
     PlayThreadData *self = thread_data;
+
+    Sample *sample = self->sample;
 
     int read_ret = 0;
     int i;
@@ -118,11 +118,11 @@ play_thread(gpointer thread_data)
     /*
     printf("play_thread: calling open_audio_device\n");
     */
-    if (ao_audio_open_device(&self->sample->opened_audio_file->sample_info) != 0) {
-        g_mutex_lock(&mutex);
-        playing = 0;
+    if (ao_audio_open_device(&sample->opened_audio_file->sample_info) != 0) {
+        g_mutex_lock(&sample->play_mutex);
+        sample->playing = FALSE;
         ao_audio_close_device();
-        g_mutex_unlock(&mutex);
+        g_mutex_unlock(&sample->play_mutex);
         //printf("play_thread: return from open_audio_device != 0\n");
         return NULL;
     }
@@ -132,15 +132,15 @@ play_thread(gpointer thread_data)
 
     devbuf = malloc(DEFAULT_BUF_SIZE);
     if (devbuf == NULL) {
-        g_mutex_lock(&mutex);
-        playing = 0;
+        g_mutex_lock(&sample->play_mutex);
+        sample->playing = FALSE;
         ao_audio_close_device();
-        g_mutex_unlock(&mutex);
+        g_mutex_unlock(&sample->play_mutex);
         printf("play_thread: out of memory\n");
         return NULL;
     }
 
-    read_ret = read_sample(self->sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
+    read_ret = read_sample(sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample->play_start_position + (DEFAULT_BUF_SIZE * i++));
 
     while (read_ret > 0 && read_ret <= DEFAULT_BUF_SIZE) {
         /*
@@ -151,35 +151,42 @@ play_thread(gpointer thread_data)
 
         ao_audio_write(devbuf, read_ret);
 
-        if (g_mutex_trylock(&mutex)) {
-            if (kill_play_thread == TRUE) {
+        if (g_mutex_trylock(&sample->play_mutex)) {
+            if (sample->kill_play_thread) {
                 ao_audio_close_device();
-                playing = 0;
-                kill_play_thread = FALSE;
-                g_mutex_unlock(&mutex);
+                sample->playing = FALSE;
+                sample->kill_play_thread = FALSE;
+                g_mutex_unlock(&sample->play_mutex);
                 return NULL;
             }
-            g_mutex_unlock(&mutex);
+            g_mutex_unlock(&sample->play_mutex);
         }
 
-        read_ret = read_sample(self->sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample_start + (DEFAULT_BUF_SIZE * i++));
+        read_ret = read_sample(sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample->play_start_position + (DEFAULT_BUF_SIZE * i++));
 
-        *self->play_marker = ((DEFAULT_BUF_SIZE * i) + sample_start) / self->sample->opened_audio_file->sample_info.blockSize;
+        *self->play_marker = ((DEFAULT_BUF_SIZE * i) + sample->play_start_position) / sample->opened_audio_file->sample_info.blockSize;
     }
 
-    g_mutex_lock(&mutex);
+    g_mutex_lock(&sample->play_mutex);
 
     ao_audio_close_device();
-    playing = 0;
+    sample->playing = FALSE;
 
-    g_mutex_unlock(&mutex);
+    g_mutex_unlock(&sample->play_mutex);
 
     return NULL;
 }
 
-int sample_is_playing()
+gboolean
+sample_is_playing(Sample *sample)
 {
-    return playing;
+    gboolean result = FALSE;
+
+    g_mutex_lock(&sample->play_mutex);
+    result = sample->playing;
+    g_mutex_unlock(&sample->play_mutex);
+
+    return result;
 }
 
 int sample_is_writing()
@@ -190,49 +197,46 @@ int sample_is_writing()
 int
 sample_play(Sample *sample, gulong startpos, gulong *play_marker)
 {
-    g_mutex_lock(&mutex);
-    if (playing) {
-        g_mutex_unlock(&mutex);
+    g_mutex_lock(&sample->play_mutex);
+    if (sample->playing) {
+        g_mutex_unlock(&sample->play_mutex);
         return 2;
     }
 
     if (sample->opened_audio_file == NULL) {
-        g_mutex_unlock(&mutex);
+        g_mutex_unlock(&sample->play_mutex);
         return 3;
     }
 
-    playing = 1;
-    sample_start = startpos * sample->opened_audio_file->sample_info.blockSize;
+    sample->playing = TRUE;
+    sample->play_start_position = startpos * sample->opened_audio_file->sample_info.blockSize;
 
     /* setup thread */
 
     sample->play_thread_data.sample = sample;
     sample->play_thread_data.play_marker = play_marker;
 
-    //printf("creating the thread\n");
-    fflush(stdout);
-    thread = g_thread_new("play_sample", play_thread, &sample->play_thread_data);
+    sample->play_thread = g_thread_new("play_sample", play_thread, &sample->play_thread_data);
 
-    g_mutex_unlock(&mutex);
-    //printf("finished creating the thread\n");
+    g_mutex_unlock(&sample->play_mutex);
     return 0;
-}               
+}
 
-void stop_sample()
-{       
-    g_mutex_lock(&mutex);
+void
+sample_stop(Sample *sample)
+{
+    g_mutex_lock(&sample->play_mutex);
 
-    if (!playing) {
-        g_mutex_unlock(&mutex);
+    if (!sample->playing) {
+        g_mutex_unlock(&sample->play_mutex);
         return;
     }
 
-    kill_play_thread = TRUE;
-    g_mutex_unlock(&mutex);
+    sample->kill_play_thread = TRUE;
+    g_mutex_unlock(&sample->play_mutex);
 
     // Wait for play thread to actually quit
-    g_thread_join(thread);
-    thread = NULL;
+    g_thread_join(g_steal_pointer(&sample->play_thread));
 }
 
 static gpointer
@@ -277,6 +281,8 @@ sample_open(const char *filename, char **error_message)
         .graphData = &result->graph_data,
         .pct = &result->percentage,
     };
+
+    g_mutex_init(&result->play_mutex);
 
     g_thread_unref(g_thread_new("open file", open_thread, &result->open_thread_data));
 
