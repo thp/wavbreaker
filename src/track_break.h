@@ -28,5 +28,4 @@ struct TrackBreak_ {
     gchar     *filename;
     gchar     time[128];
     gchar     duration[128];
-    gboolean  editable;
 };

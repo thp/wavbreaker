@@ -133,7 +133,6 @@ enum {
     COLUMN_TIME,
     COLUMN_DURATION,
     COLUMN_OFFSET,
-    COLUMN_EDITABLE,
     NUM_COLUMNS
 };
 
@@ -442,8 +441,7 @@ track_break_create_list_gui()
                                G_TYPE_STRING,
                                G_TYPE_STRING,
                                G_TYPE_STRING,
-                               G_TYPE_UINT,
-                               G_TYPE_BOOLEAN);
+                               G_TYPE_UINT);
 
     /* create the treeview */
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
@@ -476,11 +474,11 @@ track_break_create_list_gui()
     /* File Name Column */
     column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
+    g_object_set(renderer, "editable", TRUE, NULL);
     g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_filename_edited), store);
     gtk_tree_view_column_set_title(column, _("File Name"));
     gtk_tree_view_column_pack_start(column, renderer, TRUE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_FILENAME);
-    gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     //gtk_tree_view_column_set_fixed_width(column, 200);
     gtk_tree_view_column_set_expand(column, TRUE);
@@ -498,7 +496,6 @@ track_break_create_list_gui()
     gtk_tree_view_column_set_title(column, _("Time"));
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_TIME);
-    //gtk_tree_view_column_add_attribute(column, renderer, "editable", COLUMN_EDITABLE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
@@ -820,7 +817,6 @@ track_break_add_to_model(gpointer data, gpointer user_data)
                                      COLUMN_TIME, track_break->time,
                                      COLUMN_DURATION, track_break->duration,
                                      COLUMN_OFFSET, track_break->offset,
-                                     COLUMN_EDITABLE, track_break->editable,
                                      -1);
 
     gtk_tree_path_free(path);
@@ -899,7 +895,6 @@ void track_break_add_entry()
 
     track_break->write = 1;
     track_break->offset = cursor_marker;
-    track_break->editable = TRUE;
     offset_to_time(cursor_marker, track_break->time, TRUE);
     track_break->filename = NULL;
 
@@ -934,7 +929,6 @@ void track_break_add_offset( char* filename, gulong offset)
         return;
     }
 
-    track_break->editable = TRUE;
     track_break->offset = offset;
     offset_to_time( track_break->offset, track_break->time, FALSE);
 
