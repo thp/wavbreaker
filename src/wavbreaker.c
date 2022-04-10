@@ -40,12 +40,14 @@
 #include "saveas.h"
 #include "popupmessage.h"
 #include "overwritedialog.h"
-#include "toc.h"
-#include "cue.h"
 #include "reallyquit.h"
 #include "guimerge.h"
 #include "moodbar.h"
 #include "draw.h"
+
+#include "toc.h"
+#include "txt.h"
+#include "cue.h"
 
 #include <locale.h>
 #include "gettext.h"
@@ -162,8 +164,7 @@ void track_break_add_entry();
 static void track_break_update_gui_model();
 void track_break_set_duration(gpointer data, gpointer user_data);
 
-int track_breaks_export_to_file( char* filename);
-int track_breaks_load_from_file( gchar const *filename);
+gboolean track_breaks_export_to_file(const char *filename);
 void track_break_write_text( gpointer data, gpointer user_data);
 void track_break_write_cue( gpointer data, gpointer user_data);
 
@@ -2253,7 +2254,9 @@ static void menu_export(GSimpleAction *action, GVariant *parameter, gpointer use
     g_signal_connect ( GTK_FILE_CHOOSER(dialog), "notify::filter", G_CALLBACK( filter_changed), NULL);
 
     if (gtk_dialog_run( GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        track_breaks_export_to_file( gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(dialog)));
+        if (!track_breaks_export_to_file(gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog)))) {
+            popupmessage_show(main_window, _("Export failed"), _("There has been an error exporting track breaks."));
+        }
     }
 
     gtk_widget_destroy(dialog);
@@ -2308,7 +2311,9 @@ void menu_import(GSimpleAction *action, GVariant *parameter, gpointer user_data)
 		popupmessage_show( main_window, _("Import failed"), _("There has been an error importing track breaks from the CUE file."));
 	    }
 	} else {
-	    track_breaks_load_from_file( selected);
+	    if (!txt_read_file(selected)) {
+		popupmessage_show(main_window, _("Import failed"), _("There has been an error importing track breaks from the TXT file."));
+            }
 	}
     }
 
@@ -2921,106 +2926,16 @@ main(int argc, char *argv[])
     return status;
 }
 
-int track_breaks_export_to_file( char* filename) {
-    FILE *fp = NULL;
-
-    if( g_str_has_suffix (filename, ".txt")) {
-
-	fp = fopen( filename, "w");
-	if( !fp) {
-	    fprintf( stderr, "Error opening %s.\n", filename);
-	    return -1;
-	}
-
-	fprintf( fp, "\n; Created by " PACKAGE " " VERSION "\n; http://thpinfo.com/2006/wavbreaker/tb-file-format.txt\n\n");
-
-	g_list_foreach( track_break_list, track_break_write_text, fp);
-
-	fprintf( fp, "\n; Total breaks: %d\n; Original file: %s\n\n", g_list_length( track_break_list), sample_get_filename(g_sample));
-
-	fclose( fp);
-
-    } else if( g_str_has_suffix (filename, ".toc")) {
-
-        if (!toc_write_file(filename, sample_get_basename(g_sample), track_break_list, sample_get_num_sample_blocks(g_sample))) {
-            popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the TOC file."));
-	    return -1;
-        }
-
+gboolean
+track_breaks_export_to_file(const char *filename)
+{
+    if (g_str_has_suffix(filename, ".txt")) {
+        return txt_write_file(filename, sample_get_basename(g_sample), track_break_list);
+    } else if (g_str_has_suffix(filename, ".toc")) {
+        return toc_write_file(filename, sample_get_basename(g_sample), track_break_list, sample_get_num_sample_blocks(g_sample));
     } else if( g_str_has_suffix (filename, ".cue")) {
-
-        if (!cue_write_file(filename, sample_get_basename(g_sample), track_break_list)) {
-            popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the CUE file."));
-            return -1;
-        }
-
-    } else {
-	popupmessage_show( main_window, _("Export failed"), _("Unrecognised export type"));
-	return -1;
+        return cue_write_file(filename, sample_get_basename(g_sample), track_break_list);
     }
 
-    return 0;
-}
-
-void track_break_write_text( gpointer data, gpointer user_data) {
-    FILE* fp = (FILE*)user_data;
-    TrackBreak* track_break = (TrackBreak*)data;
-
-    if( track_break->write) {
-        fprintf(fp, "%lu=%s\n", track_break->offset, track_break->filename);
-    } else {
-        fprintf(fp, "%lu\n", track_break->offset);
-    }
-}
-
-int track_breaks_load_from_file( gchar const *filename) {
-    FILE* fp;
-    char tmp[1024];
-    char* ptr;
-    char* fname;
-    int c;
-
-    fp = fopen( filename, "r");
-    if( !fp) {
-        fprintf( stderr, "Error opening %s.\n", filename);
-        return 1;
-    }
-
-    track_break_clear_list();
-
-    ptr = tmp;
-    while( !feof( fp)) {
-        c = fgetc( fp);
-        if( c == EOF)
-            break;
-
-        if( c == '\n') {
-            *ptr = '\0';
-            if( ptr != tmp && tmp[0] != ';') {
-                fname = strchr( tmp, '=');
-                if( fname == NULL) {
-                    //DEBUG: printf( "Empty cut at %d\n", atoi( tmp));
-                    track_break_add_offset(NULL, atol(tmp));
-                } else {
-                    *(fname++) = '\0';
-                    while( *fname == ' ')
-                        fname++;
-                    //DEBUG: printf( "Cut at %d for %s\n", atoi( tmp), fname);
-                    track_break_add_offset(fname, atol(tmp));
-                }
-            }
-            ptr = tmp;
-        } else {
-            *ptr = c;
-            ptr++;
-            if( ptr > tmp+1024) {
-                fprintf( stderr, "Error parsing file.\n");
-                fclose( fp);
-                return 1;
-            }
-        }
-    }
-
-    fclose( fp);
-    return 0;
+    return FALSE;
 }

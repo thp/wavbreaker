@@ -47,12 +47,17 @@ format_sources = [
   'src/format_ogg_vorbis.c',
 ]
 
+txt_sources = [
+  'src/cue.c',
+  'src/toc.c',
+  'src/txt.c',
+]
+
 wavbreaker_sources = [
   'src/about.c',
   'src/aoaudio.c',
   'src/appconfig.c',
   'src/autosplit.c',
-  'src/cue.c',
   'src/draw.c',
   'src/guimerge.c',
   'src/moodbar.c',
@@ -61,7 +66,6 @@ wavbreaker_sources = [
   'src/reallyquit.c',
   'src/sample.c',
   'src/saveas.c',
-  'src/toc.c',
   'src/wavbreaker.c',
   'src/track_break.c',
 ]
@@ -109,6 +113,7 @@ install_man('man/wavmerge.1')
 executable('wavbreaker',
            wavbreaker_sources,
            format_sources,
+           txt_sources,
            dependencies : deps + format_deps,
            gui_app : true,
            install : true)
