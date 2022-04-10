@@ -50,6 +50,11 @@ opened_audio_file = NULL;
 static GThread *thread;
 static GMutex mutex;
 
+struct Sample_ {
+    OpenedAudioFile *opened_audio_file;
+    double percentage;
+};
+
 /* typedef and struct stuff for new thread open junk */
 
 typedef struct WriteThreadData_ WriteThreadData;
@@ -220,27 +225,29 @@ static gpointer open_thread(gpointer data)
     return NULL;
 }
 
-int sample_open_file(const char *filename, double *pct, char **error_message)
+Sample *
+sample_open(const char *filename, char **error_message)
 {
-    sample_close_file();
+    Sample *result = g_new0(Sample, 1);
 
-    GraphData *graphData = &g_graphData;
-
-    opened_audio_file = format_open_file(filename, error_message);
-    if (opened_audio_file == NULL) {
+    result->opened_audio_file = format_open_file(filename, error_message);
+    if (result->opened_audio_file == NULL) {
+        g_free(result);
         g_message("Could not open %s with format_open_file(): %s", filename, *error_message);
-        return 1;
+        return NULL;
     }
 
     // TODO: Remove those global variables
+    opened_audio_file = result->opened_audio_file;
     sampleInfo = opened_audio_file->sample_info;
 
+    GraphData *graphData = &g_graphData;
     open_thread_data.graphData = graphData;
-    open_thread_data.pct = pct;
+    open_thread_data.pct = &result->percentage;
 
     g_thread_unref(g_thread_new("open file", open_thread, &open_thread_data));
 
-    return 0;
+    return result;
 }
 
 GraphData *
@@ -255,12 +262,21 @@ sample_get_num_samples(void)
     return g_graphData.numSamples;
 }
 
-void sample_close_file()
+void
+sample_close(Sample *sample)
 {
     if (opened_audio_file != NULL) {
         format_close_file(g_steal_pointer(&opened_audio_file));
     }
-} 
+
+    g_free(sample);
+}
+
+double
+sample_get_percentage(Sample *sample)
+{
+    return sample->percentage;
+}
 
 static void sample_max_min(GraphData *graphData, double *pct)
 {

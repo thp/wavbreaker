@@ -87,6 +87,8 @@ static GtkAdjustment *cursor_marker_min_spinner_adj;
 static GtkAdjustment *cursor_marker_sec_spinner_adj;
 static GtkAdjustment *cursor_marker_subsec_spinner_adj;
 
+static Sample *g_sample = NULL;
+
 static MoodbarData *moodbarData;
 
 static gulong cursor_marker;
@@ -105,7 +107,6 @@ static guint file_open_progress_source_id;
 static guint play_progress_source_id;
 static guint file_write_progress_source_id;
 
-static gdouble progress_pct;
 static WriteInfo write_info;
 
 typedef struct CursorData_ CursorData;
@@ -1320,9 +1321,7 @@ file_open_progress_idle_func(gpointer data) {
         gtk_widget_show_all(GTK_WIDGET(window));
     }
 
-    if (progress_pct >= 1.0) {
-        progress_pct = 0;
-
+    if (sample_get_percentage(g_sample) >= 1.0) {
         gtk_widget_destroy(window);
         window = NULL;
 
@@ -1359,9 +1358,9 @@ file_open_progress_idle_func(gpointer data) {
 
     } else {
         size = sample_stat.st_size/(1024*1024);
-        current = size*progress_pct;
+        current = size*sample_get_percentage(g_sample);
         sprintf( tmp_str, _("%d of %d MB analyzed"), current, size);
-        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), progress_pct);
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), sample_get_percentage(g_sample));
         gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
 
         return TRUE;
@@ -1369,8 +1368,12 @@ file_open_progress_idle_func(gpointer data) {
 }
 
 static void open_file() {
+    if (g_sample != NULL) {
+        sample_close(g_sample);
+    }
+
     char *error_message = NULL;
-    if (sample_open_file(sample_filename, &progress_pct, &error_message) != 0) {
+    if ((g_sample = sample_open(sample_filename, &error_message)) == NULL) {
         popupmessage_show(main_window, _("Error opening file"), error_message);
         sample_filename = NULL;
         g_free(error_message);
@@ -1516,7 +1519,7 @@ static void open_select_file() {
 void set_sample_filename(const char *f) {
     if (sample_filename != NULL) {
         g_free(sample_filename);
-        sample_close_file();
+        sample_close(g_steal_pointer(&g_sample));
     }
     sample_filename = g_strdup(f);
     stat( sample_filename, &sample_stat);
