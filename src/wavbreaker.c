@@ -1610,6 +1610,10 @@ static gboolean configure_event(GtkWidget *widget,
 
 static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
+    if (g_sample == NULL) {
+        return FALSE;
+    }
+
     GList *tbl;
     TrackBreak *tb_cur = NULL, *tb_first = NULL;
     TrackBreak **tbs;
@@ -1778,6 +1782,10 @@ draw_summary_configure_event(GtkWidget *widget,
 static gboolean
 draw_summary_draw_event(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
+    if (g_sample == NULL) {
+        return FALSE;
+    }
+
     GtkAllocation allocation;
     gtk_widget_get_allocation(widget, &allocation);
     guint width = allocation.width,
