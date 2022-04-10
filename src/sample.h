@@ -72,10 +72,6 @@ struct SampleInfo_ {
 char *sample_get_error_message();
 
 void sample_init();
-void sample_set_audio_dev(char *str);
-char * sample_get_audio_dev();
-
-char * sample_get_sample_file();
 
 int sample_is_playing();
 int sample_is_writing();
