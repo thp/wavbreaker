@@ -26,6 +26,7 @@
 #include <vorbis/vorbisfile.h>
 
 #include <stdint.h>
+#include <inttypes.h>
 
 
 typedef struct OpenedOGGVorbisFile_ OpenedOGGVorbisFile;
