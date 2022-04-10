@@ -64,7 +64,9 @@ int sample_is_playing();
 int sample_is_writing();
 int play_sample(gulong startpos, gulong *play_marker);
 void stop_sample();
-int sample_open_file(const char *, GraphData *, double *);
+int sample_open_file(const char *, double *);
+GraphData *sample_get_graph_data(void);
+unsigned long sample_get_num_samples(void);
 void sample_close_file();
 void sample_write_files(GList *, WriteInfo *, char *);
 

@@ -37,7 +37,8 @@
 #include "overwritedialog.h"
 #include "gettext.h"
 
-SampleInfo sampleInfo;
+static SampleInfo sampleInfo;
+static GraphData g_graphData;
 static unsigned long sample_start = 0;
 static int playing = 0;
 static int writing = 0;
@@ -235,9 +236,11 @@ static gpointer open_thread(gpointer data)
     return NULL;
 }
 
-int sample_open_file(const char *filename, GraphData *graphData, double *pct)
+int sample_open_file(const char *filename, double *pct)
 {
     sample_close_file();
+
+    GraphData *graphData = &g_graphData;
 
     char *error_message = NULL;
     opened_audio_file = format_open_file(filename, &error_message);
@@ -257,6 +260,18 @@ int sample_open_file(const char *filename, GraphData *graphData, double *pct)
     g_thread_unref(g_thread_new("open file", open_thread, &open_thread_data));
 
     return 0;
+}
+
+GraphData *
+sample_get_graph_data(void)
+{
+    return &g_graphData;
+}
+
+unsigned long
+sample_get_num_samples(void)
+{
+    return g_graphData.numSamples;
 }
 
 void sample_close_file()
