@@ -79,3 +79,47 @@ int cue_read_file(const char *cue_filename, GList *breaks)
 
 	return 0;
 }
+
+struct CueWriteStatus {
+    FILE *fp;
+    int index;
+};
+
+static void
+track_break_write_cue(gpointer data, gpointer user_data)
+{
+    struct CueWriteStatus *ws = user_data;
+
+    TrackBreak *track_break = data;
+
+    gchar *time = track_break_format_time(track_break, TRUE);
+
+    fprintf(ws->fp, "TRACK %02d AUDIO\n", ws->index);
+    fprintf(ws->fp, "INDEX 01 %s\n", time);
+
+    ws->index++;
+
+    g_free(time);
+}
+
+gboolean
+cue_write_file(const char *cue_filename, const char *audio_filename, GList *track_break_list)
+{
+    FILE *fp = fopen(cue_filename, "w");
+    if (!fp) {
+        g_warning("Error opening %s.", cue_filename);
+        return FALSE;
+    }
+
+    fprintf(fp, "FILE \"%s\" WAVE\n", audio_filename);
+
+    struct CueWriteStatus ws = {
+        .fp = fp,
+        .index = 1,
+    };
+
+    g_list_foreach(track_break_list, track_break_write_cue, &ws);
+    fclose(fp);
+
+    return TRUE;
+}

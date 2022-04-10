@@ -23,4 +23,7 @@
 
 int cue_read_file(const char *cue_filename, GList *breaks);
 
+gboolean
+cue_write_file(const char *cue_filename, const char *audio_filename, GList *track_break_list);
+
 #endif /* CUE_H */

@@ -3007,11 +3007,6 @@ main(int argc, char *argv[])
     return status;
 }
 
-struct WriteStatus {
-    FILE* fp;
-    int index;
-};
-
 int track_breaks_export_to_file( char* filename) {
     FILE *fp = NULL;
     int write_err = -1;
@@ -3043,20 +3038,10 @@ int track_breaks_export_to_file( char* filename) {
 
     } else if( g_str_has_suffix (filename, ".cue")) {
 
-	fp = fopen( filename, "w");
-	if( !fp) {
-	    fprintf( stderr, "Error opening %s.\n", filename);
-	    return -1;
-	}
-
-	fprintf( fp, "FILE \"%s\" WAVE\n", sample_get_basename(g_sample));
-
-	struct WriteStatus ws;
-	ws.fp = fp;
-	ws.index = 1;
-
-	g_list_foreach( track_break_list, track_break_write_cue, &ws);
-	fclose( fp);
+        if (!cue_write_file(filename, sample_get_basename(g_sample), track_break_list)) {
+            popupmessage_show( main_window, _("Export failed"), _("There has been an error exporting track breaks to the CUE file."));
+            return -1;
+        }
 
     } else {
 	popupmessage_show( main_window, _("Export failed"), _("Unrecognised export type"));
@@ -3075,19 +3060,6 @@ void track_break_write_text( gpointer data, gpointer user_data) {
     } else {
         fprintf(fp, "%lu\n", track_break->offset);
     }
-}
-
-void track_break_write_cue( gpointer data, gpointer user_data) {
-    struct WriteStatus* ws = (struct WriteStatus*)user_data;
-    TrackBreak* track_break = (TrackBreak*)data;
-
-    gchar *time = track_break_format_time(track_break, TRUE);
-
-    fprintf( ws->fp, "TRACK %02d AUDIO\n", ws->index);
-    fprintf( ws->fp, "INDEX 01 %s\n", time);
-    ws->index++;
-
-    g_free(time);
 }
 
 int track_breaks_load_from_file( gchar const *filename) {
