@@ -20,7 +20,7 @@
 #include <config.h>
 
 #include "appconfig.h"
-#include "sample.h"
+#include "sample_info.h"
 #include "popupmessage.h"
 
 #include "gettext.h"

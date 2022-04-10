@@ -29,7 +29,7 @@
 
 
 #include "format_wav.h"
-#include "sample.h"
+#include "sample_info.h"
 
 
 typedef void (*ampfreq_func_t)(float, float *, float *);

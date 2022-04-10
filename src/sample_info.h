@@ -1,6 +1,6 @@
-/*
- * libao output module for wavbreaker
- * Copyright (C) 2015 Thomas Perl
+/* wavbreaker - A tool to split a wave file up into multiple wave.
+ * Copyright (C) 2002-2005 Timothy Robinson
+ * Copyright (C) 2022 Thomas Perl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,13 +17,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef AOAUDIO_H
-#define AOAUDIO_H
 
-#include "sample_info.h"
+#pragma once
 
-void ao_audio_close_device();
-int ao_audio_open_device(SampleInfo *);
-int ao_audio_write(unsigned char *, int);
+#define DEFAULT_BUF_SIZE (4096)
+#define CD_BLOCKS_PER_SEC (75)
 
-#endif /* AOAUDIO_H */
+typedef struct SampleInfo_ SampleInfo;
+
+struct SampleInfo_ {
+    unsigned short  channels;
+    unsigned int    samplesPerSec;
+    unsigned int    avgBytesPerSec;
+    unsigned short  blockAlign;
+    unsigned short  bitsPerSample;
+    unsigned long   numBytes;
+    unsigned int    blockSize;
+};

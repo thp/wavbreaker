@@ -22,7 +22,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "sample.h"
+#include "sample_info.h"
 #include "format_wav.h"
 
 void usage() {

@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sample.h"
+#include "sample_info.h"
 #include "wavbreaker.h"
 
 #include "gettext.h"

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "format.h"
+#include "sample.h"
 
 const FormatModule *
 format_module_wav(void);

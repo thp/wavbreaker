@@ -21,7 +21,7 @@
 #include <string.h>
 
 #include "wavbreaker.h"
-#include "sample.h"
+#include "sample_info.h"
 #include "toc.h"
 
 char *convert_wavbreaker_time_to_toc_time(const char *wavbreakerTime);

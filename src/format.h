@@ -18,7 +18,11 @@
 
 #pragma once
 
-#include "sample.h"
+#include "sample_info.h"
+
+#include <stdio.h>
+#include <stddef.h>
+#include <glib.h>
 
 typedef struct FormatModule_ FormatModule;
 typedef struct OpenedAudioFile_ OpenedAudioFile;

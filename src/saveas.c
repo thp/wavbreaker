@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "sample.h"
+#include "sample_info.h"
 #include "wavbreaker.h"
 
 #include "gettext.h"

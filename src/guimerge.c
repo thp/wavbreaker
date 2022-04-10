@@ -25,7 +25,7 @@
 #include <string.h>
 #include <libgen.h>
 
-#include "sample.h"
+#include "sample_info.h"
 #include "wavbreaker.h"
 #include "popupmessage.h"
 #include "format_wav.h"

@@ -19,6 +19,8 @@
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
+#include "sample_info.h"
+
 #include <glib.h>
 #include <stdio.h>
 
@@ -52,21 +54,6 @@ struct WriteInfo_ {
 			 */
 	gint sync_check_file_overwrite_to_write_progress;
 	GList *errors;
-};
-
-#define DEFAULT_BUF_SIZE (4096)
-#define CD_BLOCKS_PER_SEC (75)
-
-typedef struct SampleInfo_ SampleInfo;
-
-struct SampleInfo_ {
-    unsigned short  channels;
-    unsigned int    samplesPerSec;
-    unsigned int    avgBytesPerSec;
-    unsigned short  blockAlign;
-    unsigned short  bitsPerSample;
-    unsigned long   numBytes;
-    unsigned int    blockSize;
 };
 
 char *sample_get_error_message();

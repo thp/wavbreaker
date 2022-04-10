@@ -20,6 +20,7 @@
 #define OVERWRITEDIALOG_H
 
 #include "wavbreaker.h"
+#include "sample.h"
 
 void overwritedialog_show(GtkWidget *, WriteInfo *);
 

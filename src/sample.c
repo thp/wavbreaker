@@ -32,7 +32,7 @@
 
 #include "aoaudio.h"
 
-#include "sample.h"
+#include "sample_info.h"
 #include "format.h"
 #include "overwritedialog.h"
 #include "gettext.h"

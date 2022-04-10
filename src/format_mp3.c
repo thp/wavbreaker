@@ -103,7 +103,7 @@ mp3_parse_header(uint32_t header, uint32_t *bitrate, uint32_t *frequency, uint32
     const char *mpeg_version = VERSIONS[b];
     const char *layer = LAYERS[c];
 
-    fprintf(stderr, "MP3 frame: %s %s, %dHz, %dkbps, %d samples (%d bytes)\n", mpeg_version, layer,
+    g_debug("MP3 frame: %s %s, %dHz, %dkbps, %d samples (%d bytes)", mpeg_version, layer,
             *frequency, *bitrate, *samples, *framesize);
 #endif /* WAVBREAKER_MP3_DEBUG */
 
@@ -121,7 +121,7 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
     FILE *output_file = fopen(output_filename, "wb");
 
     if (!output_file) {
-        fprintf(stderr, "Could not open '%s' for writing\n", output_filename);
+        g_warning("Could not open '%s' for writing", output_filename);
         return -1;
     }
 
@@ -152,7 +152,7 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
             uint32_t frame_start = file_offset - 3;
 
             if (last_frame_end < frame_start) {
-                fprintf(stderr, "Skipped non-frame data in MP3 @ 0x%08x (%d bytes)\n",
+                g_warning("Skipped non-frame data in MP3 @ 0x%08x (%d bytes)",
                         last_frame_end, frame_start - last_frame_end);
             }
 
@@ -162,11 +162,11 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
                 char *buf = malloc(framesize);
                 fseek(mp3->hdr.fp, frame_start, SEEK_SET);
                 if (fread(buf, 1, framesize, mp3->hdr.fp) != framesize) {
-                    fprintf(stderr, "Tried to read over the end of the input file\n");
+                    g_warning("Tried to read over the end of the input file");
                     break;
                 }
                 if (fwrite(buf, 1, framesize, output_file) != framesize) {
-                    fprintf(stderr, "Failed to write %d bytes to output file\n", framesize);
+                    g_warning("Failed to write %d bytes to output file", framesize);
                     break;
                 }
                 free(buf);
@@ -192,7 +192,7 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
     }
 
 #if defined(WAVBREAKER_MP3_DEBUG)
-    fprintf(stderr, "Wrote %d MP3 frames from '%s' to '%s'\n", frames_written, sample_file, output_filename);
+    g_debug("Wrote %d MP3 frames from '%s' to '%s'", frames_written, sample_file, output_filename);
 #endif /* WAVBREAKER_MP3_DEBUG */
 
     fclose(output_file);
