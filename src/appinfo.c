@@ -47,6 +47,7 @@ appinfo_authors()
     static const char *AUTHORS[] = {
         "Timothy Robinson <tdrobinson@huli.org>",
         "Thomas Perl <m@thp.io>",
+        NULL,
     };
 
     return AUTHORS;
