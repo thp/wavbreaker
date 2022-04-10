@@ -85,7 +85,10 @@ const char *
 sample_get_basename_without_extension(Sample *sample);
 
 int
-sample_play(Sample *sample, gulong startpos, gulong *play_marker);
+sample_play(Sample *sample, gulong startpos);
+
+gulong
+sample_get_play_marker(Sample *sample);
 
 void
 sample_stop(Sample *sample);

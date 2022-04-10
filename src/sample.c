@@ -39,13 +39,6 @@
 
 static int writing = 0;
 
-typedef struct PlayThreadData_ PlayThreadData;
-struct PlayThreadData_ {
-    Sample *sample;
-
-    gulong *play_marker;
-};
-
 typedef struct WriteThreadData_ WriteThreadData;
 struct WriteThreadData_ {
     Sample *sample;
@@ -77,10 +70,10 @@ struct Sample_ {
     GMutex play_mutex;
     gboolean playing;
     gboolean kill_play_thread;
+    gulong play_position;
     unsigned long play_start_position;
 
     OpenThreadData open_thread_data;
-    PlayThreadData play_thread_data;
     WriteThreadData write_thread_data;
 };
 
@@ -106,9 +99,7 @@ void sample_init()
 static gpointer
 play_thread(gpointer thread_data)
 {
-    PlayThreadData *self = thread_data;
-
-    Sample *sample = self->sample;
+    Sample *sample = thread_data;
 
     int read_ret = 0;
     int i;
@@ -164,7 +155,11 @@ play_thread(gpointer thread_data)
 
         read_ret = read_sample(sample->opened_audio_file, devbuf, DEFAULT_BUF_SIZE, sample->play_start_position + (DEFAULT_BUF_SIZE * i++));
 
-        *self->play_marker = ((DEFAULT_BUF_SIZE * i) + sample->play_start_position) / sample->opened_audio_file->sample_info.blockSize;
+        g_mutex_lock(&sample->play_mutex);
+
+        sample->play_position = ((DEFAULT_BUF_SIZE * i) + sample->play_start_position) / sample->opened_audio_file->sample_info.blockSize;
+
+        g_mutex_unlock(&sample->play_mutex);
     }
 
     g_mutex_lock(&sample->play_mutex);
@@ -180,10 +175,24 @@ play_thread(gpointer thread_data)
 gboolean
 sample_is_playing(Sample *sample)
 {
-    gboolean result = FALSE;
+    gboolean result;
 
     g_mutex_lock(&sample->play_mutex);
     result = sample->playing;
+    g_mutex_unlock(&sample->play_mutex);
+
+    return result;
+}
+
+gulong
+sample_get_play_marker(Sample *sample)
+{
+    gulong result = 0;
+
+    g_mutex_lock(&sample->play_mutex);
+    if (sample->playing) {
+        result = sample->play_position;
+    }
     g_mutex_unlock(&sample->play_mutex);
 
     return result;
@@ -195,7 +204,7 @@ int sample_is_writing()
 }
 
 int
-sample_play(Sample *sample, gulong startpos, gulong *play_marker)
+sample_play(Sample *sample, gulong startpos)
 {
     g_mutex_lock(&sample->play_mutex);
     if (sample->playing) {
@@ -213,10 +222,9 @@ sample_play(Sample *sample, gulong startpos, gulong *play_marker)
 
     /* setup thread */
 
-    sample->play_thread_data.sample = sample;
-    sample->play_thread_data.play_marker = play_marker;
+    sample->play_position = startpos;
 
-    sample->play_thread = g_thread_new("play_sample", play_thread, &sample->play_thread_data);
+    sample->play_thread = g_thread_new("play_sample", play_thread, sample);
 
     g_mutex_unlock(&sample->play_mutex);
     return 0;

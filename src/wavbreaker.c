@@ -91,7 +91,6 @@ static Sample *g_sample = NULL;
 static MoodbarData *moodbarData;
 
 static gulong cursor_marker;
-static gulong play_marker;
 static int pixmap_offset;
 static gboolean overwrite_track_names = FALSE;
 
@@ -1217,6 +1216,8 @@ file_play_progress_idle_func(gpointer data) {
     gint half_width = allocation.width / 2;
     gint offset = allocation.width * (1.0/PLAY_MARKER_SCROLL);
 
+    gulong play_marker = sample_get_play_marker(g_sample);
+
     gint x = play_marker - half_width;
     gint y = play_marker - pixmap_offset;
     gint z = allocation.width * (1.0 - 1.0/PLAY_MARKER_SCROLL);
@@ -1656,7 +1657,7 @@ static gboolean draw_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
         /**
          * Draw GREEN play marker
          **/
-        float x = play_marker - pixmap_offset + 0.5f;
+        float x = sample_get_play_marker(g_sample) - pixmap_offset + 0.5f;
 
         cairo_set_source_rgba(cr, 0.f, 0.7f, 0.f, 0.9f);
         cairo_move_to(cr, x, 0.f);
@@ -2130,7 +2131,7 @@ static void update_status(gboolean update_time_offset) {
         strcat( str, "\t");
         strcat( str, _("Playing"));
         strcat( str, ": ");
-        offset_to_time(play_marker, strbuf, update_time_offset);
+        offset_to_time(sample_get_play_marker(g_sample), strbuf, update_time_offset);
         strcat(str, strbuf);
     }
 
@@ -2146,8 +2147,7 @@ static void menu_play(GtkWidget *widget, gpointer user_data)
         return;
     }
 
-    play_marker = cursor_marker;
-    switch (sample_play(g_sample, cursor_marker, &play_marker)) {
+    switch (sample_play(g_sample, cursor_marker)) {
         case 0:
             if (play_progress_source_id) {
                 g_source_remove(play_progress_source_id);
