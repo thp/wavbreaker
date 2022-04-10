@@ -282,10 +282,10 @@ static void use_outputdir_toggled(GtkWidget *widget, gpointer user_data)
 
 static void use_etree_filename_suffix_toggled(GtkWidget *widget, gpointer user_data)
 {
-    if (appconfig_get_use_etree_filename_suffix()) {
-        appconfig_set_use_etree_filename_suffix(0);
-    } else {
+    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
         appconfig_set_use_etree_filename_suffix(1);
+    } else {
+        appconfig_set_use_etree_filename_suffix(0);
     }
 }
 

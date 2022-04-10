@@ -31,6 +31,7 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 ### Fixed
 
 * Duration of initial break point is shown properly when the file is first loaded
+* Toggling of etree.org file naming scheme in preferences window works properly now
 
 ## [0.15] -- 2022-04-04
 
