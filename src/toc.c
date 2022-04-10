@@ -83,7 +83,6 @@ int toc_write_file(const char *toc_filename, const char *wav_filename, GList *br
 {
     FILE *fp;
     TrackBreak *next_break = NULL;
-    char *tocTime;
     char *tocDuration;
 
     fp = fopen(toc_filename, "w");
@@ -98,7 +97,8 @@ int toc_write_file(const char *toc_filename, const char *wav_filename, GList *br
             fprintf(fp, "\n// track %02d\n", i);
             fprintf(fp, "TRACK AUDIO\n");
 
-            tocTime = convert_wavbreaker_time_to_toc_time(next_break->time);
+            gchar *tocTime = track_break_format_time(next_break, TRUE);
+
             if (i != len-1) {
                 tocDuration = convert_wavbreaker_time_to_toc_time(next_break->duration);
                 fprintf(fp, "FILE \"%s\" %s %s\n",

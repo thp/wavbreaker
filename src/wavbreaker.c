@@ -153,8 +153,6 @@ void track_break_write_toggled(GtkWidget *widget, gchar *path_str,
     gpointer data);
 void track_break_filename_edited(GtkCellRendererText *cell,
     const gchar *path_str, const gchar *new_text, gpointer user_data);
-void track_break_start_time_edited(GtkCellRendererText *cell,
-    const gchar *path_str, const gchar *new_text, gpointer user_data);
 guint track_break_find_offset();
 void track_break_delete_entry();
 void track_break_setup_filename(gpointer data, gpointer user_data);
@@ -488,11 +486,6 @@ track_break_create_list_gui()
     /* File Time Start Column */
     column = gtk_tree_view_column_new();
     renderer = gtk_cell_renderer_text_new();
-    /* TODO
-    renderer = gui_cell_renderer_spin_new(0.0, 5.0, 0.1, 1.0, 1.0, 0.1, 0);
-    g_signal_connect(G_OBJECT(renderer), "edited", G_CALLBACK(track_break_start_time_edited), store);
-    gtk_tree_view_column_set_cell_data_func(column, renderer, cell_data_func_gpa, NULL, NULL);
-    */
     gtk_tree_view_column_set_title(column, _("Time"));
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_add_attribute(column, renderer, "text", COLUMN_TIME);
@@ -583,7 +576,9 @@ void track_break_print_element(gpointer data, gpointer user_data)
     breakup = (TrackBreak *)data;
 
     printf("filename: %s", breakup->filename);
-    printf("\ttime: %s", breakup->time);
+    gchar *time = track_break_format_time(breakup, FALSE);
+    printf("\ttime: %s", time);
+    g_free(time);
     printf("\tduration: %s", breakup->duration);
     printf("\toffset: %lu\n", breakup->offset);
 }
@@ -812,12 +807,17 @@ track_break_add_to_model(gpointer data, gpointer user_data)
         gtk_list_store_append(store, &iter);
     }
 */
+
+    gchar *time = track_break_format_time(track_break, FALSE);
+
     gtk_list_store_set(store, &iter, COLUMN_WRITE, track_break->write,
                                      COLUMN_FILENAME, track_break->filename,
-                                     COLUMN_TIME, track_break->time,
+                                     COLUMN_TIME, time,
                                      COLUMN_DURATION, track_break->duration,
                                      COLUMN_OFFSET, track_break->offset,
                                      -1);
+
+    g_free(time);
 
     gtk_tree_path_free(path);
 }
@@ -895,7 +895,7 @@ void track_break_add_entry()
 
     track_break->write = 1;
     track_break->offset = cursor_marker;
-    offset_to_time(cursor_marker, track_break->time, TRUE);
+
     track_break->filename = NULL;
 
     track_break_list = g_list_insert_sorted(track_break_list, track_break,
@@ -930,7 +930,6 @@ void track_break_add_offset( char* filename, gulong offset)
     }
 
     track_break->offset = offset;
-    offset_to_time( track_break->offset, track_break->time, FALSE);
 
     if( filename == NULL) {
         track_break->write = 0;
@@ -1036,34 +1035,6 @@ void track_break_filename_edited(GtkCellRendererText *cell,
     gtk_tree_model_get_iter(model, &iter, path);
     gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
                        track_break->filename, -1);
-
-    gtk_tree_path_free(path);
-
-    force_redraw();
-}
-
-void track_break_start_time_edited(GtkCellRendererText *cell,
-                                   const gchar *path_str,
-                                   const gchar *new_text,
-                                   gpointer user_data)
-{
-    GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
-    TrackBreak *track_break;
-    guint list_pos;
-    gpointer list_data;
-
-    list_pos = atoi(path_str);
-    list_data = g_list_nth_data(track_break_list, list_pos);
-    track_break = (TrackBreak *)list_data;
-    printf("new time: %s\n", new_text);
-    printf("old time: %s\n", track_break->time);
-    /*
-    track_break->filename = g_strdup(new_text);
-
-    gtk_tree_model_get_iter(model, &iter, path);
-    gtk_list_store_set(GTK_LIST_STORE(model), &iter, COLUMN_FILENAME,
-                       track_break->filename, -1);
-                       */
 
     gtk_tree_path_free(path);
 
@@ -3109,22 +3080,14 @@ void track_break_write_text( gpointer data, gpointer user_data) {
 void track_break_write_cue( gpointer data, gpointer user_data) {
     struct WriteStatus* ws = (struct WriteStatus*)user_data;
     TrackBreak* track_break = (TrackBreak*)data;
-    char* time;
-    char* p;
 
-    time = g_strdup( track_break->time);
-    p = time;
-    while (*p != '\0') {
-	if (*p == '.') {
-	    *p = ':';
-	}
-	++p;
-    }
+    gchar *time = track_break_format_time(track_break, TRUE);
 
     fprintf( ws->fp, "TRACK %02d AUDIO\n", ws->index);
     fprintf( ws->fp, "INDEX 01 %s\n", time);
     ws->index++;
-    free( time);
+
+    g_free(time);
 }
 
 int track_breaks_load_from_file( gchar const *filename) {

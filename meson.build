@@ -63,6 +63,7 @@ wavbreaker_sources = [
   'src/saveas.c',
   'src/toc.c',
   'src/wavbreaker.c',
+  'src/track_break.c',
 ]
 
 if get_option('windows_app')

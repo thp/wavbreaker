@@ -17,17 +17,23 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#pragma once
+#include "track_break.h"
 
-#include <glib.h>
-
-typedef struct TrackBreak_ TrackBreak;
-struct TrackBreak_ {
-    gboolean  write;
-    gulong    offset;
-    gchar     *filename;
-    gchar     duration[128];
-};
+#include "sample_info.h"
 
 gchar *
-track_break_format_time(TrackBreak *track_break, gboolean toc_format);
+track_break_format_time(TrackBreak *track_break, gboolean toc_format)
+{
+    guint time = track_break->offset;
+
+    int min = time / (CD_BLOCKS_PER_SEC * 60);
+    int sec = time % (CD_BLOCKS_PER_SEC * 60);
+    int subsec = sec % CD_BLOCKS_PER_SEC;
+    sec = sec / CD_BLOCKS_PER_SEC;
+
+    if (toc_format) {
+        return g_strdup_printf("%d:%02d:%02d", min, sec, subsec);
+    } else {
+        return g_strdup_printf("%d:%02d.%02d", min, sec, subsec);
+    }
+}
