@@ -30,6 +30,7 @@ typedef struct OpenedAudioFile_ OpenedAudioFile;
 
 struct FormatModule_ {
     const char *name;
+    const char *library_name;
     const char *default_file_extension;
 
     OpenedAudioFile *(*open_file)(const FormatModule *self, const char *filename, char **error_message);
@@ -69,8 +70,14 @@ opened_audio_file_close(OpenedAudioFile *file);
 void
 format_init(void);
 
+void
+format_print_supported(void);
+
 OpenedAudioFile *
 format_open_file(const char *filename, char **error_message);
+
+void
+format_print_file_info(OpenedAudioFile *file);
 
 void
 format_close_file(OpenedAudioFile *file);

@@ -182,6 +182,7 @@ cdda_raw_write_file(OpenedAudioFile *self, const char *output_filename, unsigned
 static const FormatModule
 CDDA_RAW_FORMAT_MODULE = {
     .name = "CD Digital Audio (Big-Endian)",
+    .library_name = "built-in",
     .default_file_extension = ".cdda.raw",
 
     .open_file = cdda_raw_open_file,

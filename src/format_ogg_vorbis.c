@@ -161,6 +161,7 @@ error:
 static const FormatModule
 OGG_VORBIS_FORMAT_MODULE = {
     .name = "Ogg Vorbis",
+    .library_name = "libvorbisfile",
     .default_file_extension = ".ogg",
 
     .open_file = ogg_vorbis_open_file,

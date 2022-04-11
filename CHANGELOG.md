@@ -13,6 +13,8 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
   to break up Ogg files until Ogg file writing is implemented)
 * `wavcli`: New command-line interface to some features of wavbreaker
 * `wavcli list` to list wavbreaker's parsing of track break files (TXT/CUE/TOC)
+* `wavcli version` to show version and compiled-in file format support
+* `wavcli analyze` to open an audio file, run analysis, and preview audio
 
 ### Changed
 

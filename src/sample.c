@@ -290,6 +290,12 @@ sample_open(const char *filename, char **error_message)
     return sample;
 }
 
+void
+sample_print_file_info(Sample *sample)
+{
+    format_print_file_info(sample->opened_audio_file);
+}
+
 GraphData *
 sample_get_graph_data(Sample *sample)
 {

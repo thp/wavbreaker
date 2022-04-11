@@ -23,6 +23,8 @@
 #include "format_mp3.h"
 #include "format_ogg_vorbis.h"
 
+#include <stdio.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <errno.h>
 
@@ -119,6 +121,22 @@ format_init(void)
     }
 }
 
+void
+format_print_supported(void)
+{
+    GList *cur = g_list_first(g_modules);
+    while (cur != NULL) {
+        const FormatModule *mod = cur->data;
+
+        printf("Format:    %s\n", mod->name);
+        printf("Library:   %s\n", mod->library_name);
+        printf("Extension: %s\n", mod->default_file_extension);
+        printf("\n");
+
+        cur = g_list_next(cur);
+    }
+}
+
 OpenedAudioFile *
 format_open_file(const char *filename, char **error_message)
 {
@@ -143,6 +161,37 @@ format_open_file(const char *filename, char **error_message)
     format_module_set_error_message(error_message, "File format unknown/not supported");
 
     return NULL;
+}
+
+static char *
+do_format_duration(uint64_t duration)
+{
+    uint64_t seconds = duration / 1000;
+    uint64_t fraction = duration % 1000;
+    return g_strdup_printf("%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ".%03" PRIu64, seconds / 60 / 60, (seconds / 60) % 60, seconds % 60, fraction);
+}
+
+void
+format_print_file_info(OpenedAudioFile *file)
+{
+    SampleInfo *si = &file->sample_info;
+
+    char *duration = do_format_duration((uint64_t)si->numBytes * 1000 / (uint64_t)si->avgBytesPerSec);
+
+    printf("File name:      %s\n", file->filename);
+    printf("File format:    %s\n", file->mod->name);
+    if (file->details) {
+        printf("Format details: %s\n", file->details);
+    }
+    printf("Duration:       %s (%lu samples)\n", duration, si->numBytes / si->blockAlign);
+    printf("Format:         %d Hz / %d ch / %d bit",
+            si->samplesPerSec,
+            si->channels,
+            si->bitsPerSample);
+
+    printf("\n");
+
+    g_free(duration);
 }
 
 void

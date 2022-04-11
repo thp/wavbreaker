@@ -302,6 +302,7 @@ error:
 static const FormatModule
 WAV_FORMAT_MODULE = {
     .name = "RIFF WAVE",
+    .library_name = "built-in",
     .default_file_extension = ".wav",
 
     .open_file = wav_open_file,

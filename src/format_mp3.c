@@ -318,6 +318,7 @@ error:
 static const FormatModule
 MP3_FORMAT_MODULE = {
     .name = "MPEG Audio Layer I/II/III",
+    .library_name = "libmpg123",
     .default_file_extension = ".mp3",
 
     .open_file = mp3_open_file,

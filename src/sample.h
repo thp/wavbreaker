@@ -66,6 +66,9 @@ Sample *
 sample_open(const char *filename, char **error_message);
 
 void
+sample_print_file_info(Sample *sample);
+
+void
 sample_close(Sample *sample);
 
 gboolean

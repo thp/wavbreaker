@@ -22,6 +22,8 @@
 #include "list.h"
 #include "appconfig.h"
 #include "appinfo.h"
+#include "sample.h"
+#include "format.h"
 
 #include <stdio.h>
 
@@ -82,12 +84,78 @@ cmd_list(int argc, char *argv[])
 }
 
 static int
+cmd_analyze(int argc, char *argv[])
+{
+    if (argc != 2) {
+        printf("Usage: %s [filename.wav]\n", argv[0]);
+        return 1;
+    }
+
+    sample_init();
+
+    char *error_message = NULL;
+    Sample *sample = sample_open(argv[1], &error_message);
+    if (sample == NULL) {
+        printf("Could not open %s: %s\n", argv[1], error_message);
+        g_free(error_message);
+        return 2;
+    }
+
+    sample_print_file_info(sample);
+
+    gint64 analyze_started = g_get_monotonic_time();
+
+    do {
+        fprintf(stderr, "\r\033[KAnalyzing... [%3.0f%%]", 100.0 * sample_get_load_percentage(sample));
+        fflush(stderr);
+        g_usleep(G_USEC_PER_SEC / 30);
+    } while (!sample_is_loaded(sample));
+
+    gint64 analyze_duration = g_get_monotonic_time() - analyze_started;
+    unsigned long num_sample_blocks = sample_get_num_sample_blocks(sample);
+
+    fprintf(stderr, "\r\033[KAnalyzing... [DONE]\n");
+    fflush(stderr);
+
+    printf("%lu sample blocks analyzed in %.2f seconds = %lu blocks/sec\n",
+            num_sample_blocks,
+            (double)analyze_duration / (float)G_USEC_PER_SEC,
+            num_sample_blocks * G_USEC_PER_SEC / analyze_duration);
+
+    gint64 started = g_get_monotonic_time();
+
+    sample_play(sample, 0);
+
+    do {
+        gulong pos = sample_get_play_marker(sample);
+
+        fprintf(stderr, "\r\033[KPreviewing... [%lu]", pos);
+        fflush(stderr);
+        g_usleep(G_USEC_PER_SEC / 30);
+    } while (sample_is_playing(sample) && g_get_monotonic_time() < started + G_USEC_PER_SEC * 10);
+
+    fprintf(stderr, "\r\033[KPreviewing... [DONE]\n");
+    fflush(stderr);
+
+    sample_stop(sample);
+
+    sample_close(sample);
+
+    return 0;
+}
+
+static int
 cmd_version(int argc, char *argv[])
 {
     printf("wavcli %s -- %s\n%s\n",
             appinfo_version(),
             appinfo_url(),
             appinfo_copyright());
+
+    printf("\n== Supported file formats ==\n\n");
+
+    format_init();
+    format_print_supported();
 
     return 0;
 }
@@ -109,10 +177,11 @@ int main(int argc, char *argv[])
     static const struct SubCommand
     SUBCOMMANDS[] = {
         { "list", cmd_list, "List track breaks from file (TXT/CUE/TOC)" },
+        { "analyze", cmd_analyze, "Open, analyze and preview audio file" },
         { "gen", cmd_wavgen, "Generate example WAV files (formerly 'wavgen')" },
         { "info", cmd_wavinfo, "Print audio format information (WAV/MP2/MP3/OGG) (formerly 'wavinfo')" },
         { "merge", cmd_wavmerge, "Merge multiple WAV files into a single file (formerly 'wavmerge')" },
-        { "version", cmd_version, "Print version information" },
+        { "version", cmd_version, "Print version and software information" },
         { NULL, NULL, NULL },
     };
 
