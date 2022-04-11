@@ -119,6 +119,7 @@ merge_thread(gpointer data)
     }
 
     g_list_free(thread_data->filenames);
+    g_free(thread_data->merge_filename);
 
     return NULL;
 }
@@ -129,11 +130,6 @@ do_merge_files(char *merge_filename, GList *filenames, WriteInfo *write_info)
     mtd.merge_filename = g_strdup(merge_filename);
     mtd.filenames = filenames;
     mtd.write_info = write_info;
-
-    if (write_info->merge_filename != NULL) {
-        g_free(write_info->merge_filename);
-    }
-    write_info->merge_filename = mtd.merge_filename;
 
     g_thread_unref(g_thread_new("merge files", merge_thread, &mtd));
 }
