@@ -232,7 +232,7 @@ wav_read_samples(OpenedAudioFile *self, unsigned char *buf, size_t buf_size, uns
 }
 
 int
-wav_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress)
+wav_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data)
 {
     OpenedWavFile *wav = (OpenedWavFile *)self;
 
@@ -271,6 +271,8 @@ wav_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
         goto error;
     }
 
+    report_progress(0.0, report_progress_user_data);
+
     while ((ret = fread(buf, 1, buf_size, wav->hdr.fp)) > 0 &&
                 (cur_pos < end_pos || end_pos == 0)) {
         if ((fwrite(buf, 1, ret, new_fp)) < ret) {
@@ -279,13 +281,13 @@ wav_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
         }
 
         cur_pos += ret;
-        *progress = (double) (cur_pos - start_pos) / num_bytes;
+        report_progress((double)(cur_pos - start_pos) / num_bytes, report_progress_user_data);
     }
 
     free(buf);
     fclose(new_fp);
 
-    *progress = 1.0;
+    report_progress(1.0, report_progress_user_data);
 
     return ret;
 

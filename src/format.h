@@ -28,6 +28,8 @@
 typedef struct FormatModule_ FormatModule;
 typedef struct OpenedAudioFile_ OpenedAudioFile;
 
+typedef void (*report_progress_func)(double progress, void *user_data);
+
 struct FormatModule_ {
     const char *name;
     const char *library_name;
@@ -37,7 +39,7 @@ struct FormatModule_ {
     void (*close_file)(const FormatModule *self, OpenedAudioFile *file);
 
     long (*read_samples)(OpenedAudioFile *self, unsigned char *buf, size_t buf_size, unsigned long start_pos);
-    int (*write_file)(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress);
+    int (*write_file)(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data);
 };
 
 typedef const FormatModule *(*format_module_load_func)(void);
@@ -86,4 +88,4 @@ long
 format_read_samples(OpenedAudioFile *file, unsigned char *buf, size_t buf_size, unsigned long start_pos);
 
 int
-format_write_file(OpenedAudioFile *file, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress);
+format_write_file(OpenedAudioFile *file, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data);

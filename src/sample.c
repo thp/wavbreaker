@@ -498,6 +498,13 @@ sample_max_min(Sample *sample)
     g_mutex_unlock(&sample->load_mutex);
 }
 
+static void
+set_double_variable(double progress, void *user_data)
+{
+    double *out = user_data;
+    *out = progress;
+}
+
 static gpointer
 write_thread(gpointer data)
 {
@@ -588,7 +595,7 @@ write_thread(gpointer data)
             }
 
             if (write_info->skip_file > 0) {
-                if (format_write_file(sample->opened_audio_file, filename, start_pos, end_pos, &write_info->pct_done) == -1) {
+                if (format_write_file(sample->opened_audio_file, filename, start_pos, end_pos, set_double_variable, &write_info->pct_done) == -1) {
                     g_warning("Could not write file %s", filename);
                     write_info->errors = g_list_append(write_info->errors, g_strdup(filename));
                 }

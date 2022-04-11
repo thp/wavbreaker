@@ -207,7 +207,7 @@ format_read_samples(OpenedAudioFile *file, unsigned char *buf, size_t buf_size, 
 }
 
 int
-format_write_file(OpenedAudioFile *file, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress)
+format_write_file(OpenedAudioFile *file, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data)
 {
-    return file->mod->write_file(file, output_filename, start_pos, end_pos, progress);
+    return file->mod->write_file(file, output_filename, start_pos, end_pos, report_progress, report_progress_user_data);
 }

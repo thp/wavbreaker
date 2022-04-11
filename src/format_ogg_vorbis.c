@@ -70,14 +70,20 @@ ogg_vorbis_read_samples(OpenedAudioFile *self, unsigned char *buf, size_t buf_si
 }
 
 int
-ogg_vorbis_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress)
+ogg_vorbis_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data)
 {
     OpenedOGGVorbisFile *ogg = (OpenedOGGVorbisFile *)self;
 
     g_warning("TODO: Write file '%s', start=%lu, end=%lu", output_filename, start_pos, end_pos);
 
+    report_progress(0.0, report_progress_user_data);
+
     uint32_t start_samples = start_pos / ogg->hdr.sample_info.blockSize * ogg->hdr.sample_info.samplesPerSec / CD_BLOCKS_PER_SEC;
     uint32_t end_samples = end_pos / ogg->hdr.sample_info.blockSize * ogg->hdr.sample_info.samplesPerSec / CD_BLOCKS_PER_SEC;
+
+    if (end_samples == 0) {
+        end_samples = ogg->hdr.sample_info.numBytes / ogg->hdr.sample_info.blockAlign;
+    }
 
     // TODO: Copy Ogg Vorbis samples from source to output file
     (void)start_samples;

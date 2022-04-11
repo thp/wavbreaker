@@ -128,7 +128,7 @@ cdda_raw_read_samples(OpenedAudioFile *self, unsigned char *buf, size_t buf_size
 }
 
 int
-cdda_raw_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress)
+cdda_raw_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data)
 {
     OpenedCDDAFile *cdda = (OpenedCDDAFile *)self;
 
@@ -138,6 +138,14 @@ cdda_raw_write_file(OpenedAudioFile *self, const char *output_filename, unsigned
     FILE *new_fp;
     unsigned long cur_pos;
     unsigned char buf[buf_size];
+
+    if (end_pos == 0) {
+        if (fseek(cdda->hdr.fp, 0, SEEK_END)) {
+            return -1;
+        }
+
+        end_pos = ftell(cdda->hdr.fp);
+    }
 
     if ((new_fp = fopen(output_filename, "wb")) == NULL) {
         g_warning("Error opening %s for writing", output_filename);
@@ -151,17 +159,19 @@ cdda_raw_write_file(OpenedAudioFile *self, const char *output_filename, unsigned
         return -1;
     }
 
+    report_progress(0.0, report_progress_user_data);
+
     if (cur_pos > cdda->file_size) {
         fclose(new_fp);
         return -1;
     }
 
-    if (cur_pos + buf_size > end_pos && end_pos != 0) {
+    if (cur_pos + buf_size > end_pos) {
         buf_size = end_pos - cur_pos;
     }
 
     while ((ret = fread(buf, 1, buf_size, cdda->hdr.fp)) > 0 &&
-            (cur_pos < end_pos || end_pos == 0)) {
+            cur_pos < end_pos) {
 
         if ((fwrite(buf, 1, ret, new_fp)) < ret) {
             g_warning("Error writing to file %s", output_filename);
@@ -170,10 +180,14 @@ cdda_raw_write_file(OpenedAudioFile *self, const char *output_filename, unsigned
         }
         cur_pos += ret;
 
-        if (cur_pos + buf_size > end_pos && end_pos != 0) {
+        report_progress((double)(cur_pos - start_pos) / (double)(end_pos - start_pos), report_progress_user_data);
+
+        if (cur_pos + buf_size > end_pos) {
             buf_size = end_pos - cur_pos;
         }
     }
+
+    report_progress(1.0, report_progress_user_data);
 
     fclose(new_fp);
     return ret;

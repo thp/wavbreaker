@@ -111,12 +111,19 @@ mp3_parse_header(uint32_t header, uint32_t *bitrate, uint32_t *frequency, uint32
 }
 
 int
-mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, double *progress)
+mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long start_pos, unsigned long end_pos, report_progress_func report_progress, void *report_progress_user_data)
 {
     OpenedMP3File *mp3 = (OpenedMP3File *)self;
 
     start_pos /= mp3->hdr.sample_info.blockSize;
     end_pos /= mp3->hdr.sample_info.blockSize;
+
+    uint32_t start_samples = start_pos * mp3->hdr.sample_info.samplesPerSec / CD_BLOCKS_PER_SEC;
+    uint32_t end_samples = end_pos * mp3->hdr.sample_info.samplesPerSec / CD_BLOCKS_PER_SEC;
+
+    if (end_samples == 0) {
+        end_samples = mp3->hdr.sample_info.numBytes / mp3->hdr.sample_info.blockAlign;
+    }
 
     FILE *output_file = fopen(output_filename, "wb");
 
@@ -126,6 +133,8 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
     }
 
     fseek(mp3->hdr.fp, 0, SEEK_SET);
+
+    report_progress(0.0, report_progress_user_data);
 
     uint32_t header = 0x00000000;
     uint32_t sample_position = 0;
@@ -156,7 +165,6 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
                         last_frame_end, frame_start - last_frame_end);
             }
 
-            uint32_t start_samples = start_pos * frequency / CD_BLOCKS_PER_SEC;
             if (start_samples <= sample_position) {
                 // Write this frame to the output file
                 char *buf = malloc(framesize);
@@ -173,8 +181,9 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
 
                 frames_written++;
 
-                uint32_t end_samples = end_pos * frequency / CD_BLOCKS_PER_SEC;
-                if (end_samples > 0 && end_samples <= sample_position + samples) {
+                report_progress((double)(sample_position - start_samples) / (double)(end_samples - start_samples), report_progress_user_data);
+
+                if (end_samples <= sample_position + samples) {
                     // Done writing this part
                     break;
                 }
@@ -190,6 +199,8 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
             file_offset++;
         }
     }
+
+    report_progress(1.0, report_progress_user_data);
 
 #if defined(WAVBREAKER_MP3_DEBUG)
     g_debug("Wrote %d MP3 frames from '%s' to '%s'", frames_written, sample_file, output_filename);
