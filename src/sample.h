@@ -24,6 +24,7 @@
 
 #include <glib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct Points_ Points;
 struct Points_ {
