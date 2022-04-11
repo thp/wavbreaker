@@ -204,7 +204,7 @@ draw_sample_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCont
     /* clear sample_surface before drawing */
     fill_cairo_rectangle(cr, &bg_color, width, height);
 
-    if (ctx->graphData->data == NULL) {
+    if (ctx->graphData == NULL || ctx->graphData->data == NULL) {
         cairo_destroy(cr);
         return;
     }
@@ -310,7 +310,7 @@ draw_summary_surface(struct WaveformSurface *self, struct WaveformSurfaceDrawCon
     /* clear sample_surface before drawing */
     fill_cairo_rectangle(cr, &bg_color, width, height);
 
-    if (ctx->graphData->data == NULL) {
+    if (ctx->graphData == NULL || ctx->graphData->data == NULL) {
         cairo_destroy(cr);
         return;
     }

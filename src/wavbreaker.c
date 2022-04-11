@@ -925,7 +925,10 @@ file_play_progress_idle_func(gpointer data) {
  */
 
 gboolean
-file_open_progress_idle_func(gpointer data) {
+file_open_progress_idle_func(gpointer data)
+{
+    Sample *sample = data;
+
     static GtkWidget *window;
     static GtkWidget *pbar;
     static GtkWidget *vbox;
@@ -971,7 +974,7 @@ file_open_progress_idle_func(gpointer data) {
         pbar = gtk_progress_bar_new();
         gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
 
-        sprintf( tmp_str, _("Analyzing %s"), sample_get_basename(g_sample));
+        sprintf( tmp_str, _("Analyzing %s"), sample_get_basename(sample));
         gchar *str = g_markup_escape_text(tmp_str, -1);
         sprintf( tmp_str2, "<i>%s</i>", str);
         g_free(str);
@@ -985,7 +988,7 @@ file_open_progress_idle_func(gpointer data) {
         gtk_widget_show_all(GTK_WIDGET(window));
     }
 
-    if (sample_get_percentage(g_sample) >= 1.0) {
+    if (sample_is_loaded(sample)) {
         gtk_widget_destroy(window);
         window = NULL;
 
@@ -1008,15 +1011,15 @@ file_open_progress_idle_func(gpointer data) {
         if (moodbarData) {
             moodbar_free(moodbarData);
         }
-        moodbarData = moodbar_open(sample_get_filename(g_sample));
+        moodbarData = moodbar_open(sample_get_filename(sample));
         set_action_enabled("display_moodbar", moodbarData != NULL);
         set_action_enabled("generate_moodbar", moodbarData == NULL);
 #endif
 
         if (!track_breaks) {
-            track_breaks = track_break_list_new(sample_get_basename_without_extension(g_sample));
+            track_breaks = track_break_list_new(sample_get_basename_without_extension(sample));
         }
-        track_break_list_set_total_duration(track_breaks, sample_get_num_sample_blocks(g_sample));
+        track_break_list_set_total_duration(track_breaks, sample_get_num_sample_blocks(sample));
 
         // Now that the file is fully loaded, update the duration
         track_break_update_gui_model();
@@ -1028,10 +1031,12 @@ file_open_progress_idle_func(gpointer data) {
         return FALSE;
 
     } else {
-        size = sample_get_file_size(g_sample) / (1024*1024);
-        current = size*sample_get_percentage(g_sample);
+        double load_percentage = sample_get_load_percentage(sample);
+
+        size = sample_get_file_size(sample) / (1024*1024);
+        current = size*load_percentage;
         sprintf( tmp_str, _("%d of %d MB analyzed"), current, size);
-        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), sample_get_percentage(g_sample));
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), load_percentage);
         gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
 
         return TRUE;
@@ -1097,7 +1102,7 @@ static void open_file(const char *filename) {
     if (file_open_progress_source_id) {
         g_source_remove(file_open_progress_source_id);
     }
-    file_open_progress_source_id = g_timeout_add(100, file_open_progress_idle_func, NULL);
+    file_open_progress_source_id = g_timeout_add(100, file_open_progress_idle_func, g_sample);
     set_title(sample_get_basename(g_sample));
 }
 

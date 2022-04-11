@@ -68,8 +68,11 @@ sample_open(const char *filename, char **error_message);
 void
 sample_close(Sample *sample);
 
+gboolean
+sample_is_loaded(Sample *sample);
+
 double
-sample_get_percentage(Sample *sample);
+sample_get_load_percentage(Sample *sample);
 
 uint64_t
 sample_get_file_size(Sample *sample);

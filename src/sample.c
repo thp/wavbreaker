@@ -52,8 +52,10 @@ struct Sample_ {
     gchar *filename_basename;
     gchar *basename_without_extension;
 
+    GMutex load_mutex;
+    gboolean loaded;
     GraphData graph_data;
-    double percentage; // for loading
+    double load_percentage;
 
     GThread *play_thread;
     GMutex play_mutex;
@@ -70,7 +72,7 @@ struct Sample_ {
 
 
 static void
-sample_max_min(Sample *sample, GraphData *graphData, double *pct);
+sample_max_min(Sample *sample);
 
 static long
 read_sample(OpenedAudioFile *oaf, unsigned char *buf, int buf_size, unsigned long start_pos)
@@ -248,7 +250,7 @@ open_thread(gpointer data)
 {
     Sample *sample = data;
 
-    sample_max_min(sample, &sample->graph_data, &sample->percentage);
+    sample_max_min(sample);
 
     return NULL;
 }
@@ -279,6 +281,7 @@ sample_open(const char *filename, char **error_message)
     }
     sample->basename_without_extension = tmp;
 
+    g_mutex_init(&sample->load_mutex);
     g_mutex_init(&sample->play_mutex);
     g_mutex_init(&sample->write_mutex);
 
@@ -290,7 +293,15 @@ sample_open(const char *filename, char **error_message)
 GraphData *
 sample_get_graph_data(Sample *sample)
 {
-    return &sample->graph_data;
+    GraphData *result = NULL;
+
+    g_mutex_lock(&sample->load_mutex);
+    if (sample->loaded) {
+        result = &sample->graph_data;
+    }
+    g_mutex_unlock(&sample->load_mutex);
+
+    return result;
 }
 
 unsigned long
@@ -313,10 +324,28 @@ sample_close(Sample *sample)
     g_free(sample);
 }
 
-double
-sample_get_percentage(Sample *sample)
+gboolean
+sample_is_loaded(Sample *sample)
 {
-    return sample->percentage;
+    gboolean result;
+
+    g_mutex_lock(&sample->load_mutex);
+    result = sample->loaded;
+    g_mutex_unlock(&sample->load_mutex);
+
+    return result;
+}
+
+double
+sample_get_load_percentage(Sample *sample)
+{
+    double result;
+
+    g_mutex_lock(&sample->load_mutex);
+    result = sample->load_percentage;
+    g_mutex_unlock(&sample->load_mutex);
+
+    return result;
 }
 
 uint64_t
@@ -350,8 +379,10 @@ sample_get_basename_without_extension(Sample *sample)
 }
 
 static void
-sample_max_min(Sample *sample, GraphData *graphData, double *pct)
+sample_max_min(Sample *sample)
 {
+    GraphData *graphData = &sample->graph_data;
+
     SampleInfo *sample_info = &sample->opened_audio_file->sample_info;
     int tmp = 0;
     long int ret = 0;
@@ -430,11 +461,11 @@ sample_max_min(Sample *sample, GraphData *graphData, double *pct)
 
         ret = read_sample(sample->opened_audio_file, devbuf, sample_info->blockSize, sample_info->blockSize * i);
 
-        *pct = (double) i / numSampleBlocks;
+        g_mutex_lock(&sample->load_mutex);
+        sample->load_percentage = (double) i / numSampleBlocks;
+        g_mutex_unlock(&sample->load_mutex);
         i++;
     }
-
-    *pct = 1.0;
 
     graphData->numSamples = numSampleBlocks;
 
@@ -453,13 +484,11 @@ sample_max_min(Sample *sample, GraphData *graphData, double *pct)
     } else if (sample_info->bitsPerSample == 24) {
 	graphData->maxSampleValue = 0x7fffff;
     }
-    /* DEBUG CODE START */
-    /*
-    printf("\ni: %d\n", i);
-    printf("graphData->numSamples: %ld\n", graphData->numSamples);
-    printf("graphData->maxSampleValue: %ld\n\n", graphData->maxSampleValue);
-    */
-    /* DEBUG CODE END */
+
+    g_mutex_lock(&sample->load_mutex);
+    sample->load_percentage = 1.0;
+    sample->loaded = TRUE;
+    g_mutex_unlock(&sample->load_mutex);
 }
 
 static gpointer
