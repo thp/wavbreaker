@@ -2658,7 +2658,7 @@ do_activate(GApplication *app, gpointer user_data)
 
     /* vbox for the vpane */
     vpane_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, TRUE, TRUE);
+    gtk_paned_pack1(GTK_PANED(vpane1), vpane_vbox, FALSE, FALSE);
 
     /* paned view */
     vpane2 = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
@@ -2666,6 +2666,7 @@ do_activate(GApplication *app, gpointer user_data)
 
     /* The summary_surface drawing area */
     draw_summary = gtk_drawing_area_new();
+    gtk_widget_set_size_request(GTK_WIDGET(draw_summary), -1, 60);
 
     g_signal_connect(G_OBJECT(draw_summary), "draw",
              G_CALLBACK(draw_summary_draw_event), NULL);
@@ -2686,10 +2687,11 @@ do_activate(GApplication *app, gpointer user_data)
     gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 
     gtk_container_add(GTK_CONTAINER(frame), draw_summary);
-    gtk_paned_add1(GTK_PANED(vpane2), frame);
+    gtk_paned_pack1(GTK_PANED(vpane2), frame, TRUE, FALSE);
 
     /* The sample_surface drawing area */
     draw = gtk_drawing_area_new();
+    gtk_widget_set_size_request(GTK_WIDGET(draw), -1, 90);
 
     g_signal_connect(G_OBJECT(draw), "draw",
              G_CALLBACK(draw_draw_event), NULL);
@@ -2710,7 +2712,7 @@ do_activate(GApplication *app, gpointer user_data)
     gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_IN);
 
     gtk_container_add(GTK_CONTAINER(frame), draw);
-    gtk_paned_add2(GTK_PANED(vpane2), frame);
+    gtk_paned_pack2(GTK_PANED(vpane2), frame, TRUE, FALSE);
 //    gtk_box_pack_start(GTK_BOX(vpane_vbox), draw, TRUE, TRUE, 5);
 
 /* Add scrollbar */
@@ -2725,7 +2727,7 @@ do_activate(GApplication *app, gpointer user_data)
 /* vbox for the list */
     list_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_set_border_width(GTK_CONTAINER(list_vbox), 5);
-    gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, FALSE, TRUE);
+    gtk_paned_pack2(GTK_PANED(vpane1), list_vbox, TRUE, FALSE);
 
 /* Add cursor marker spinner and track break add and delete buttons */
     hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);

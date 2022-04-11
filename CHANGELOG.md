@@ -30,6 +30,8 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
   into the `wavcli` command-line utility. Instead of `wavinfo`, use `wavcli info`,
   instead of `wavmerge`, use `wavcli merge`, instead of `wavgen` use `wavcli gen`.
 * The split progress dialog now has a "Cancel" button that cancels the operation
+* The two waveforms in the main window now have a minimum height set, and resizing
+  the views should be more intuitive due to changed expand rules
 
 ### Removed
 
