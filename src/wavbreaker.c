@@ -1667,6 +1667,10 @@ static gboolean draw_summary_button_release(GtkWidget *widget,
     int x_scale, x_scale_leftover, x_scale_mod;
     int leftover_count;
 
+    if (!g_sample) {
+        return TRUE;
+    }
+
     if (sample_is_playing(g_sample)) {
         return TRUE;
     }
@@ -1705,6 +1709,10 @@ void reset_sample_display(guint midpoint)
     gtk_widget_get_allocation(draw, &allocation);
     int width = allocation.width;
     int start = midpoint - width / 2;
+
+    if (!g_sample) {
+        return;
+    }
 
     if (sample_get_num_sample_blocks(g_sample) == 0) {
         pixmap_offset = 0;
@@ -1823,6 +1831,10 @@ static gboolean button_release(GtkWidget *widget, GdkEventButton *event,
     gpointer data)
 {
     gtk_widget_grab_focus(play_button);
+
+    if (!g_sample) {
+        return TRUE;
+    }
 
     if (event->x + pixmap_offset > sample_get_num_sample_blocks(g_sample)) {
         return TRUE;
