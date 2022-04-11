@@ -15,6 +15,7 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 * `wavcli list` to list wavbreaker's parsing of track break files (TXT/CUE/TOC)
 * `wavcli version` to show version and compiled-in file format support
 * `wavcli analyze` to open an audio file, run analysis, and preview audio
+* `wavcli split` to split an audio file to a folder using a track break list
 
 ### Changed
 

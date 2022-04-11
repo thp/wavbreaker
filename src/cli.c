@@ -111,11 +111,11 @@ cmd_analyze(int argc, char *argv[])
         g_usleep(G_USEC_PER_SEC / 30);
     } while (!sample_is_loaded(sample));
 
-    gint64 analyze_duration = g_get_monotonic_time() - analyze_started;
-    unsigned long num_sample_blocks = sample_get_num_sample_blocks(sample);
-
     fprintf(stderr, "\r\033[KAnalyzing... [DONE]\n");
     fflush(stderr);
+
+    gint64 analyze_duration = g_get_monotonic_time() - analyze_started;
+    unsigned long num_sample_blocks = sample_get_num_sample_blocks(sample);
 
     printf("%lu sample blocks analyzed in %.2f seconds = %lu blocks/sec\n",
             num_sample_blocks,
@@ -142,6 +142,99 @@ cmd_analyze(int argc, char *argv[])
     sample_close(sample);
 
     return 0;
+}
+
+static int
+cmd_split(int argc, char *argv[])
+{
+    if (argc != 4) {
+        printf("Usage: %s [audio_file.wav] [track_breaks.txt] [output_folder]\n", argv[0]);
+        return 1;
+    }
+
+    int exitcode = 0;
+
+    const char *audio_filename = argv[1];
+    const char *list_filename = argv[2];
+    const char *output_folder = argv[3];
+
+    sample_init();
+
+    if (!g_file_test(output_folder, G_FILE_TEST_IS_DIR)) {
+        printf("Directory does not exist: '%s'\n", output_folder);
+        return 4;
+    }
+
+    printf("Using audio file: %s\n", audio_filename);
+
+    char *error_message = NULL;
+    Sample *sample = sample_open(audio_filename, &error_message);
+    if (sample == NULL) {
+        printf("Could not open %s: %s\n", argv[1], error_message);
+        g_free(error_message);
+        return 2;
+    }
+
+    sample_print_file_info(sample);
+
+    printf("Scanning audio file...\n");
+    do {
+        g_usleep(G_USEC_PER_SEC / 10);
+    } while (!sample_is_loaded(sample));
+    printf("File analyzed, %lu blocks\n", sample_get_num_sample_blocks(sample));
+
+    TrackBreakList *list = track_break_list_new(sample_get_basename_without_extension(sample));
+
+    track_break_list_set_total_duration(list, sample_get_num_sample_blocks(sample));
+
+    printf("Using track break list: %s\n", list_filename);
+    if (list_read_file(list_filename, list)) {
+        printf("Track breaks:\n");
+        track_break_list_foreach(list, cmd_list_print_track_break, NULL);
+        printf("\n");
+
+        printf("Using output folder: %s\n", output_folder);
+        WriteInfo tmp;
+        memset(&tmp, 0, sizeof(tmp));
+        sample_write_files(sample, list, &tmp, output_folder);
+
+        do {
+            fprintf(stderr, "\r\033[KSplitting... [%d/%d]", tmp.cur_file, tmp.num_files);
+            fflush(stderr);
+
+            if (tmp.check_file_exists) {
+                tmp.check_file_exists = 0;
+
+                char answer = 0;
+                while (answer != 'y' && answer != 'n' && answer != 'a') {
+                    printf("\r\033[KFile '%s' exist, overwrite? (y/n/a) ", tmp.cur_filename);
+                    fflush(stdout);
+                    scanf("%c", &answer);
+                }
+
+                if (answer == 'y') {
+                    tmp.skip_file = 1;
+                } else if (answer == 'n') {
+                    tmp.skip_file = 0;
+                } else if (answer == 'a') {
+                    tmp.skip_file = 2;
+                }
+            }
+
+            g_usleep(G_USEC_PER_SEC / 30);
+        } while (sample_is_writing(sample));
+
+        fprintf(stderr, "\r\033[KSplitting... [DONE]\n");
+        fflush(stderr);
+    } else {
+        printf("Could not open/parse %s\n", list_filename);
+        exitcode = 3;
+    }
+
+    track_break_list_free(list);
+    sample_close(sample);
+
+    return exitcode;
 }
 
 static int
@@ -172,12 +265,15 @@ struct SubCommand {
 
 int main(int argc, char *argv[])
 {
+    g_set_prgname(argv[0]);
+
     appconfig_init();
 
     static const struct SubCommand
     SUBCOMMANDS[] = {
         { "list", cmd_list, "List track breaks from file (TXT/CUE/TOC)" },
         { "analyze", cmd_analyze, "Open, analyze and preview audio file" },
+        { "split", cmd_split, "Split an audio file using a track break list to a folder" },
         { "gen", cmd_wavgen, "Generate example WAV files (formerly 'wavgen')" },
         { "info", cmd_wavinfo, "Print audio format information (WAV/MP2/MP3/OGG) (formerly 'wavinfo')" },
         { "merge", cmd_wavmerge, "Merge multiple WAV files into a single file (formerly 'wavmerge')" },

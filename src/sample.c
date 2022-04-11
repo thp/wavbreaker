@@ -42,7 +42,7 @@ struct WriteThreadData_ {
 
     TrackBreakList *list;
     WriteInfo *write_info;
-    char *outputdir;
+    const char *outputdir;
 };
 
 struct Sample_ {
@@ -285,6 +285,7 @@ sample_open(const char *filename, char **error_message)
     g_mutex_init(&sample->play_mutex);
     g_mutex_init(&sample->write_mutex);
 
+    // TODO: Capture thread and properly tear it down - if needed - in sample_close()
     g_thread_unref(g_thread_new("open file", open_thread, sample));
 
     return sample;
@@ -506,7 +507,7 @@ write_thread(gpointer data)
 
     GList *tbl_head = list->breaks;
     GList *tbl_cur, *tbl_next;
-    char *outputdir = thread_data->outputdir;
+    const char *outputdir = thread_data->outputdir;
     TrackBreak *tb_cur, *tb_next;
     WriteInfo *write_info = thread_data->write_info;
 
@@ -617,7 +618,7 @@ write_thread(gpointer data)
 }
 
 void
-sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *write_info, char *outputdir)
+sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *write_info, const char *outputdir)
 {
     sample->write_thread_data = (WriteThreadData) {
         .sample = sample,

@@ -102,7 +102,7 @@ void
 sample_stop(Sample *sample);
 
 void
-sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *, char *);
+sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *, const char *);
 
 GraphData *
 sample_get_graph_data(Sample *sample);
