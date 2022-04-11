@@ -16,6 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "sample.h"
+
 #include <config.h>
 
 #include <stdio.h>
@@ -24,7 +26,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <gtk/gtk.h>
 #include <stdint.h>
 
 #include "aoaudio.h"
@@ -33,7 +34,6 @@
 #include "track_break.h"
 
 #include "format.h"
-#include "overwritedialog.h"
 #include "gettext.h"
 
 typedef struct WriteThreadData_ WriteThreadData;
