@@ -29,6 +29,7 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 * The command-line utilities `wavinfo`, `wavmerge` and `wavgen` have been merged
   into the `wavcli` command-line utility. Instead of `wavinfo`, use `wavcli info`,
   instead of `wavmerge`, use `wavcli merge`, instead of `wavgen` use `wavcli gen`.
+* The split progress dialog now has a "Cancel" button that cancels the operation
 
 ### Removed
 
