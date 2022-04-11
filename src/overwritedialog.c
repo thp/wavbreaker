@@ -18,116 +18,42 @@
 
 #include "overwritedialog.h"
 
-#include <string.h>
-
-#include "wavbreaker.h"
-
 #include "gettext.h"
 
-typedef struct OverwriteData_ OverwriteData;
-struct OverwriteData_ {
-    GtkWidget* window;
-    GtkWidget* yes_to_all_checkbox;
-    WriteInfo *write_info;
-};
-
-void overwritedialog_no(GtkWidget *widget, gpointer user_data)
+enum OverwriteDecision
+overwritedialog_show(GtkWidget *main_window, const char *filename)
 {
-    OverwriteData* data = (OverwriteData*) user_data;
-    GtkWidget *window = GTK_WIDGET(data->window);
-    WriteInfo *write_info = data->write_info;
+    GtkDialog *dialog = GTK_DIALOG(gtk_message_dialog_new(GTK_WINDOW(main_window),
+            GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+            GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE,
+            _("%s already exists. Overwrite?"), filename));
 
-    write_info->sync_check_file_overwrite_to_write_progress = 0;
-    write_info->skip_file = 0;
-    g_free(data);
-    gtk_widget_destroy(window);
-}
+    gtk_dialog_add_buttons(dialog,
+            _("Skip all"), OVERWRITE_DECISION_SKIP_ALL,
+            _("Skip"), OVERWRITE_DECISION_SKIP,
+            _("Overwrite"), OVERWRITE_DECISION_OVERWRITE,
+            _("Overwrite all"), OVERWRITE_DECISION_OVERWRITE_ALL,
+            NULL);
 
-void overwritedialog_yes(GtkWidget *widget, gpointer user_data)
-{
-    OverwriteData* data = (OverwriteData*) user_data;
-    GtkWidget *window = GTK_WIDGET(data->window);
-    GtkWidget *checkbox = GTK_WIDGET(data->yes_to_all_checkbox);
-    WriteInfo *write_info = data->write_info;
+    gtk_dialog_set_default_response(dialog, OVERWRITE_DECISION_OVERWRITE);
 
-    if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(checkbox))) {
-        write_info->skip_file = 2;
-    } else {
-        write_info->skip_file = 1;
-    }
-    write_info->sync_check_file_overwrite_to_write_progress = 0;
+    enum OverwriteDecision decision = OVERWRITE_DECISION_SKIP_ALL;
 
-    g_free(data);
-    gtk_widget_destroy(window);
-}
+    int result = gtk_dialog_run(dialog);
 
-void overwritedialog_show(GtkWidget *main_window, WriteInfo *write_info)
-{
-    GtkWidget *window;
-    GtkWidget *vbox;
-    GtkWidget *hbbox;
-    GtkWidget *status_label;
-    GtkWidget *hseparator;
-    GtkWidget *checkbox;
-    GtkWidget *button;
-    OverwriteData* overwrite_data = g_malloc(sizeof(OverwriteData));
-
-    overwrite_data->write_info = write_info;
-
-    if (main_window == NULL) {
-        main_window = wavbreaker_get_main_window();
+    switch (result) {
+        case OVERWRITE_DECISION_SKIP_ALL:
+        case OVERWRITE_DECISION_SKIP:
+        case OVERWRITE_DECISION_OVERWRITE:
+        case OVERWRITE_DECISION_OVERWRITE_ALL:
+            decision = result;
+            break;
+        default:
+        case GTK_RESPONSE_NONE:
+            break;
     }
 
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_widget_realize(window);
-    gtk_window_set_modal(GTK_WINDOW(window), TRUE);
-    gtk_window_set_transient_for(GTK_WINDOW(window),
-            GTK_WINDOW(main_window));
-    gtk_window_set_type_hint(GTK_WINDOW(window),
-            GDK_WINDOW_TYPE_HINT_DIALOG);
-    gtk_window_set_position(GTK_WINDOW(window),
-            GTK_WIN_POS_CENTER_ON_PARENT);
-    gdk_window_set_functions(gtk_widget_get_window(window), GDK_FUNC_MOVE);
+    gtk_widget_destroy(GTK_WIDGET(dialog));
 
-    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_container_add(GTK_CONTAINER(window), vbox);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
-    gtk_widget_show(vbox);
-
-
-    gchar *message = g_strdup_printf(_("%s already exists.\n\nDo you want to overwrite the existing file?"),
-                                     write_info->cur_filename);
-    status_label = gtk_label_new(message);
-    g_free(message);
-    gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
-    gtk_widget_show(status_label);
-
-    checkbox = gtk_check_button_new_with_label(_("Overwrite all files"));
-    gtk_box_pack_start(GTK_BOX(vbox), checkbox, FALSE, TRUE, 5);
-    gtk_widget_show(checkbox);
-
-    hseparator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_box_pack_start(GTK_BOX(vbox), hseparator, FALSE, TRUE, 5);
-    gtk_widget_show(hseparator);
-
-    hbbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_container_add(GTK_CONTAINER(vbox), hbbox);
-    gtk_button_box_set_layout(GTK_BUTTON_BOX(hbbox), GTK_BUTTONBOX_END);
-    gtk_widget_show(hbbox);
-
-    button = gtk_button_new_with_mnemonic(_("_No"));
-    gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(button), "clicked", (GCallback)overwritedialog_no, overwrite_data);
-    gtk_widget_show(button);
-
-    button = gtk_button_new_with_mnemonic(_("_Yes"));
-    gtk_box_pack_end(GTK_BOX(hbbox), button, FALSE, FALSE, 5);
-    g_signal_connect(G_OBJECT(button), "clicked", (GCallback)overwritedialog_yes, overwrite_data);
-    gtk_widget_show(button);
-
-    overwrite_data->window = window;
-    overwrite_data->yes_to_all_checkbox = checkbox;
-
-    gtk_widget_show(window);
+    return decision;
 }
-

@@ -41,7 +41,7 @@ struct WriteThreadData_ {
     Sample *sample;
 
     TrackBreakList *list;
-    WriteInfo *write_info;
+    WriteStatusCallbacks *callbacks;
     const char *outputdir;
 };
 
@@ -499,10 +499,10 @@ sample_max_min(Sample *sample)
 }
 
 static void
-set_double_variable(double progress, void *user_data)
+trampoline_file_progress_changed(double progress, void *user_data)
 {
-    double *out = user_data;
-    *out = progress;
+    WriteStatusCallbacks *callbacks = user_data;
+    callbacks->on_file_progress_changed(progress, callbacks->user_data);
 }
 
 static gpointer
@@ -516,19 +516,23 @@ write_thread(gpointer data)
     GList *tbl_cur, *tbl_next;
     const char *outputdir = thread_data->outputdir;
     TrackBreak *tb_cur, *tb_next;
-    WriteInfo *write_info = thread_data->write_info;
+
+    WriteStatusCallbacks *callbacks = thread_data->callbacks;
 
     Sample *sample = thread_data->sample;
 
     unsigned long start_pos, end_pos;
     char filename[1024];
 
+    gulong num_files = 0;
+    enum OverwriteDecision overwrite_decision = OVERWRITE_DECISION_ASK;
+
     tbl_cur = tbl_head;
     while (tbl_cur != NULL) {
         tb_cur = tbl_cur->data;
 
         if (tb_cur->write == TRUE) {
-            write_info->num_files++;
+            ++num_files;
         }
 
         tbl_cur = g_list_next(tbl_cur);
@@ -538,10 +542,10 @@ write_thread(gpointer data)
     tbl_cur = tbl_head;
     tbl_next = g_list_next(tbl_cur);
 
-    while (tbl_cur != NULL) {
+    while (tbl_cur != NULL && !callbacks->is_cancelled(callbacks->user_data)) {
         tb_cur = tbl_cur->data;
 
-        if (tb_cur->write == TRUE) {
+        if (tb_cur->write) {
             start_pos = tb_cur->offset * sample->opened_audio_file->sample_info.blockSize;
 
             if (tbl_next == NULL) {
@@ -574,77 +578,58 @@ write_thread(gpointer data)
                 strcat(filename, source_file_extension);
             }
 
-            write_info->pct_done = 0.0;
-            write_info->cur_file++;
-            if (write_info->cur_filename != NULL) {
-                g_free(write_info->cur_filename);
-            }
-            write_info->cur_filename = g_strdup(filename);
+            callbacks->on_file_changed(i, num_files, filename, callbacks->user_data);
+            callbacks->on_file_progress_changed(0.0, callbacks->user_data);
 
-            if (write_info->skip_file < 2) {
-                if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-                    write_info->skip_file = -1;
-                    write_info->check_file_exists = 1;
-                    // sync the threads to wait on overwrite question
-                    while (write_info->skip_file < 0) {
-                        sleep(1);
-                    }
-                } else {
-                    write_info->skip_file = 1;
-                }
+            gboolean file_exists = g_file_test(filename, G_FILE_TEST_EXISTS);
+
+            if (file_exists && overwrite_decision == OVERWRITE_DECISION_ASK) {
+                overwrite_decision = callbacks->ask_overwrite(filename, callbacks->user_data);
             }
 
-            if (write_info->skip_file > 0) {
-                if (format_write_file(sample->opened_audio_file, filename, start_pos, end_pos, set_double_variable, &write_info->pct_done) == -1) {
+            if (!file_exists || overwrite_decision == OVERWRITE_DECISION_OVERWRITE || overwrite_decision == OVERWRITE_DECISION_OVERWRITE_ALL) {
+                if (format_write_file(sample->opened_audio_file, filename, start_pos, end_pos, trampoline_file_progress_changed, callbacks) == -1) {
                     g_warning("Could not write file %s", filename);
-                    write_info->errors = g_list_append(write_info->errors, g_strdup(filename));
+                    callbacks->on_error(filename, callbacks->user_data);
                 }
-
-                i++;
             }
 
-            if (write_info->skip_file < 2) {
-                write_info->skip_file = -1;
+            callbacks->on_file_progress_changed(1.0, callbacks->user_data);
+
+            if (overwrite_decision != OVERWRITE_DECISION_SKIP_ALL && overwrite_decision != OVERWRITE_DECISION_OVERWRITE_ALL) {
+                overwrite_decision = OVERWRITE_DECISION_ASK;
             }
+
+            i++;
         }
 
         tbl_cur = g_list_next(tbl_cur);
         tbl_next = g_list_next(tbl_next);
     }
-    write_info->sync = 1;
-    if (write_info->cur_filename != NULL) {
-        g_free(write_info->cur_filename);
-    }
-    write_info->cur_filename = NULL;
 
     g_mutex_lock(&sample->write_mutex);
     sample->writing = FALSE;
     g_mutex_unlock(&sample->write_mutex);
 
+    callbacks->on_finished(callbacks->user_data);
+
     return NULL;
 }
 
 void
-sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *write_info, const char *outputdir)
+sample_write_files(Sample *sample, TrackBreakList *list, WriteStatusCallbacks *callbacks, const char *output_dir)
 {
     sample->write_thread_data = (WriteThreadData) {
         .sample = sample,
         .list = list,
-        .write_info = write_info,
-        .outputdir = outputdir,
+        .callbacks = callbacks,
+        .outputdir = output_dir,
     };
 
     g_mutex_lock(&sample->write_mutex);
     sample->writing = TRUE;
     g_mutex_unlock(&sample->write_mutex);
 
-    write_info->num_files = 0;
-    write_info->cur_file = 0;
-    write_info->sync = 0;
-    write_info->sync_check_file_overwrite_to_write_progress = 0;
-    write_info->check_file_exists = 0;
-    write_info->skip_file = -1;
-    write_info->errors = NULL;
-
+    // TODO: Capture thread and properly tear it down - if needed - in sample_close()
     g_thread_unref(g_thread_new("write data", write_thread, &sample->write_thread_data));
 }

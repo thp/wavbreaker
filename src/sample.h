@@ -40,6 +40,30 @@ struct GraphData_{
 	Points *data;
 };
 
+enum OverwriteDecision {
+    OVERWRITE_DECISION_ASK = 0,
+    OVERWRITE_DECISION_SKIP,
+    OVERWRITE_DECISION_SKIP_ALL,
+    OVERWRITE_DECISION_OVERWRITE,
+    OVERWRITE_DECISION_OVERWRITE_ALL,
+};
+
+typedef struct WriteStatusCallbacks_ WriteStatusCallbacks;
+struct WriteStatusCallbacks_ {
+    // Write thread reporting to the UI
+    void (*on_file_changed)(guint position, guint total, const char *filename, void *user_data);
+    void (*on_file_progress_changed)(double percentage, void *user_data);
+    void (*on_error)(const char *message, void *user_data);
+    void (*on_finished)(void *user_data);
+
+    // Write thread querying the UI
+    gboolean (*is_cancelled)(void *user_data);
+    enum OverwriteDecision (*ask_overwrite)(const char *filename, void *user_data);
+
+    // Closure pointer passed to the callbacks
+    void *user_data;
+};
+
 typedef struct WriteInfo_ WriteInfo;
 struct WriteInfo_ {
 	guint num_files;
@@ -101,7 +125,7 @@ void
 sample_stop(Sample *sample);
 
 void
-sample_write_files(Sample *sample, TrackBreakList *list, WriteInfo *, const char *);
+sample_write_files(Sample *sample, TrackBreakList *list, WriteStatusCallbacks *callbacks, const char *output_dir);
 
 GraphData *
 sample_get_graph_data(Sample *sample);

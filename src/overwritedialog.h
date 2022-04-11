@@ -23,6 +23,7 @@
 
 #include "sample.h"
 
-void overwritedialog_show(GtkWidget *, WriteInfo *);
+enum OverwriteDecision
+overwritedialog_show(GtkWidget *main_window, const char *filename);
 
 #endif /* OVERWRITEDIALOG_H */

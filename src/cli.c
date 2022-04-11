@@ -144,6 +144,77 @@ cmd_analyze(int argc, char *argv[])
     return 0;
 }
 
+struct SplitFinished {
+    GMutex mutex;
+    GCond cond;
+    gboolean finished;
+};
+
+static void
+split_on_file_changed(guint position, guint total, const char *filename, void *user_data)
+{
+    if (position != 1) {
+        printf("\r\033[K");
+    }
+
+    printf("Split %d/%d: %s\n", position, total, filename);
+}
+
+static void
+split_on_file_progress_changed(double percentage, void *user_data)
+{
+    printf("\r\033[K%3.0f %%", 100 * percentage);
+    fflush(stdout);
+}
+
+static void
+split_on_error(const char *message, void *user_data)
+{
+    g_warning("Error writing file: %s", message);
+}
+
+static void
+split_on_finished(void *user_data)
+{
+    struct SplitFinished *finished = user_data;
+
+    printf("\r\033[KSplit finished.\n");
+
+    g_mutex_lock(&finished->mutex);
+    finished->finished = TRUE;
+    g_cond_signal(&finished->cond);
+    g_mutex_unlock(&finished->mutex);
+}
+
+static gboolean
+split_is_cancelled(void *user_data)
+{
+    // TODO: Support proper cancellation using Ctrl+C / signal handling
+    return FALSE;
+}
+
+static enum OverwriteDecision
+split_ask_overwrite(const char *filename, void *user_data)
+{
+    char answer = 0;
+
+    while (answer != 'y' && answer != 'n' && answer != 'a' && answer != 's') {
+        printf("\r\033[KFile '%s' exist, overwrite? ([y]es/[n]no/[a]ll/[s]kip all) ", filename);
+        fflush(stdout);
+        scanf("%c", &answer);
+    }
+
+    if (answer == 'y') {
+        return OVERWRITE_DECISION_OVERWRITE;
+    } else if (answer == 'n') {
+        return OVERWRITE_DECISION_SKIP;
+    } else if (answer == 'a') {
+        return OVERWRITE_DECISION_OVERWRITE_ALL;
+    } else {
+        return OVERWRITE_DECISION_SKIP_ALL;
+    }
+}
+
 static int
 cmd_split(int argc, char *argv[])
 {
@@ -194,38 +265,34 @@ cmd_split(int argc, char *argv[])
         printf("\n");
 
         printf("Using output folder: %s\n", output_folder);
-        WriteInfo tmp;
-        memset(&tmp, 0, sizeof(tmp));
-        sample_write_files(sample, list, &tmp, output_folder);
 
-        do {
-            fprintf(stderr, "\r\033[KSplitting... [%d/%d]", tmp.cur_file, tmp.num_files);
-            fflush(stderr);
+        struct SplitFinished split_finished;
+        g_mutex_init(&split_finished.mutex);
+        g_cond_init(&split_finished.cond);
+        split_finished.finished = FALSE;
 
-            if (tmp.check_file_exists) {
-                tmp.check_file_exists = 0;
+        WriteStatusCallbacks
+        write_status_callbacks = {
+            .on_file_changed = split_on_file_changed,
+            .on_file_progress_changed = split_on_file_progress_changed,
+            .on_error = split_on_error,
+            .on_finished = split_on_finished,
 
-                char answer = 0;
-                while (answer != 'y' && answer != 'n' && answer != 'a') {
-                    printf("\r\033[KFile '%s' exist, overwrite? (y/n/a) ", tmp.cur_filename);
-                    fflush(stdout);
-                    scanf("%c", &answer);
-                }
+            .is_cancelled = split_is_cancelled,
+            .ask_overwrite = split_ask_overwrite,
 
-                if (answer == 'y') {
-                    tmp.skip_file = 1;
-                } else if (answer == 'n') {
-                    tmp.skip_file = 0;
-                } else if (answer == 'a') {
-                    tmp.skip_file = 2;
-                }
-            }
+            .user_data = &split_finished,
+        };
 
-            g_usleep(G_USEC_PER_SEC / 30);
-        } while (sample_is_writing(sample));
+        sample_write_files(sample, list, &write_status_callbacks, output_folder);
 
-        fprintf(stderr, "\r\033[KSplitting... [DONE]\n");
-        fflush(stderr);
+        g_mutex_lock(&split_finished.mutex);
+        while (!split_finished.finished) {
+            g_cond_wait(&split_finished.cond, &split_finished.mutex);
+        }
+        g_mutex_unlock(&split_finished.mutex);
+        g_mutex_clear(&split_finished.mutex);
+        g_cond_clear(&split_finished.cond);
     } else {
         printf("Could not open/parse %s\n", list_filename);
         exitcode = 3;

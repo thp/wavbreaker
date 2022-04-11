@@ -114,9 +114,9 @@ static guint redraw_source_id;
 // timeout-based (periodic) progress UI update event sources
 static guint file_open_progress_source_id;
 static guint play_progress_source_id;
-static guint file_write_progress_source_id;
 
-static WriteInfo write_info;
+static struct FileWriteProgressUI *
+current_file_write_progress_ui = NULL;
 
 enum {
     COLUMN_WRITE,
@@ -741,88 +741,244 @@ void track_break_filename_edited(GtkCellRendererText *cell,
  * File Save Dialog Stuff
  *-------------------------------------------------------------------------
  */
+
+struct FileWriteProgressUI {
+    GMutex mutex;
+
+    guint position;
+    guint total;
+    gchar *filename;
+    double percentage;
+    GList *errors;
+    gboolean cancelled;
+    gboolean finished;
+
+    struct {
+        GtkWidget *window;
+        GtkWidget *status_label;
+        GtkWidget *pbar;
+
+        guint cur_file_displayed;
+    } gtk;
+
+    struct {
+        GCond cond;
+        gchar *filename;
+        enum OverwriteDecision result;
+    } overwrite_decision;
+
+    guint source_id;
+    WriteStatusCallbacks callbacks;
+};
+
+static void
+file_write_progress_ui_on_file_changed(guint position, guint total, const char *filename, void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    g_mutex_lock(&ui->mutex);
+
+    if (ui->filename != NULL) {
+        g_free(g_steal_pointer(&ui->filename));
+    }
+
+    ui->position = position;
+    ui->total = total;
+    ui->filename = g_strdup(filename);
+    ui->percentage = 0.0;
+
+    g_mutex_unlock(&ui->mutex);
+}
+
+static void
+file_write_progress_ui_on_file_progress_changed(double percentage, void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    g_mutex_lock(&ui->mutex);
+
+    ui->percentage = percentage;
+
+    g_mutex_unlock(&ui->mutex);
+}
+
+static void
+file_write_progress_ui_on_error(const char *message, void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    g_warning("Error writing file: %s", message);
+
+    g_mutex_lock(&ui->mutex);
+
+    ui->errors = g_list_append(ui->errors, g_strdup(message));
+
+    g_mutex_unlock(&ui->mutex);
+}
+
+static void
+file_write_progress_ui_on_finished(void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    g_mutex_lock(&ui->mutex);
+
+    ui->finished = TRUE;
+
+    g_mutex_unlock(&ui->mutex);
+}
+
+static gboolean
+file_write_progress_ui_is_cancelled(void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    gboolean cancelled;
+
+    g_mutex_lock(&ui->mutex);
+
+    cancelled = ui->cancelled;
+
+    g_mutex_unlock(&ui->mutex);
+
+    return cancelled;
+}
+
+static enum OverwriteDecision
+file_write_progress_ui_ask_overwrite(const char *filename, void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    g_mutex_lock(&ui->mutex);
+
+    ui->overwrite_decision.result = OVERWRITE_DECISION_ASK;
+    ui->overwrite_decision.filename = g_strdup(filename);
+
+    while (ui->overwrite_decision.result == OVERWRITE_DECISION_ASK) {
+        g_cond_wait(&ui->overwrite_decision.cond, &ui->mutex);
+    }
+
+    g_free(g_steal_pointer(&ui->overwrite_decision.filename));
+
+    enum OverwriteDecision decision = ui->overwrite_decision.result;
+
+    g_mutex_unlock(&ui->mutex);
+
+    return decision;
+}
+
+static void
+on_write_dialog_cancel_button_clicked(GtkWidget *button, void *user_data)
+{
+    struct FileWriteProgressUI *ui = user_data;
+
+    g_mutex_lock(&ui->mutex);
+
+    gtk_widget_set_sensitive(button, FALSE);
+    ui->cancelled = TRUE;
+
+    g_mutex_unlock(&ui->mutex);
+}
+
 gboolean
-file_write_progress_idle_func(gpointer data) {
-    static GtkWidget *window;
-    static GtkWidget *pbar;
-    static GtkWidget *vbox;
-    static GtkWidget *label;
-    static GtkWidget *status_label;
-    char *str_ptr;
-    static int cur_file_displayed = 0;
-    static double fraction;
+file_write_progress_idle_func(gpointer data)
+{
+    struct FileWriteProgressUI *ui = data;
 
-    if (write_info.check_file_exists) {
-        if (window != NULL) {
-            gtk_widget_destroy(window);
-            window = NULL;
+    g_mutex_lock(&ui->mutex);
+
+    if (ui->overwrite_decision.result == OVERWRITE_DECISION_ASK) {
+        if (ui->gtk.window != NULL) {
+            gtk_widget_destroy(g_steal_pointer(&ui->gtk.window));
         }
-        write_info.sync_check_file_overwrite_to_write_progress = 1;
-        write_info.check_file_exists = 0;
-        overwritedialog_show( wavbreaker_get_main_window(), &write_info);
 
-        return TRUE;
+        ui->overwrite_decision.result = overwritedialog_show(wavbreaker_get_main_window(),
+                ui->overwrite_decision.filename);
+
+        g_cond_signal(&ui->overwrite_decision.cond);
     }
 
-    if (write_info.sync_check_file_overwrite_to_write_progress) {
-        return TRUE;
-    }
-
-    if (window == NULL) {
-        window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_widget_realize(window);
-        gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
-        gtk_window_set_modal(GTK_WINDOW(window), TRUE);
-        gtk_window_set_transient_for(GTK_WINDOW(window),
+    if (ui->gtk.window == NULL) {
+        ui->gtk.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        gtk_widget_realize(ui->gtk.window);
+        gtk_window_set_resizable(GTK_WINDOW(ui->gtk.window), FALSE);
+        gtk_window_set_modal(GTK_WINDOW(ui->gtk.window), TRUE);
+        gtk_window_set_transient_for(GTK_WINDOW(ui->gtk.window),
                 GTK_WINDOW(main_window));
-        gtk_window_set_type_hint(GTK_WINDOW(window),
+        gtk_window_set_type_hint(GTK_WINDOW(ui->gtk.window),
                 GDK_WINDOW_TYPE_HINT_DIALOG);
-        gtk_window_set_position(GTK_WINDOW(window),
+        gtk_window_set_position(GTK_WINDOW(ui->gtk.window),
                 GTK_WIN_POS_CENTER_ON_PARENT);
-        gdk_window_set_functions(GDK_WINDOW(gtk_widget_get_window(window)), GDK_FUNC_MOVE);
+        gdk_window_set_functions(GDK_WINDOW(gtk_widget_get_window(ui->gtk.window)), GDK_FUNC_MOVE);
 
-        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        gtk_container_add(GTK_CONTAINER(window), vbox);
+        GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        gtk_container_add(GTK_CONTAINER(ui->gtk.window), vbox);
         gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
 
-        gtk_window_set_title( GTK_WINDOW(window), _("Splitting wave file"));
+        gtk_window_set_title(GTK_WINDOW(ui->gtk.window), _("Splitting wave file"));
 
         gchar *tmp_str = g_markup_printf_escaped("<span size=\"larger\" weight=\"bold\">%s</span>",
-                gtk_window_get_title(GTK_WINDOW(window)));
+                gtk_window_get_title(GTK_WINDOW(ui->gtk.window)));
 
-        label = gtk_label_new( NULL);
-        gtk_label_set_markup( GTK_LABEL(label), tmp_str);
+        GtkWidget *label = gtk_label_new(NULL);
+        gtk_label_set_markup(GTK_LABEL(label), tmp_str);
         g_free(tmp_str);
+
         g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
-        label = gtk_label_new( _("The selected track breaks are now written to disk. This can take some time."));
+        label = gtk_label_new(_("The selected track breaks are now written to disk. This can take some time."));
         gtk_label_set_line_wrap( GTK_LABEL(label), TRUE);
         g_object_set(G_OBJECT(label), "xalign", 0.0f, "yalign", 0.5f, NULL);
         gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 5);
 
-        pbar = gtk_progress_bar_new();
-        gtk_box_pack_start(GTK_BOX(vbox), pbar, FALSE, TRUE, 5);
+        ui->gtk.pbar = gtk_progress_bar_new();
+        g_object_set(G_OBJECT(ui->gtk.pbar),
+                "show-text", TRUE,
+                NULL);
+        gtk_box_pack_start(GTK_BOX(vbox), ui->gtk.pbar, FALSE, TRUE, 5);
 
-        status_label = gtk_label_new( NULL);
-        g_object_set(G_OBJECT(status_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
-        gtk_label_set_ellipsize( GTK_LABEL(status_label), PANGO_ELLIPSIZE_MIDDLE);
-        gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, TRUE, 5);
+        ui->gtk.status_label = gtk_label_new( NULL);
+        g_object_set(G_OBJECT(ui->gtk.status_label), "xalign", 0.0f, "yalign", 0.5f, NULL);
+        gtk_label_set_ellipsize( GTK_LABEL(ui->gtk.status_label), PANGO_ELLIPSIZE_MIDDLE);
+        gtk_box_pack_start(GTK_BOX(vbox), ui->gtk.status_label, FALSE, TRUE, 5);
 
-        gtk_widget_show_all(GTK_WIDGET(window));
-        cur_file_displayed = -1;
+        GtkWidget *hbbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+        GtkWidget *cancel_button = gtk_button_new_with_label(_("Cancel"));
+        g_signal_connect(G_OBJECT(cancel_button), "clicked", G_CALLBACK(on_write_dialog_cancel_button_clicked), ui);
+        gtk_box_pack_end(GTK_BOX(hbbox), cancel_button, FALSE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(vbox), hbbox, FALSE, TRUE, 5);
+
+        gtk_widget_show_all(GTK_WIDGET(ui->gtk.window));
+        ui->gtk.cur_file_displayed = 0;
     }
 
-    if (write_info.sync) {
-        write_info.sync = 0;
-        gtk_widget_destroy(window);
-        window = NULL;
+    if (ui->gtk.cur_file_displayed != ui->position && ui->filename != NULL) {
+        gchar *file_basename = g_path_get_basename(ui->filename);
 
-        gchar *tmp_str;
-        if (write_info.errors != NULL) {
-            tmp_str = g_strdup_printf("%s:\n", _("There was an error splitting the file"));
+        gchar *tmp = g_strdup_printf(_("Writing %s"), file_basename);
+        gchar *msg = g_markup_printf_escaped("<i>%s</i>", tmp);
+        gtk_label_set_markup(GTK_LABEL(ui->gtk.status_label), msg);
+        g_free(msg);
+        g_free(tmp);
 
-            GList *cur = g_list_first(write_info.errors);
+        g_free(file_basename);
+
+        // FIXME: i18n plural forms
+        gchar *tmp_str = g_strdup_printf(_("%d of %d parts written"), ui->position-1, ui->total);
+        gtk_progress_bar_set_text(GTK_PROGRESS_BAR(ui->gtk.pbar), tmp_str);
+        g_free(tmp_str);
+
+        ui->gtk.cur_file_displayed = ui->position;
+    }
+
+    if (ui->finished) {
+        gtk_widget_destroy(g_steal_pointer(&ui->gtk.window));
+
+        if (ui->errors != NULL) {
+            gchar *tmp_str = g_strdup_printf("%s:\n", _("There was an error splitting the file"));
+
+            GList *cur = g_list_first(ui->errors);
             while (cur != NULL) {
                 gchar *tmp = g_strdup_printf("%s\n%s", tmp_str, (gchar *)cur->data);
                 g_free(tmp_str);
@@ -832,54 +988,42 @@ file_write_progress_idle_func(gpointer data) {
                 cur = g_list_next(cur);
             }
 
-            g_list_free(g_steal_pointer(&write_info.errors));
+            g_list_free(g_steal_pointer(&ui->errors));
 
             popupmessage_show(NULL, _("Operation failed"), tmp_str);
+            g_free(tmp_str);
+        } else if (ui->cancelled) {
+            popupmessage_show(NULL, _("Operation cancelled"), _("The split operation was cancelled."));
         } else {
-            if( write_info.num_files > 1) {
-                tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), sample_get_basename(g_sample), write_info.num_files);
-            } else {
-                tmp_str = g_strdup_printf(_("The file %s has been split into one part."), sample_get_basename(g_sample));
-            }
-            popupmessage_show( NULL, _("Operation successful"), tmp_str);
+            // TODO: gettext plurals
+            gchar *tmp_str = g_strdup_printf(_("The file %s has been split into %d parts."), sample_get_basename(g_sample), ui->total);
+            popupmessage_show(NULL, _("Operation successful"), tmp_str);
+            g_free(tmp_str);
         }
-        g_free(tmp_str);
 
-        file_write_progress_source_id = 0;
+        current_file_write_progress_ui = NULL;
+
+        ui->source_id = 0;
+
+        if (ui->filename) {
+            g_free(ui->filename);
+        }
+
+        g_cond_clear(&ui->overwrite_decision.cond);
+
+        g_mutex_unlock(&ui->mutex);
+
+        g_mutex_clear(&ui->mutex);
+
+        g_free(ui);
+
         return FALSE;
     }
 
-    if (cur_file_displayed != write_info.cur_file) {
-        str_ptr = basename( write_info.cur_filename);
+    double fraction = 1.0 * (ui->position-1+ui->percentage) / ui->total;
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(ui->gtk.pbar), fraction);
 
-        if( str_ptr == NULL) {
-            str_ptr = write_info.cur_filename;
-        }
-
-        gchar *fn = g_markup_escape_text(str_ptr, -1);
-        gchar *tmp = g_strdup_printf(_("Writing %s"), fn);
-        g_free(fn);
-        gchar *msg = g_markup_printf_escaped("<i>%s</i>", tmp);
-        g_free(tmp);
-
-        gtk_label_set_markup(GTK_LABEL(status_label), msg);
-        g_free(msg);
-
-        cur_file_displayed = write_info.cur_file;
-    }
-
-    fraction = 1.00*(write_info.cur_file-1+write_info.pct_done)/write_info.num_files;
-    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(pbar), fraction);
-
-    gchar *tmp_str;
-    // FIXME: i18n plural forms
-    if( write_info.num_files > 1) {
-        tmp_str = g_strdup_printf(_("%d of %d parts written"), write_info.cur_file-1, write_info.num_files);
-    } else {
-        tmp_str = g_strdup_printf(_("%d of 1 part written"), write_info.cur_file-1);
-    }
-    gtk_progress_bar_set_text( GTK_PROGRESS_BAR(pbar), tmp_str);
-    g_free(tmp_str);
+    g_mutex_unlock(&ui->mutex);
 
     return TRUE;
 }
@@ -1964,9 +2108,28 @@ static void menu_save_as(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void wavbreaker_write_files(char *dirname) {
     if (!sample_is_writing(g_sample)) {
-        sample_write_files(g_sample, track_breaks, &write_info, dirname);
+        struct FileWriteProgressUI *ui = g_new0(struct FileWriteProgressUI, 1);
 
-        file_write_progress_source_id = g_timeout_add(50, file_write_progress_idle_func, NULL);
+        g_mutex_init(&ui->mutex);
+        g_cond_init(&ui->overwrite_decision.cond);
+
+        ui->callbacks = (WriteStatusCallbacks) {
+            .on_file_changed = file_write_progress_ui_on_file_changed,
+            .on_file_progress_changed = file_write_progress_ui_on_file_progress_changed,
+            .on_error = file_write_progress_ui_on_error,
+            .on_finished = file_write_progress_ui_on_finished,
+
+            .is_cancelled = file_write_progress_ui_is_cancelled,
+            .ask_overwrite = file_write_progress_ui_ask_overwrite,
+
+            .user_data = ui,
+        };
+
+        sample_write_files(g_sample, track_breaks, &ui->callbacks, dirname);
+
+        ui->source_id = g_timeout_add(50, file_write_progress_idle_func, ui);
+
+        current_file_write_progress_ui = ui;
     }
 }
 
@@ -2219,9 +2382,10 @@ void wavbreaker_quit() {
         track_break_list_free(g_steal_pointer(&track_breaks));
     }
 
-    if (file_write_progress_source_id) {
-        g_source_remove(file_write_progress_source_id);
-        file_write_progress_source_id = 0;
+    if (current_file_write_progress_ui != NULL) {
+        // TODO: Would need to properly tear down the progress UI
+        g_source_remove(current_file_write_progress_ui->source_id);
+        current_file_write_progress_ui->source_id = 0;
     }
 
     if (open_file_source_id) {
@@ -2644,8 +2808,6 @@ do_activate(GApplication *app, gpointer user_data)
     gtk_box_pack_start(GTK_BOX(list_vbox), tbl_widget, TRUE, TRUE, 0);
 
 /* Finish up */
-
-    write_info.cur_filename = NULL;
 
     sample_init();
 
