@@ -18,7 +18,9 @@ ao = dependency('ao')
 cc = meson.get_compiler('c')
 libm = cc.find_library('m')
 
-deps = [glib, gtk3, ao]
+core_deps = [glib, libm]
+gui_deps = [gtk3]
+ao_deps = [ao]
 format_deps = []
 
 have_mpg123 = false
@@ -39,7 +41,18 @@ if get_option('ogg_vorbis')
   endif
 endif
 
-format_sources = [
+shared_sources = [
+  'src/appinfo.c',
+  'src/aoaudio.c',
+  'src/sample.c',
+
+  'src/list.c',
+  'src/track_break.c',
+  'src/appconfig.c',
+  'src/cue.c',
+  'src/toc.c',
+  'src/txt.c',
+
   'src/format.c',
   'src/format_wav.c',
   'src/format_cdda_raw.c',
@@ -47,22 +60,8 @@ format_sources = [
   'src/format_ogg_vorbis.c',
 ]
 
-list_sources = [
-  'src/list.c',
-  'src/track_break.c',
-  'src/appconfig.c',
-  'src/cue.c',
-  'src/toc.c',
-  'src/txt.c',
-]
-
-common_sources = [
-  'src/appinfo.c',
-]
-
-wavbreaker_sources = [
+gui_sources = [
   'src/about.c',
-  'src/aoaudio.c',
   'src/appconfig_gtk.c',
   'src/autosplit.c',
   'src/draw.c',
@@ -71,12 +70,11 @@ wavbreaker_sources = [
   'src/overwritedialog.c',
   'src/popupmessage.c',
   'src/reallyquit.c',
-  'src/sample.c',
   'src/saveas.c',
   'src/wavbreaker.c',
 ]
 
-wavcli_sources = [
+cli_sources = [
   'src/cli.c',
   'src/wavmerge.c',
   'src/wavgen.c',
@@ -85,7 +83,7 @@ wavcli_sources = [
 
 if get_option('windows_app')
   windows = import('windows')
-  wavbreaker_sources += windows.compile_resources('data/wavbreaker.rc')
+  gui_sources += windows.compile_resources('data/wavbreaker.rc')
 endif
 
 add_project_arguments(['-D_FILE_OFFSET_BITS=64', '-D_LARGEFILE_SOURCE',
@@ -122,19 +120,21 @@ endif
 install_man('man/wavbreaker.1')
 install_man('man/wavcli.1')
 
+# For now this is a static library for internal linking with the GUI and CLI.
+# Once the API/ABI is stable, we can turn it into a installed shared library.
+libwavbreaker = static_library('wavbreaker',
+           shared_sources,
+           dependencies : core_deps + ao_deps + format_deps)
+
 executable('wavbreaker',
-           wavbreaker_sources,
-           common_sources,
-           format_sources,
-           list_sources,
-           dependencies : deps + format_deps,
+           gui_sources,
+           dependencies : core_deps + gui_deps,
+           link_with : libwavbreaker,
            gui_app : true,
            install : true)
 
 executable('wavcli',
-           wavcli_sources,
-           common_sources,
-           format_sources,
-           list_sources,
-           dependencies : [glib, libm] + format_deps,
+           cli_sources,
+           dependencies : core_deps,
+           link_with : libwavbreaker,
            install : true)
