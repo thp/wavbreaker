@@ -117,10 +117,10 @@ cmd_analyze(int argc, char *argv[])
     gint64 analyze_duration = g_get_monotonic_time() - analyze_started;
     unsigned long num_sample_blocks = sample_get_num_sample_blocks(sample);
 
-    printf("%lu sample blocks analyzed in %.2f seconds = %lu blocks/sec\n",
-            num_sample_blocks,
+    printf("%llu sample blocks analyzed in %.2f seconds = %llu blocks/sec\n",
+            (unsigned long long)num_sample_blocks,
             (double)analyze_duration / (float)G_USEC_PER_SEC,
-            num_sample_blocks * G_USEC_PER_SEC / analyze_duration);
+            (unsigned long long)num_sample_blocks * G_USEC_PER_SEC / analyze_duration);
 
     gint64 started = g_get_monotonic_time();
 
