@@ -27,7 +27,7 @@ jobs:
           - build_host: macos-latest
             build_type: macos
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install APT dependencies
         if: matrix.build_type == 'linux'
         run: |
@@ -58,7 +58,7 @@ jobs:
         run: |
           mkdir -p dist/
           mv -v wavbreaker_*.snap dist/
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: build-result
           path: dist/*
