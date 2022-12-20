@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## UNRELEASED
+## [0.16] -- 2022-12-20
 
 ### Added
 
@@ -76,3 +76,4 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 [0.14]: https://github.com/thp/wavbreaker/compare/0.13..0.14
 [0.15]: https://github.com/thp/wavbreaker/compare/0.14..0.15
+[0.16]: https://github.com/thp/wavbreaker/compare/0.15..0.16

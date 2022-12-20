@@ -52,6 +52,12 @@
   </provides>
 
   <releases>
+    <release version="0.16" date="2022-12-20">
+      <description>
+        <p>Support for reading Ogg Vorbis files (writing not yet implemented)</p>
+        <p>New "wavcli" command-line tool exposing wavbreaker's features to CLI users</p>
+      </description>
+    </release>
     <release version="0.15" date="2022-04-04">
       <description>
         <p>Support for lossless cutting of MPEG-1 Audio Layer II (MP2) files</p>
