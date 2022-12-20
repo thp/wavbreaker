@@ -627,7 +627,13 @@ select_and_show_track_break(int index)
 
 void track_break_add_entry()
 {
-    TrackBreak *track_break = track_break_list_add_offset(track_breaks, TRUE, cursor_marker, NULL);
+    gulong marker = cursor_marker;
+
+    if (g_sample != NULL && sample_is_playing(g_sample)) {
+        marker = sample_get_play_marker(g_sample);
+    }
+
+    TrackBreak *track_break = track_break_list_add_offset(track_breaks, TRUE, marker, NULL);
 
     track_break_update_gui_model();
 
