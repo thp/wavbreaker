@@ -4,7 +4,7 @@ RUN mkdir /build
 
 WORKDIR /build
 
-RUN dnf -y install make mingw32-gcc mingw64-gtk3 diffutils findutils automake autoconf meson gettext libtool git wget bzip2 xz
+RUN dnf -y install make mingw64-gcc mingw64-gtk3 diffutils findutils automake autoconf meson gettext libtool git wget bzip2 xz
 
 RUN git clone https://github.com/xiph/libao.git && \
     cd libao && \
