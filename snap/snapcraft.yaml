@@ -3,25 +3,22 @@ title: wavbreaker
 icon: data/net.sourceforge.wavbreaker.svg
 grade: stable
 license: GPL-2.0
-version: '0.14'
+version: '0.16'
 summary: GUI tool to split WAV and MP3 files
 description: |
     This application's purpose in life is to take a WAV file
     and break it up into multiple WAV files. It makes a
     clean break at the correct position to burn the files to
     an Audio CD without any dead air between the tracks.
-confinement: devmode
-base: core18
+
+confinement: strict
+base: core22
+
 parts:
   wavbreaker:
-      override-pull: |
-          snapcraftctl pull
-          # Point icon to the correct location
-          sed -i.bak -e 's|Icon=net.sourceforge.wavbreaker|Icon=/usr/share/icons/hicolor/scalable/apps/net.sourceforge.wavbreaker.svg|g' data/net.sourceforge.wavbreaker.desktop
       plugin: meson
       source-type: local
       source: .
-      # ??? https://forum.snapcraft.io/t/gtk3-applications/13483
       meson-parameters: ["--prefix=/usr"]
       build-packages:
           - meson
@@ -32,23 +29,21 @@ parts:
           - libao4
           - libmpg123-0
 slots:
-    wavbreaker-slot:
+    wavbreaker-dbus-name:
         interface: dbus
         bus: session
         name: net.sourceforge.wavbreaker
 apps:
     wavbreaker:
         command: usr/bin/wavbreaker
-        extensions: [gnome-3-28]
-        # cargo-culted from https://forum.snapcraft.io/t/snap-issues-with-gtk/5120/2
+        extensions: [gnome]
         plugs:
             - gsettings
             - home
-            - x11
-            - wayland # let it run on wayland, because it's gtk3 so it should be fine
-            - desktop # needed for a lot of gtk3 and glib interaction with the host system
-            - desktop-legacy # needed for accessibility tools IIRC
             - network-bind
         slots:
-            - wavbreaker-slot
+            - wavbreaker-dbus-name
         desktop: usr/share/applications/net.sourceforge.wavbreaker.desktop
+    wavcli:
+      # FIXME: this is currently broken (undefined symbol: g_assertion_message_cmpint)
+      command: usr/bin/wavcli
