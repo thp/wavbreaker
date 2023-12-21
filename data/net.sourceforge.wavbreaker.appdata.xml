@@ -3,7 +3,6 @@
 <component type="desktop-application">
   <id>net.sourceforge.wavbreaker</id>
   <metadata_license>FSFAP</metadata_license>
-  <content_rating>none</content_rating>
   <project_license>GPL-2.0+</project_license>
   <name>wavbreaker</name>
   <summary>GUI tool to split WAV, MP2 and MP3 files</summary>
