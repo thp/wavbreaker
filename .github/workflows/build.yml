@@ -33,7 +33,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt-get install --yes \
-            libgtk-3-dev libao-dev libmpg123-dev libvorbis-dev \
+            libgtk-3-dev libao-dev libmpg123-dev libvorbis-dev libcue-dev \
             meson ninja-build \
             gettext flatpak-builder
       - name: Install Snap dependencies
@@ -45,7 +45,7 @@ jobs:
         if: matrix.build_type == 'macos'
         run: |
           brew install \
-            gtk+3 libao mpg123 libvorbis \
+            gtk+3 libao mpg123 libvorbis libcue \
             meson ninja gettext
       - name: Build for ${{ matrix.build_type }}
         if: matrix.build_type != 'snap'

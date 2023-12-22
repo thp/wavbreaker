@@ -25,9 +25,11 @@ parts:
           - ninja-build
           - libao-dev
           - libmpg123-dev
+          - libcue-dev
       stage-packages:
           - libao4
           - libmpg123-0
+          - libcue
 slots:
     wavbreaker-dbus-name:
         interface: dbus
