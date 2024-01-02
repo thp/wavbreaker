@@ -29,7 +29,7 @@ parts:
       stage-packages:
           - libao4
           - libmpg123-0
-          - libcue
+          - libcue2
 slots:
     wavbreaker-dbus-name:
         interface: dbus
