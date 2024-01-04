@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+
+* Added `libcue` library dependency
+
+### Fixed
+
+* Importing of track breaks via CUE file now works with any well formatted CUE file
+
 ## [0.16] -- 2022-12-20
 
 ### Added
