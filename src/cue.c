@@ -30,15 +30,27 @@ cue_read_file(const char *cue_filename, TrackBreakList *list)
     FILE *fp;
 
     fp = fopen(cue_filename, "r");
-    if (!fp) return FALSE;
+    if (!fp) {
+        g_warning("Error opening CUE file: %s", cue_filename);
+        return FALSE;
+    }
 
     Cd *cd = cue_parse_file(fp);
+    if (!cd) {
+        g_warning("Unable to parse CUE file: %s", cue_filename);
+        fclose(fp);
+        return FALSE;
+    }
+
     int trackCount = cd_get_ntrack(cd);
 
     // Track numbers, not array elements
     for (int i = 1; i <= trackCount; i++) {
         Track *track = cd_get_track(cd, i);
-        if (!track) continue;
+        if (!track) {
+            g_warning("Track %i information missing from CUE sheet", i);
+            continue;
+        }
 
         gulong offset = track_get_start(track);
         track_break_list_add_offset(list, TRUE, offset, NULL);
