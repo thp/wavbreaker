@@ -22,68 +22,43 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <libcue.h>
 
 gboolean
 cue_read_file(const char *cue_filename, TrackBreakList *list)
 {
     FILE *fp;
-    /* These buffers must have the same length */
-    char line_buf[1024];
-    char buf[1024];
-    int next_track = 1;
 
     fp = fopen(cue_filename, "r");
     if (!fp) {
+        g_warning("Error opening CUE file: %s", cue_filename);
         return FALSE;
     }
 
-    track_break_list_clear(list);
-
-    /* Read the first line: FILE "foo.wav" WAVE */
-    if (!fgets(line_buf, sizeof(line_buf), fp)) {
+    Cd *cd = cue_parse_file(fp);
+    if (!cd) {
+        g_warning("Unable to parse CUE file: %s", cue_filename);
         fclose(fp);
         return FALSE;
     }
 
-    /* Check that it starts with FILE and ends with WAVE */
-    if (sscanf(line_buf, "FILE %s WAVE", buf) != 1) {
-        goto error;
-    }
+    int trackCount = cd_get_ntrack(cd);
 
-    while (!feof(fp)) {
-        int N;
-        int read;
-        guint offset;
-
-        read = fscanf(fp, "TRACK %02d AUDIO\n", &N);
-        if (feof(fp)) {
-            break;
+    // Track numbers, not array elements
+    for (int i = 1; i <= trackCount; i++) {
+        Track *track = cd_get_track(cd, i);
+        if (!track) {
+            g_warning("Track %i information missing from CUE sheet", i);
+            continue;
         }
 
-        if (read != 1 || N != next_track) {
-            goto error;
-        }
-
-        if (!fgets(line_buf, sizeof(line_buf), fp)) {
-            goto error;
-        }
-
-        read = sscanf(line_buf, "INDEX %02d %s", &N, buf);
-        if (read != 2 || N != 1) {
-            goto error;
-        }
-
-        offset = msf_time_to_offset(buf);
+        gulong offset = track_get_start(track);
         track_break_list_add_offset(list, TRUE, offset, NULL);
-
-        ++next_track;
     }
+
+    fclose(fp);
 
     return TRUE;
-
-error:
-    fclose(fp);
-    return FALSE;
 }
 
 static void
@@ -93,8 +68,8 @@ track_break_write_cue(int index, gboolean write, gulong start_offset, gulong end
 
     gchar *time = track_break_format_timestamp(start_offset, TRUE);
 
-    fprintf(fp, "TRACK %02d AUDIO\n", index + 1);
-    fprintf(fp, "INDEX 01 %s\n", time);
+    fprintf(fp, "\n\tTRACK %02d AUDIO\n", index + 1);
+    fprintf(fp, "\t\tINDEX 01 %s\n", time);
 
     g_free(time);
 }
@@ -108,6 +83,7 @@ cue_write_file(const char *cue_filename, const char *audio_filename, TrackBreakL
         return FALSE;
     }
 
+    fprintf(fp, "REM Generated with wavbreaker\n");
     fprintf(fp, "FILE \"%s\" WAVE\n", audio_filename);
 
     track_break_list_foreach(list, track_break_write_cue, fp);

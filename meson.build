@@ -14,11 +14,12 @@ localedir = get_option('localedir')
 glib = dependency('glib-2.0')
 gtk3 = dependency('gtk+-3.0', version : '>= 3.22')
 ao = dependency('ao')
+libcue = dependency('libcue')
 
 cc = meson.get_compiler('c')
 libm = cc.find_library('m')
 
-core_deps = [glib, libm]
+core_deps = [glib, libm, libcue]
 gui_deps = [gtk3]
 ao_deps = [ao]
 format_deps = []

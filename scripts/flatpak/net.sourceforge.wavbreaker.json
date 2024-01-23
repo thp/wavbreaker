@@ -16,6 +16,16 @@
             ]
         },
         {
+            "name": "libcue",
+            "buildsystem": "cmake",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/lipnitsk/libcue.git"
+                }
+            ]
+        },
+        {
             "name": "wavbreaker",
             "buildsystem": "meson",
             "sources": [

@@ -4,7 +4,7 @@ RUN mkdir /build
 
 WORKDIR /build
 
-RUN dnf -y install make mingw64-gcc mingw64-gtk3 diffutils findutils automake autoconf meson gettext libtool git wget bzip2 xz
+RUN dnf -y install make mingw64-gcc mingw64-gtk3 diffutils findutils automake autoconf meson gettext libtool git wget bzip2 xz bison flex cmake
 
 RUN git clone https://github.com/xiph/libao.git && \
     cd libao && \
@@ -45,4 +45,13 @@ RUN wget https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz && \
         --host=x86_64-w64-mingw32 \
         --enable-shared \
         --prefix=/usr/x86_64-w64-mingw32/sys-root/mingw/ && \
+    make install V=1
+
+RUN wget https://github.com/lipnitsk/libcue/archive/refs/tags/v2.3.0.tar.gz -O libcue-2.3.0.tar.gz && \
+    tar xvf libcue-2.3.0.tar.gz && \
+    cd libcue-2.3.0 && \
+    mingw64-cmake \
+        -DCMAKE_INSTALL_PREFIX=/usr/x86_64-w64-mingw32/sys-root/mingw/ \
+        -DBUILD_SHARED_LIBS=true \
+        . && \
     make install V=1
