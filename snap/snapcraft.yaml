@@ -12,7 +12,7 @@ description: |
     an Audio CD without any dead air between the tracks.
 
 confinement: strict
-base: core22
+base: core24
 
 parts:
   wavbreaker:
