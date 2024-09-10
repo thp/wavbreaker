@@ -9,6 +9,8 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 ### Changed
 
 * Added `libcue` library dependency
+* Upgraded Snap base to core24
+* Upgraded Flatpak SDK to 23.08
 
 ### Fixed
 
