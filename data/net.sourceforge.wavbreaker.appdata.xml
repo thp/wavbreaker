@@ -45,6 +45,9 @@
   </screenshots>
 
   <url type="homepage">https://wavbreaker.sourceforge.io/</url>
+  <url type="bugtracker">https://github.com/thp/wavbreaker/issues</url>
+  <url type="vcs-browser">https://github.com/thp/wavbreaker</url>
+  <developer_name>Thomas Perl</developer_name>
 
   <provides>
     <binary>wavbreaker</binary>
