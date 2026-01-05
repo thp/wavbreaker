@@ -60,7 +60,7 @@ jobs:
           mv -v wavbreaker_*.snap dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: build-result
+          name: build-result-${{ matrix.build_type }}
           path: dist/*
           if-no-files-found: ignore
       - name: Upload release
