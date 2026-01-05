@@ -10,5 +10,5 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y flatpak-builder
 
 RUN flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-RUN flatpak install -y org.freedesktop.Sdk//23.08
-RUN flatpak install -y org.freedesktop.Platform//23.08
+RUN flatpak install -y org.freedesktop.Sdk//25.08
+RUN flatpak install -y org.freedesktop.Platform//25.08
