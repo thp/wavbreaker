@@ -307,7 +307,7 @@ mp3_open_file(const FormatModule *self, const char *filename, char **error_messa
 
             mpg123_format_none(mp3->mpg123);
             if (mpg123_format(mp3->mpg123, si->samplesPerSec,
-                              (si->channels == 1) ? MPG123_STEREO : MPG123_MONO,
+                              (si->channels == 1) ? MPG123_MONO : MPG123_STEREO,
                               MPG123_ENC_SIGNED_16) != MPG123_OK) {
                 format_module_set_error_message(error_message, "Failed to set mpg123 format");
                 goto error;

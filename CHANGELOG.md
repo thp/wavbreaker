@@ -15,6 +15,7 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 ### Fixed
 
 * Importing of track breaks via CUE file now works with any well formatted CUE file
+* mpg123-based MP3 playback live preview fix (mono vs stereo channel count bug)
 
 ## [0.16] -- 2022-12-20
 
