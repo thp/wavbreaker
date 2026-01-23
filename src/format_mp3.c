@@ -203,7 +203,7 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
     report_progress(1.0, report_progress_user_data);
 
 #if defined(WAVBREAKER_MP3_DEBUG)
-    g_debug("Wrote %d MP3 frames from '%s' to '%s'", frames_written, sample_file, output_filename);
+    g_debug("Wrote %d MP3 frames from '%s' to '%s'", frames_written, self->filename, output_filename);
 #endif /* WAVBREAKER_MP3_DEBUG */
 
     fclose(output_file);
