@@ -74,7 +74,7 @@ ogg_vorbis_write_file(OpenedAudioFile *self, const char *output_filename, unsign
 {
     OpenedOGGVorbisFile *ogg = (OpenedOGGVorbisFile *)self;
 
-    g_warning("TODO: Write file '%s', start=%lu, end=%lu", output_filename, start_pos, end_pos);
+    g_warning("writing is not implemented yet; save track breaks to a .txt file and use track-break-to-ffmpeg.py to break up Ogg files until Ogg file writing is implemented: Write file '%s', start=%lu, end=%lu", output_filename, start_pos, end_pos);
 
     report_progress(0.0, report_progress_user_data);
 
