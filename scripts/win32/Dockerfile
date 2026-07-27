@@ -52,6 +52,7 @@ RUN wget https://github.com/lipnitsk/libcue/archive/refs/tags/v2.3.0.tar.gz -O l
     cd libcue-2.3.0 && \
     mingw64-cmake \
         -DCMAKE_INSTALL_PREFIX=/usr/x86_64-w64-mingw32/sys-root/mingw/ \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DBUILD_SHARED_LIBS=true \
         . && \
     make install V=1
