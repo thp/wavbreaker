@@ -203,7 +203,7 @@ mp3_write_file(OpenedAudioFile *self, const char *output_filename, unsigned long
     report_progress(1.0, report_progress_user_data);
 
 #if defined(WAVBREAKER_MP3_DEBUG)
-    g_debug("Wrote %d MP3 frames from '%s' to '%s'", frames_written, sample_file, output_filename);
+    g_debug("Wrote %d MP3 frames from '%s' to '%s'", frames_written, self->filename, output_filename);
 #endif /* WAVBREAKER_MP3_DEBUG */
 
     fclose(output_file);
@@ -307,7 +307,7 @@ mp3_open_file(const FormatModule *self, const char *filename, char **error_messa
 
             mpg123_format_none(mp3->mpg123);
             if (mpg123_format(mp3->mpg123, si->samplesPerSec,
-                              (si->channels == 1) ? MPG123_STEREO : MPG123_MONO,
+                              (si->channels == 1) ? MPG123_MONO : MPG123_STEREO,
                               MPG123_ENC_SIGNED_16) != MPG123_OK) {
                 format_module_set_error_message(error_message, "Failed to set mpg123 format");
                 goto error;
