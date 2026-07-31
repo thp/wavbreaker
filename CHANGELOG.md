@@ -6,6 +6,10 @@ The format mostly follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Add Georgian translation (PR #38, by Ekaterine Papava)
+
 ### Changed
 
 * Added `libcue` library dependency
